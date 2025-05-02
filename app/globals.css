@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Default base colors */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 9%;
+  
+  /* Brand colors - Light Theme */
+  --brand-background: 0 0% 100%; /* #FFFFFF */
+  --brand-text: 187 30% 26%; /* #2E4F54 */
+  --brand-accent: 180 50% 65%; /* #7CCFD0 */
+  --brand-button-text: 0 0% 100%; /* #FFFFFF */
+  --brand-card: 210 17% 98%; /* #F8F9FA */
+  --brand-border: 196 17% 89%; /* #DDE5E7 */
+  
+  /* Status colors - Light Theme */
+  --brand-pending: 39 100% 50%; /* Amber */
+  --brand-upcoming: 180 50% 65%; /* Brand accent blue */
+  --brand-in-progress: 262 83% 58%; /* Purple */
+  --brand-completed: 142 71% 45%; /* Green */
+  --brand-cancelled: 0 84% 60%; /* Red */
+}
+
+.dark, [data-theme="dark"] {
+  /* Default base colors - Softened dark mode */
+  --background: 215 28% 17%; /* #1E293B - a softer blue-gray instead of black */
+  --foreground: 210 40% 98%; /* #F8FAFC */
+  
+  /* Brand colors - Dark Theme */
+  --brand-background: 217 33% 17%; /* #1E293B - softer dark blue-gray */
+  --brand-text: 180 56% 92%; /* #E0F4F5 */
+  --brand-accent: 180 50% 65%; /* #7CCFD0 */
+  --brand-button-text: 215 28% 17%; /* #1E293B */
+  --brand-card: 215 25% 27%; /* #334155 - slightly lighter than background */
+  --brand-border: 217 19% 35%; /* #475569 */
+  
+  /* Status colors - Dark Theme (adjusted for dark mode visibility) */
+  --brand-pending: 39 100% 60%; /* Amber - brighter */
+  --brand-upcoming: 180 50% 65%; /* Brand accent blue */
+  --brand-in-progress: 262 83% 68%; /* Purple - brighter */
+  --brand-completed: 142 71% 55%; /* Green - brighter */
+  --brand-cancelled: 0 84% 70%; /* Red - brighter */
+}
+
+body {
+  background-color: hsl(var(--brand-background));
+  color: hsl(var(--brand-text));
+}

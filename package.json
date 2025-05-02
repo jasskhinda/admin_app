@@ -1,0 +1,31 @@
+{
+  "name": "dispatcher_app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint --max-warnings=0",
+    "build-no-lint": "DISABLE_ESLINT_PLUGIN=true next build"
+  },
+  "dependencies": {
+    "@react-google-maps/api": "^2.20.6",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.4",
+    "date-fns": "^4.1.0",
+    "next": "15.3.0",
+    "openai": "^4.95.0",
+    "react": "^19.1.0",
+    "react-big-calendar": "^1.18.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.24.0",
+    "eslint-config-next": "^15.3.1",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17"
+  }
+}
