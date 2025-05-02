@@ -10,7 +10,7 @@ export async function GET(request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
-    if (\!error) {
+    if (!error) {
       return NextResponse.redirect(new URL(next, request.url))
     }
   }
@@ -18,4 +18,3 @@ export async function GET(request) {
   // Return the user to an error page with instructions
   return NextResponse.redirect(new URL('/login?error=Could%20not%20authenticate', request.url))
 }
-EOL < /dev/null
