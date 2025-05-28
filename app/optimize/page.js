@@ -169,7 +169,7 @@ export default function OptimizePage() {
             clientsMap[userId] = {
               id: userId,
               first_name: "Client",
-              last_name: userId.substring(0, 8)
+              last_name: userId ? userId.substring(0, 8) : ""
             };
           }
         });

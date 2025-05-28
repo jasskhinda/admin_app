@@ -149,7 +149,7 @@ export function AuthProvider({ children }) {
     }, []);
 
     // Custom sign in function that verifies the user's role
-    const signInWithRole = async(email, password, requiredRole = 'dispatcher') => {
+    const signInWithRole = async(email, password, requiredRole = 'admin') => {
         try {
             console.log('Attempting to sign in with email:', email);
             
@@ -200,7 +200,7 @@ export function AuthProvider({ children }) {
 
                 // Set the profile in state
                 setUserProfile(profile);
-                console.log('Dispatcher authentication successful');
+                console.log('Admin authentication successful');
                 return data;
             }
 
@@ -217,10 +217,10 @@ export function AuthProvider({ children }) {
         userProfile,
         loading,
         signUp: (email, password) => supabase.auth.signUp({ email, password }),
-        signIn: (email, password) => signInWithRole(email, password, 'dispatcher'),
+        signIn: (email, password) => signInWithRole(email, password, 'admin'),
         signOut: () => supabase.auth.signOut(),
         hasRole: (role) => userProfile?.role === role,
-        isDispatcher: () => userProfile?.role === 'dispatcher',
+        isAdmin: () => userProfile?.role === 'admin',
         refreshProfile: () => user?.id ? fetchUserProfile(user.id) : Promise.resolve(null),
     };
 

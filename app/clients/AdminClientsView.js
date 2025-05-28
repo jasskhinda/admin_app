@@ -58,11 +58,11 @@ export default function AdminClientsView({ user, userProfile, clients }) {
     if (!status) return null;
     
     const statusClasses = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-gray-100 text-gray-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      completed: 'bg-blue-100 text-blue-800',
-      cancelled: 'bg-red-100 text-red-800',
+      active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+      inactive: 'bg-surface text-primary dark:bg-surface dark:text-primary',
+      pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+      completed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+      cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
     };
     
     return (
@@ -77,19 +77,19 @@ export default function AdminClientsView({ user, userProfile, clients }) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 bg-background text-primary min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Client Management</h1>
         <Link
           href="/clients/add"
-          className="bg-primary text-onPrimary px-4 py-2 rounded hover:bg-opacity-90"
+          className="bg-primary text-onPrimary px-4 py-2 rounded hover:opacity-90 transition-opacity"
         >
           Add New Client
         </Link>
       </div>
 
       {/* Search and Filter Controls */}
-      <div className="bg-surface p-4 rounded-lg shadow-sm mb-6">
+      <div className="bg-surface p-4 rounded-lg shadow-sm mb-6 border border-disabled/20">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Search</label>
@@ -98,7 +98,7 @@ export default function AdminClientsView({ user, userProfile, clients }) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, email, phone..."
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+              className="w-full p-2 border border-disabled/30 rounded bg-background text-primary focus:ring-2 focus:ring-primary focus:border-primary"
             />
           </div>
           
@@ -107,7 +107,7 @@ export default function AdminClientsView({ user, userProfile, clients }) {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+              className="w-full p-2 border border-disabled/30 rounded bg-background text-primary focus:ring-2 focus:ring-primary focus:border-primary"
             >
               <option value="all">All Clients</option>
               <option value="active">Active</option>
@@ -121,7 +121,7 @@ export default function AdminClientsView({ user, userProfile, clients }) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+              className="w-full p-2 border border-disabled/30 rounded bg-background text-primary focus:ring-2 focus:ring-primary focus:border-primary"
             >
               <option value="name">Name</option>
               <option value="email">Email</option>
@@ -135,7 +135,7 @@ export default function AdminClientsView({ user, userProfile, clients }) {
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+              className="w-full p-2 border border-disabled/30 rounded bg-background text-primary focus:ring-2 focus:ring-primary focus:border-primary"
             >
               <option value="asc">Ascending</option>
               <option value="desc">Descending</option>
@@ -145,59 +145,59 @@ export default function AdminClientsView({ user, userProfile, clients }) {
       </div>
 
       {/* Clients Table */}
-      <div className="bg-surface rounded-lg shadow overflow-hidden">
+      <div className="bg-surface rounded-lg shadow overflow-hidden border border-disabled/20">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-disabled/20">
+            <thead className="bg-primary/5">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-primary/70 uppercase tracking-wider">
                   Name
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-primary/70 uppercase tracking-wider">
                   Contact
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-primary/70 uppercase tracking-wider">
                   Status
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-primary/70 uppercase tracking-wider">
                   Trips
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-primary/70 uppercase tracking-wider">
                   Last Trip
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-primary/70 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-background divide-y divide-disabled/20">
               {sortedClients.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-4 text-center text-disabled">
                     No clients found
                   </td>
                 </tr>
               ) : (
                 sortedClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-50">
+                  <tr key={client.id} className="hover:bg-primary/5 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{client.full_name || 'Unnamed'}</div>
-                      <div className="text-xs text-gray-500">ID: {client.id.substring(0, 8)}</div>
+                      <div className="text-sm font-medium text-primary">{client.full_name || 'Unnamed'}</div>
+                      <div className="text-xs text-disabled">ID: {client.id.substring(0, 8)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{client.email}</div>
-                      <div className="text-sm text-gray-500">{client.phone || 'No phone'}</div>
+                      <div className="text-sm text-primary">{client.email}</div>
+                      <div className="text-sm text-disabled">{client.phone || 'No phone'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(client.status || 'inactive')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-disabled">
                       {client.trip_count || 0} trips
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {client.last_trip ? (
                         <div>
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm text-primary">
                             {new Date(client.last_trip.created_at).toLocaleDateString()}
                           </div>
                           <div className="text-xs">
@@ -205,26 +205,26 @@ export default function AdminClientsView({ user, userProfile, clients }) {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-500">No trips</span>
+                        <span className="text-sm text-disabled">No trips</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <Link
                           href={`/clients/${client.id}`}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-secondary hover:text-primary transition-colors"
                         >
                           View
                         </Link>
                         <Link
                           href={`/clients/${client.id}/edit`}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-secondary hover:text-primary transition-colors"
                         >
                           Edit
                         </Link>
                         <button
                           onClick={() => handleCreateTrip(client.id)}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-secondary hover:text-primary transition-colors"
                         >
                           New Trip
                         </button>
@@ -239,8 +239,8 @@ export default function AdminClientsView({ user, userProfile, clients }) {
       </div>
       
       {/* Stats Summary */}
-      <div className="mt-6 bg-surface p-4 rounded-lg shadow-sm">
-        <div className="text-sm text-gray-600">
+      <div className="mt-6 bg-surface p-4 rounded-lg shadow-sm border border-disabled/20">
+        <div className="text-sm text-disabled">
           Total Clients: <span className="font-medium">{clients.length}</span> |
           Showing: <span className="font-medium">{sortedClients.length}</span> |
           Active: <span className="font-medium">{clients.filter(c => c.status === 'active').length}</span> |

@@ -7,7 +7,7 @@ export async function POST(request) {
   try {
     console.log('User creation API called');
     
-    // Get the regular client to check the dispatcher's session
+    // Get the regular client to check the admin's session
     const supabase = createRouteHandlerClient({ cookies });
     const { data: { session } } = await supabase.auth.getSession();
     
@@ -21,17 +21,17 @@ export async function POST(request) {
     
     console.log('Session user ID:', session.user.id);
     
-    // Verify the dispatcher's role
-    const { data: dispatcherProfile, error: dispatcherError } = await supabase
+    // Verify the admin's role
+    const { data: adminProfile, error: adminError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', session.user.id)
       .single();
     
-    if (dispatcherError || !dispatcherProfile || dispatcherProfile.role !== 'dispatcher') {
-      console.error('User is not a dispatcher:', dispatcherError || 'No profile or wrong role');
+    if (adminError || !adminProfile || adminProfile.role !== 'admin') {
+      console.error('User is not an admin:', adminError || 'No profile or wrong role');
       return NextResponse.json(
-        { error: 'Forbidden: Only dispatchers can create users' },
+        { error: 'Forbidden: Only admins can create users' },
         { status: 403 }
       );
     }

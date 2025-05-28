@@ -15,6 +15,7 @@ export default function AddClient() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
+  const [isVeteran, setIsVeteran] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,15 +32,15 @@ export default function AddClient() {
       
       setUser(session.user);
       
-      // Check if user has dispatcher role
+      // Check if user has admin role
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', session.user.id)
         .single();
       
-      if (error || !profile || profile.role !== 'dispatcher') {
-        // Not a dispatcher, redirect to login
+      if (error || !profile || profile.role !== 'admin') {
+        // Not an admin, redirect to login
         supabase.auth.signOut();
         router.push('/login?error=Access%20denied');
       }
@@ -66,6 +67,7 @@ export default function AddClient() {
         phone_number: phoneNumber,
         address,
         notes,
+        metadata: { veteran: isVeteran }
       };
       
       // Call the serverless function to create the user and profile
@@ -110,6 +112,7 @@ export default function AddClient() {
       setPhoneNumber('');
       setAddress('');
       setNotes('');
+      setIsVeteran(false);
       
     } catch (err) {
       console.error('Error creating client:', err);
@@ -233,6 +236,18 @@ export default function AddClient() {
                   placeholder="Special needs, preferences, etc."
                   className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
                 />
+              </div>
+              
+              <div className="mt-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isVeteran}
+                    onChange={(e) => setIsVeteran(e.target.checked)}
+                    className="rounded border-brand-border text-brand-accent focus:ring-brand-accent"
+                  />
+                  <span className="text-sm font-medium">Veteran (eligible for 20% discount)</span>
+                </label>
               </div>
             </div>
 

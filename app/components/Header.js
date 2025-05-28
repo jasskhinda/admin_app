@@ -3,7 +3,7 @@
 import Link from 'next/link';
 // ThemeSwitcher removed as requested
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function Header() {
@@ -33,34 +33,7 @@ export default function Header() {
     router.push('/login');
   };
 
-  const [activeRoute, setActiveRoute] = useState('/dashboard');
-  
-  useEffect(() => {
-    // Set active route based on current path
-    if (typeof window !== 'undefined') {
-      const updateActiveRoute = () => {
-        setActiveRoute(window.location.pathname);
-      };
-      
-      // Initial update
-      updateActiveRoute();
-      
-      // Listen for route changes
-      window.addEventListener('popstate', updateActiveRoute);
-      
-      // Custom event for Next.js navigation
-      const handleRouteChange = () => {
-        setTimeout(updateActiveRoute, 0);
-      };
-      
-      router.events?.on?.('routeChangeComplete', handleRouteChange);
-      
-      return () => {
-        window.removeEventListener('popstate', updateActiveRoute);
-        router.events?.off?.('routeChangeComplete', handleRouteChange);
-      };
-    }
-  }, [router]);
+  const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-10 bg-brand-background border-b border-brand-border">
@@ -76,7 +49,7 @@ export default function Header() {
           <Link 
             href="/dashboard" 
             className={`text-sm font-medium hover:text-brand-accent transition-colors pb-1 ${
-              activeRoute === '/dashboard' ? 'text-brand-accent border-b-2 border-brand-accent' : ''
+              pathname === '/dashboard' ? 'text-brand-accent border-b-2 border-brand-accent' : ''
             }`}
           >
             Dashboard
@@ -84,7 +57,7 @@ export default function Header() {
           <Link 
             href="/trips/new" 
             className={`text-sm font-medium hover:text-brand-accent transition-colors pb-1 ${
-              activeRoute.includes('/trips/new') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
+              pathname.includes('/trips/new') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
             }`}
           >
             New Trip
@@ -92,7 +65,7 @@ export default function Header() {
           <Link 
             href="/calendar" 
             className={`text-sm font-medium hover:text-brand-accent transition-colors pb-1 ${
-              activeRoute.includes('/calendar') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
+              pathname.includes('/calendar') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
             }`}
           >
             Calendar
@@ -100,7 +73,7 @@ export default function Header() {
           <Link 
             href="/drivers" 
             className={`text-sm font-medium hover:text-brand-accent transition-colors pb-1 ${
-              activeRoute.includes('/drivers') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
+              pathname.includes('/drivers') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
             }`}
           >
             Drivers
@@ -108,7 +81,7 @@ export default function Header() {
           <Link 
             href="/clients" 
             className={`text-sm font-medium hover:text-brand-accent transition-colors pb-1 ${
-              activeRoute.includes('/clients') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
+              pathname.includes('/clients') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
             }`}
           >
             Clients
@@ -116,7 +89,7 @@ export default function Header() {
           <Link 
             href="/map" 
             className={`text-sm font-medium hover:text-brand-accent transition-colors pb-1 ${
-              activeRoute.includes('/map') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
+              pathname.includes('/map') ? 'text-brand-accent border-b-2 border-brand-accent' : ''
             }`}
           >
             Map

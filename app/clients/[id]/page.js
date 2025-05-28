@@ -57,15 +57,15 @@ export default function ClientDetailPage({ params }) {
       
       setUser(session.user);
       
-      // Check if user has dispatcher role
+      // Check if user has admin role
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', session.user.id)
         .single();
       
-      if (error || !profile || profile.role !== 'dispatcher') {
-        // Not a dispatcher, redirect to login
+      if (error || !profile || profile.role !== 'admin') {
+        // Not an admin, redirect to login
         supabase.auth.signOut();
         router.push('/login?error=Access%20denied');
         return;

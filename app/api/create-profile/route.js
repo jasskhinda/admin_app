@@ -20,8 +20,8 @@ export async function POST(request) {
 
     console.log('Creating profile for user ID:', id);
     
-    // Force the role to be 'dispatcher' for the signup flow
-    const profileRole = 'dispatcher';
+    // Force the role to be 'admin' for the signup flow
+    const profileRole = 'admin';
     
     console.log(`Setting profile role to ${profileRole} (overriding ${role} if provided)`);
     
@@ -39,7 +39,7 @@ export async function POST(request) {
     if (existingProfile) {
       console.log('Profile already exists, updating role if needed');
       
-      // If profile exists but doesn't have dispatcher role, update it
+      // If profile exists but doesn't have admin role, update it
       if (existingProfile.role !== profileRole) {
         const { error: updateError } = await supabaseAdmin
           .from('profiles')
@@ -87,7 +87,7 @@ export async function POST(request) {
           first_name: firstName,
           last_name: lastName,
           phone_number: phoneNumber,
-          role: profileRole, // Always use dispatcher role
+          role: profileRole, // Always use admin role
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }

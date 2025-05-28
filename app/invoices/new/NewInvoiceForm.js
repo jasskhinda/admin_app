@@ -14,9 +14,12 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
   const [formData, setFormData] = useState({
     invoice_number: generateInvoiceNumber(),
     amount: trip?.price || '',
+    tax: '0',
+    total: trip?.price || '',
     status: 'pending',
-    issue_date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    payment_method: '',
+    description: '',
     notes: ''
   });
   const [error, setError] = useState(null);
@@ -91,11 +94,13 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
       
       // Update selected trip if there are trips available
       if (tripsData && tripsData.length > 0 && !selectedTripId) {
+        const price = tripsData[0].price || 0;
         setSelectedTripId(tripsData[0].id);
-        setFormData({
-          ...formData,
-          amount: tripsData[0].price || 0
-        });
+        setFormData(prev => ({
+          ...prev,
+          amount: price,
+          total: price
+        }));
       }
     } catch (error) {
       console.error('Error fetching trips:', error);
@@ -118,19 +123,30 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
     // Find the trip and update amount
     const selectedTrip = trips.find(t => t.id === tripId);
     if (selectedTrip) {
-      setFormData({
-        ...formData,
-        amount: selectedTrip.price || 0
-      });
+      const price = selectedTrip.price || 0;
+      setFormData(prev => ({
+        ...prev,
+        amount: price,
+        total: price + parseFloat(prev.tax || 0)
+      }));
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
+    const newFormData = {
       ...formData,
       [name]: value
-    });
+    };
+    
+    // Auto-calculate total when amount or tax changes
+    if (name === 'amount' || name === 'tax') {
+      const amount = parseFloat(name === 'amount' ? value : newFormData.amount || 0);
+      const tax = parseFloat(name === 'tax' ? value : newFormData.tax || 0);
+      newFormData.total = (amount + tax).toFixed(2);
+    }
+    
+    setFormData(newFormData);
   };
 
   const handleSubmit = async (e) => {
@@ -143,6 +159,11 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
     setLoading(true);
     setError(null);
     try {
+      // Calculate total
+      const amount = parseFloat(formData.amount || 0);
+      const tax = parseFloat(formData.tax || 0);
+      const total = amount + tax;
+      
       // Create invoice
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
@@ -150,10 +171,13 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
           user_id: selectedClientId,
           trip_id: selectedTripId || null,
           invoice_number: formData.invoice_number,
-          amount: formData.amount,
+          amount: amount,
+          tax: tax,
+          total: total,
           status: formData.status,
-          issue_date: formData.issue_date,
           due_date: formData.due_date,
+          payment_method: formData.payment_method || null,
+          description: formData.description,
           notes: formData.notes
         })
         .select()
@@ -216,7 +240,7 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
               value={selectedClientId}
               onChange={handleClientChange}
               disabled={loading || !!client || success}
-              className="block w-full border border-brand-border rounded-md px-3 py-2 focus:outline-none focus:ring-brand-accent focus:border-brand-accent"
+              className="block w-full border border-disabled/30 rounded-md px-3 py-2 bg-background text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               required
             >
               <option value="">Select Client</option>
@@ -238,7 +262,7 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
               value={selectedTripId}
               onChange={handleTripChange}
               disabled={loading || !!trip || !selectedClientId || success}
-              className="block w-full border border-brand-border rounded-md px-3 py-2 focus:outline-none focus:ring-brand-accent focus:border-brand-accent"
+              className="block w-full border border-disabled/30 rounded-md px-3 py-2 bg-background text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             >
               <option value="">No Associated Trip</option>
               {trips.map((t) => (
@@ -350,7 +374,7 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
             onChange={handleInputChange}
             disabled={loading || success}
             rows="4"
-            className="block w-full border border-brand-border rounded-md px-3 py-2 focus:outline-none focus:ring-brand-accent focus:border-brand-accent"
+            className="block w-full border border-disabled/30 rounded-md px-3 py-2 bg-background text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
           ></textarea>
         </div>
         
@@ -359,7 +383,7 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
             type="button"
             onClick={() => router.push('/invoices')}
             disabled={loading || success}
-            className="px-4 py-2 text-brand-accent border border-brand-border rounded hover:bg-brand-border/20 transition-colors focus:outline-none focus:ring-brand-accent"
+            className="px-4 py-2 text-secondary border border-disabled/30 rounded hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           >
             Cancel
           </button>
@@ -367,7 +391,7 @@ export default function NewInvoiceForm({ user, userProfile, trip, client }) {
           <button
             type="submit"
             disabled={loading || success || !selectedClientId}
-            className={`px-4 py-2 bg-brand-accent text-white rounded hover:opacity-90 transition-opacity focus:outline-none focus:ring-brand-accent ${(loading || success) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 py-2 bg-primary text-onPrimary rounded hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary ${(loading || success) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {loading ? 'Creating...' : 'Create Invoice'}
           </button>

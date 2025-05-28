@@ -3,42 +3,54 @@
 @tailwind utilities;
 
 :root {
-  /* Default base colors */
-  --background: 0 0% 100%;
-  --foreground: 0 0% 9%;
+  /* Light Mode - from CLAUDE.md */
+  --primary: 188 26% 30%; /* #3B5B63 - Dark teal */
+  --secondary: 184 56% 66%; /* #84CED3 - Light teal */
+  --background: 0 0% 100%; /* #FFFFFF */
+  --surface: 200 16% 97%; /* #F5F7F8 - Very light grey */
+  --on-primary: 0 0% 100%; /* #FFFFFF - White text on primary */
+  --on-secondary: 188 26% 30%; /* #3B5B63 - Text on light teal */
+  --disabled: 200 16% 71%; /* #B0BEC5 - Muted grey */
   
-  /* Brand colors - Light Theme */
-  --brand-background: 0 0% 100%; /* #FFFFFF */
-  --brand-text: 187 30% 26%; /* #2E4F54 */
-  --brand-accent: 180 50% 65%; /* #7CCFD0 */
-  --brand-button-text: 0 0% 100%; /* #FFFFFF */
-  --brand-card: 210 17% 98%; /* #F8F9FA */
-  --brand-border: 196 17% 89%; /* #DDE5E7 */
+  /* Brand colors - Light Theme (matching above) */
+  --brand-background: var(--background);
+  --brand-surface: var(--surface);
+  --brand-text: var(--primary);
+  --brand-accent: var(--secondary);
+  --brand-button-text: var(--on-primary);
+  --brand-card: var(--surface);
+  --brand-border: 200 16% 85%; /* Slightly darker than surface */
   
   /* Status colors - Light Theme */
   --brand-pending: 39 100% 50%; /* Amber */
-  --brand-upcoming: 180 50% 65%; /* Brand accent blue */
+  --brand-upcoming: 184 56% 66%; /* Brand accent (secondary) */
   --brand-in-progress: 262 83% 58%; /* Purple */
   --brand-completed: 142 71% 45%; /* Green */
   --brand-cancelled: 0 84% 60%; /* Red */
 }
 
 .dark, [data-theme="dark"] {
-  /* Default base colors - Softened dark mode */
-  --background: 215 28% 17%; /* #1E293B - a softer blue-gray instead of black */
-  --foreground: 210 40% 98%; /* #F8FAFC */
+  /* Dark Mode - from CLAUDE.md */
+  --primary: 184 56% 66%; /* #84CED3 - Light teal (accent on dark) */
+  --secondary: 188 26% 30%; /* #3B5B63 - Dark teal */
+  --background: 0 0% 7%; /* #121212 - Dark background */
+  --surface: 0 0% 12%; /* #1E1E1E - Slightly lighter than background */
+  --on-primary: 0 0% 7%; /* #121212 - Dark text on light teal */
+  --on-secondary: 0 0% 100%; /* #FFFFFF - White text on dark teal */
+  --disabled: 203 6% 44%; /* #666C6F - Muted grey */
   
-  /* Brand colors - Dark Theme */
-  --brand-background: 217 33% 17%; /* #1E293B - softer dark blue-gray */
-  --brand-text: 180 56% 92%; /* #E0F4F5 */
-  --brand-accent: 180 50% 65%; /* #7CCFD0 */
-  --brand-button-text: 215 28% 17%; /* #1E293B */
-  --brand-card: 215 25% 27%; /* #334155 - slightly lighter than background */
-  --brand-border: 217 19% 35%; /* #475569 */
+  /* Brand colors - Dark Theme (matching above) */
+  --brand-background: var(--background);
+  --brand-surface: var(--surface);
+  --brand-text: var(--primary);
+  --brand-accent: var(--primary);
+  --brand-button-text: var(--on-primary);
+  --brand-card: var(--surface);
+  --brand-border: 0 0% 20%; /* Subtle border */
   
   /* Status colors - Dark Theme (adjusted for dark mode visibility) */
   --brand-pending: 39 100% 60%; /* Amber - brighter */
-  --brand-upcoming: 180 50% 65%; /* Brand accent blue */
+  --brand-upcoming: 184 56% 66%; /* Brand accent (primary in dark) */
   --brand-in-progress: 262 83% 68%; /* Purple - brighter */
   --brand-completed: 142 71% 55%; /* Green - brighter */
   --brand-cancelled: 0 84% 70%; /* Red - brighter */

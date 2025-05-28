@@ -38,10 +38,16 @@ export default async function AdminInvoicesPage() {
                 .from('invoices')
                 .select(`
                     *,
-                    client_id (
+                    user_id!inner (
                         id,
                         email,
                         full_name
+                    ),
+                    trip_id (
+                        id,
+                        pickup_address,
+                        destination_address,
+                        pickup_time
                     )
                 `)
                 .order('created_at', { ascending: false });
@@ -62,15 +68,17 @@ export default async function AdminInvoicesPage() {
         const invoiceStats = {
             total: invoices.length,
             paid: invoices.filter(inv => inv.status === 'paid').length,
-            unpaid: invoices.filter(inv => inv.status === 'unpaid').length,
+            pending: invoices.filter(inv => inv.status === 'pending').length,
             overdue: invoices.filter(inv => inv.status === 'overdue').length,
-            totalAmount: invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0),
+            cancelled: invoices.filter(inv => inv.status === 'cancelled').length,
+            refunded: invoices.filter(inv => inv.status === 'refunded').length,
+            totalAmount: invoices.reduce((sum, inv) => sum + parseFloat(inv.total || inv.amount || 0), 0),
             paidAmount: invoices
                 .filter(inv => inv.status === 'paid')
-                .reduce((sum, inv) => sum + (inv.amount || 0), 0),
-            unpaidAmount: invoices
-                .filter(inv => ['unpaid', 'overdue'].includes(inv.status))
-                .reduce((sum, inv) => sum + (inv.amount || 0), 0)
+                .reduce((sum, inv) => sum + parseFloat(inv.total || inv.amount || 0), 0),
+            pendingAmount: invoices
+                .filter(inv => ['pending', 'overdue'].includes(inv.status))
+                .reduce((sum, inv) => sum + parseFloat(inv.total || inv.amount || 0), 0)
         };
         
         return <AdminInvoicesView 
