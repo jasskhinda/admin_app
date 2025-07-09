@@ -31,22 +31,41 @@ export default async function FacilitiesPage() {
       redirect('/login?error=Admin%20access%20required');
     }
     
-    // First, try to fetch facilities without aggregated data to test basic connection
+    // Try different approaches to fetch facilities
     let facilities = [];
     let facilitiesError = null;
     
     try {
-      const { data: basicFacilities, error: basicError } = await supabase
+      // First try: Regular query
+      const { data: regularFacilities, error: regularError } = await supabase
         .from('facilities')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (basicError) {
-        console.error('Error fetching basic facilities:', basicError);
-        facilitiesError = basicError;
+      if (regularError) {
+        console.error('Regular query error:', regularError);
+        
+        // Second try: Use admin client with service role
+        const { supabaseAdmin } = await import('@/lib/admin-supabase');
+        if (supabaseAdmin) {
+          const { data: adminFacilities, error: adminError } = await supabaseAdmin
+            .from('facilities')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (adminError) {
+            console.error('Admin query error:', adminError);
+            facilitiesError = adminError;
+          } else {
+            facilities = adminFacilities || [];
+            console.log('Admin facilities fetched:', facilities.length);
+          }
+        } else {
+          facilitiesError = regularError;
+        }
       } else {
-        facilities = basicFacilities || [];
-        console.log('Basic facilities fetched:', facilities.length);
+        facilities = regularFacilities || [];
+        console.log('Regular facilities fetched:', facilities.length);
       }
     } catch (error) {
       console.error('Exception fetching facilities:', error);
