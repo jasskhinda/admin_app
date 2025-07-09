@@ -38,7 +38,8 @@ export default async function FacilitiesPage() {
         *,
         clients:clients(count),
         trips:trips(count)
-      `);
+      `)
+      .order('created_at', { ascending: false });
     
     if (facilitiesError) {
       console.error('Error fetching facilities:', facilitiesError);

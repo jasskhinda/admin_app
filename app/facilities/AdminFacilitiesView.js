@@ -159,7 +159,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
                   Contact Info
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Location
+                  Address & Type
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
@@ -192,7 +192,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{facility.address || 'No address'}</div>
-                      <div className="text-sm text-gray-500">{facility.city}, {facility.state} {facility.zip_code}</div>
+                      <div className="text-sm text-gray-500">{facility.facility_type || 'No type specified'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(facility.status || 'inactive')}

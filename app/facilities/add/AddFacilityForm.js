@@ -8,14 +8,12 @@ import Link from 'next/link';
 export default function AddFacilityForm({ user, userProfile }) {
   const [formData, setFormData] = useState({
     name: '',
-    contact_email: '',
-    contact_phone: '',
     address: '',
-    city: '',
-    state: '',
-    zip_code: '',
-    contact_person: '',
-    notes: '',
+    phone_number: '',
+    contact_email: '',
+    billing_email: '',
+    facility_type: 'Hospital',
+    password: '',
     status: 'active'
   });
   
@@ -40,25 +38,22 @@ export default function AddFacilityForm({ user, userProfile }) {
     
     try {
       // Validate required fields
-      if (!formData.name || !formData.contact_email) {
-        setError('Facility name and contact email are required');
+      if (!formData.name || !formData.contact_email || !formData.address || !formData.phone_number || !formData.password) {
+        setError('Facility name, contact email, address, phone number, and password are required');
         setLoading(false);
         return;
       }
 
-      // Insert facility
+      // First, create the facility record
       const { data: facility, error: facilityError } = await supabase
         .from('facilities')
         .insert([{
           name: formData.name,
           contact_email: formData.contact_email,
-          contact_phone: formData.contact_phone,
+          billing_email: formData.billing_email || formData.contact_email,
+          contact_phone: formData.phone_number,
           address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zip_code: formData.zip_code,
-          contact_person: formData.contact_person,
-          notes: formData.notes,
+          facility_type: formData.facility_type,
           status: formData.status,
           created_by: user.id
         }])
@@ -67,6 +62,32 @@ export default function AddFacilityForm({ user, userProfile }) {
 
       if (facilityError) {
         throw facilityError;
+      }
+
+      // Create user and profile using the admin API
+      const createUserResponse = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.contact_email,
+          password: formData.password,
+          role: 'facility',
+          userProfile: {
+            first_name: formData.name,
+            last_name: 'Facility',
+            phone_number: formData.phone_number,
+            facility_id: facility.id,
+            status: 'active'
+          }
+        })
+      });
+
+      const createUserResult = await createUserResponse.json();
+
+      if (!createUserResult.success) {
+        throw new Error(createUserResult.error || 'Failed to create facility user');
       }
 
       console.log('Facility created successfully:', facility);
@@ -120,10 +141,10 @@ export default function AddFacilityForm({ user, userProfile }) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-surface p-6 rounded-lg shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h2 className="text-lg font-semibold mb-4">Facility Information</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">
                 Facility Name *
@@ -134,34 +155,44 @@ export default function AddFacilityForm({ user, userProfile }) {
                 value={formData.name}
                 onChange={handleInputChange}
                 required
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
                 placeholder="Enter facility name"
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium mb-1">
-                Contact Person
+                Address *
               </label>
               <input
                 type="text"
-                name="contact_person"
-                value={formData.contact_person}
+                name="address"
+                value={formData.address}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-                placeholder="Enter contact person name"
+                required
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
+                placeholder="Enter full address"
               />
             </div>
-          </div>
-        </div>
-
-        <div className="bg-surface p-6 rounded-lg shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Contact Information</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
             <div>
               <label className="block text-sm font-medium mb-1">
-                Email Address *
+                Phone Number *
+              </label>
+              <input
+                type="tel"
+                name="phone_number"
+                value={formData.phone_number}
+                onChange={handleInputChange}
+                required
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
+                placeholder="Enter phone number"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Contact Email *
               </label>
               <input
                 type="email"
@@ -169,122 +200,57 @@ export default function AddFacilityForm({ user, userProfile }) {
                 value={formData.contact_email}
                 onChange={handleInputChange}
                 required
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-                placeholder="Enter email address"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
+                placeholder="Enter contact email address"
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium mb-1">
-                Phone Number
+                Billing Email
               </label>
               <input
-                type="tel"
-                name="contact_phone"
-                value={formData.contact_phone}
+                type="email"
+                name="billing_email"
+                value={formData.billing_email}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-                placeholder="Enter phone number"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-surface p-6 rounded-lg shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Location</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Address
-              </label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-                placeholder="Enter street address"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
+                placeholder="Enter billing email (optional)"
               />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  City
-                </label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-                  placeholder="Enter city"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  State
-                </label>
-                <input
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-                  placeholder="Enter state"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  ZIP Code
-                </label>
-                <input
-                  type="text"
-                  name="zip_code"
-                  value={formData.zip_code}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-                  placeholder="Enter ZIP code"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-surface p-6 rounded-lg shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Additional Information</h2>
-          
-          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">
-                Status
+                Facility Type
               </label>
               <select
-                name="status"
-                value={formData.status}
+                name="facility_type"
+                value={formData.facility_type}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
               >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
+                <option value="Hospital">Hospital</option>
+                <option value="Clinic">Clinic</option>
+                <option value="Nursing Home">Nursing Home</option>
+                <option value="Assisted Living">Assisted Living</option>
+                <option value="Rehabilitation Center">Rehabilitation Center</option>
+                <option value="Medical Center">Medical Center</option>
+                <option value="Other">Other</option>
               </select>
             </div>
             
             <div>
               <label className="block text-sm font-medium mb-1">
-                Notes
+                Password *
               </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
                 onChange={handleInputChange}
-                rows="4"
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-                placeholder="Enter any additional notes about the facility"
+                required
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
+                placeholder="Enter password for facility login"
               />
             </div>
           </div>
@@ -293,16 +259,16 @@ export default function AddFacilityForm({ user, userProfile }) {
         <div className="flex justify-end space-x-4">
           <Link
             href="/facilities"
-            className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-primary text-onPrimary rounded hover:bg-opacity-90 disabled:opacity-50"
+            className="px-4 py-2 bg-[#84CED3] text-white rounded hover:bg-[#70B8BD] disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Creating...' : 'Create Facility'}
+            {loading ? 'Creating...' : 'Save Settings'}
           </button>
         </div>
       </form>
