@@ -45,18 +45,24 @@ export default function AddFacilityForm({ user, userProfile }) {
       }
 
       // First, create the facility record
+      const facilityData = {
+        name: formData.name,
+        contact_email: formData.contact_email,
+        billing_email: formData.billing_email || formData.contact_email,
+        contact_phone: formData.phone_number,
+        address: formData.address,
+        facility_type: formData.facility_type,
+        status: formData.status,
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('Creating facility with data:', facilityData);
+      
       const { data: facility, error: facilityError } = await supabase
         .from('facilities')
-        .insert([{
-          name: formData.name,
-          contact_email: formData.contact_email,
-          billing_email: formData.billing_email || formData.contact_email,
-          contact_phone: formData.phone_number,
-          address: formData.address,
-          facility_type: formData.facility_type,
-          status: formData.status,
-          created_by: user.id
-        }])
+        .insert([facilityData])
         .select()
         .single();
 

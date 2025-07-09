@@ -31,29 +31,43 @@ export default async function FacilitiesPage() {
       redirect('/login?error=Admin%20access%20required');
     }
     
-    // Fetch facilities with aggregated data
-    const { data: facilities, error: facilitiesError } = await supabase
-      .from('facilities')
-      .select(`
-        *,
-        clients:clients(count),
-        trips:trips(count)
-      `)
-      .order('created_at', { ascending: false });
+    // First, try to fetch facilities without aggregated data to test basic connection
+    let facilities = [];
+    let facilitiesError = null;
     
-    if (facilitiesError) {
-      console.error('Error fetching facilities:', facilitiesError);
+    try {
+      const { data: basicFacilities, error: basicError } = await supabase
+        .from('facilities')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (basicError) {
+        console.error('Error fetching basic facilities:', basicError);
+        facilitiesError = basicError;
+      } else {
+        facilities = basicFacilities || [];
+        console.log('Basic facilities fetched:', facilities.length);
+      }
+    } catch (error) {
+      console.error('Exception fetching facilities:', error);
+      facilitiesError = error;
     }
     
-    // Process facilities data to include counts
-    const processedFacilities = (facilities || []).map(facility => ({
+    // Process facilities data to include counts (set to 0 for now)
+    const processedFacilities = facilities.map(facility => ({
       ...facility,
-      client_count: facility.clients?.[0]?.count || 0,
-      trip_count: facility.trips?.[0]?.count || 0,
-      active_users: 0 // Can be enhanced later to count active facility users
+      client_count: 0, // Will be enhanced later
+      trip_count: 0,   // Will be enhanced later
+      active_users: 0  // Will be enhanced later
     }));
     
-    console.log('Fetched facilities:', processedFacilities.length);
+    console.log('Processed facilities:', processedFacilities.length);
+    
+    // If no facilities found, let's add some debug info
+    if (processedFacilities.length === 0) {
+      console.log('No facilities found. Error:', facilitiesError);
+      console.log('User profile:', profile);
+    }
     
     return (
       <AdminFacilitiesView 
