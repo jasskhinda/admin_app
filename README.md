@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+**Compassionate Rides Admin Portal** - Administrative interface for managing facilities, dispatchers, clients, and system operations.
+
 ## Getting Started
 
 Before starting the app, create a `.env.local` file with the required environment variables:
