@@ -144,6 +144,7 @@ export async function POST(request) {
           ...(userProfile.address ? { address: userProfile.address } : {}),
           ...(userProfile.notes ? { notes: userProfile.notes } : {}),
           ...(userProfile.status ? { status: userProfile.status } : {}),
+          ...(userProfile.facility_id ? { facility_id: userProfile.facility_id } : {}),
           ...(userProfile.metadata ? { metadata: userProfile.metadata } : {})
         })
         .eq('id', newUserId);
@@ -185,6 +186,7 @@ export async function POST(request) {
       ...(userProfile.address ? { address: userProfile.address } : {}),
       ...(userProfile.notes ? { notes: userProfile.notes } : {}),
       ...(userProfile.status ? { status: userProfile.status } : {}),
+      ...(userProfile.facility_id ? { facility_id: userProfile.facility_id } : {}),
       ...(userProfile.metadata ? { metadata: userProfile.metadata } : {})
     };
     

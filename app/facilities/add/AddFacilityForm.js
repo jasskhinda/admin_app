@@ -71,6 +71,7 @@ export default function AddFacilityForm({ user, userProfile }) {
       }
 
       // Create user and profile using the admin API
+      console.log('Sending user creation request...');
       const createUserResponse = await fetch('/api/users', {
         method: 'POST',
         headers: {
@@ -90,7 +91,16 @@ export default function AddFacilityForm({ user, userProfile }) {
         })
       });
 
+      console.log('User creation response status:', createUserResponse.status);
+      
+      if (!createUserResponse.ok) {
+        const errorText = await createUserResponse.text();
+        console.error('User creation failed with status:', createUserResponse.status, 'Error:', errorText);
+        throw new Error(`Failed to create user: ${errorText}`);
+      }
+
       const createUserResult = await createUserResponse.json();
+      console.log('User creation result:', createUserResult);
 
       if (!createUserResult.success) {
         throw new Error(createUserResult.error || 'Failed to create facility user');
