@@ -41,6 +41,11 @@ export default function AdminHeader() {
                 </Link>
               </li>
               <li>
+                <Link href="/facilities" className="hover:underline">
+                  Facilities
+                </Link>
+              </li>
+              <li>
                 <Link href="/invoices" className="hover:underline">
                   Invoices
                 </Link>

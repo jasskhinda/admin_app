@@ -95,11 +95,12 @@ function formatDate(dateString) {
   });
 }
 
-export default function AdminDashboardView({ userCounts, recentTrips, pendingDrivers, userProfile }) {
+export default function AdminDashboardView({ userCounts, recentTrips, pendingDrivers, userProfile, facilities }) {
   // Calculate counts
   const clientCount = userCounts.find(count => count.role === 'client')?.count || 0;
   const driverCount = userCounts.find(count => count.role === 'driver')?.count || 0;
   const dispatcherCount = userCounts.find(count => count.role === 'dispatcher')?.count || 0;
+  const facilityCount = facilities ? facilities.length : 0;
   
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900">
@@ -109,7 +110,7 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
         <h2 className="text-xl font-semibold mb-4 dark:text-gray-200">Overview</h2>
         
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <DashboardCard 
             title="Clients" 
             count={clientCount}
@@ -131,11 +132,18 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
             linkHref="/dispatchers"
             linkText="View all dispatchers"
           />
+          <DashboardCard 
+            title="Facilities" 
+            count={facilityCount}
+            icon="/window.svg" 
+            linkHref="/facilities"
+            linkText="View all facilities"
+          />
         </div>
         
         {/* Management Cards */}
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <ActionCard 
             title="Manage Clients" 
             description="Add, edit, or remove clients" 
@@ -153,6 +161,12 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
             description="Add, edit, or remove dispatchers" 
             icon="/globe.svg" 
             href="/dispatchers" 
+          />
+          <ActionCard 
+            title="Manage Facilities" 
+            description="Add, edit, or remove facilities" 
+            icon="/window.svg" 
+            href="/facilities" 
           />
           <ActionCard 
             title="Invoices" 

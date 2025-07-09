@@ -88,12 +88,23 @@ export default async function AdminDashboard() {
     .eq('id', (await supabase.auth.getUser()).data.user.id)
     .single();
   
+  // Fetch facilities for dashboard stats
+  const { data: facilities, error: facilitiesError } = await supabase
+    .from('facilities')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (facilitiesError) {
+    console.error('Error fetching facilities:', facilitiesError);
+  }
+  
   return (
     <AdminDashboardView 
       userCounts={userCounts || []} 
       recentTrips={recentTrips || []} 
       pendingDrivers={pendingDrivers || []}
       userProfile={userProfile}
+      facilities={facilities || []}
     />
   );
 }
