@@ -10,49 +10,51 @@ export default function AdminHeader() {
   const { user, userProfile } = useAuth();
 
   return (
-    <header className="bg-[#3B5B63] dark:bg-[#3B5B63] text-white p-4 shadow-md">
-      <div className="container mx-auto flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <Image src="/favicon.png" alt="Logo" width={36} height={36} />
-          <h1 className="text-xl font-bold">Compassionate Rides Admin</h1>
+    <header className="bg-white shadow-md">
+      <div className="container mx-auto flex justify-between items-center px-4 py-2">
+        <div className="flex items-center space-x-3">
+          <Image src="/LOGO2 (1).webp" alt="Logo" width={60} height={60} />
+          <div className="bg-[#84CED3] text-white px-3 py-1 rounded-lg text-sm font-medium">
+            Admin
+          </div>
         </div>
         
         {user && (
           <nav>
-            <ul className="hidden md:flex space-x-6">
+            <ul className="hidden md:flex space-x-2">
               <li>
-                <Link href="/dashboard" className="hover:underline">
-                  Dashboard
+                <Link href="/dashboard" className="bg-[#84CED3] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#70B8BD] transition-colors">
+                  DASHBOARD
                 </Link>
               </li>
               <li>
-                <Link href="/clients" className="hover:underline">
-                  Clients
+                <Link href="/clients" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                  CLIENTS
                 </Link>
               </li>
               <li>
-                <Link href="/drivers" className="hover:underline">
-                  Drivers
+                <Link href="/drivers" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                  DRIVERS
                 </Link>
               </li>
               <li>
-                <Link href="/dispatchers" className="hover:underline">
-                  Dispatchers
+                <Link href="/dispatchers" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                  DISPATCHERS
                 </Link>
               </li>
               <li>
-                <Link href="/facilities" className="hover:underline">
-                  Facilities
+                <Link href="/facilities" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                  FACILITIES
                 </Link>
               </li>
               <li>
-                <Link href="/invoices" className="hover:underline">
-                  Invoices
+                <Link href="/invoices" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                  INVOICES
                 </Link>
               </li>
               <li>
-                <Link href="/profile" className="hover:underline">
-                  Profile
+                <Link href="/profile" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                  PROFILE
                 </Link>
               </li>
             </ul>
@@ -61,15 +63,14 @@ export default function AdminHeader() {
         
         {user && (
           <div className="flex items-center space-x-4">
-            <ThemeSwitcher />
             <div className="flex items-center">
-              <span className="mr-2">{userProfile?.full_name || user?.email}</span>
+              <span className="mr-4 text-gray-700 text-sm">{userProfile?.full_name || user?.email}</span>
               <form action={signOut}>
                 <button 
                   type="submit"
-                  className="p-2 rounded bg-white dark:bg-[#84CED3] text-[#3B5B63] hover:bg-opacity-90"
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
                 >
-                  Logout
+                  Sign out
                 </button>
               </form>
             </div>

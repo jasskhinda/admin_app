@@ -8,19 +8,19 @@ import AdminHeader from '../components/AdminHeader';
 // Dashboard card component
 function DashboardCard({ title, count, icon, linkHref, linkText, color = 'primary' }) {
   return (
-    <div className="bg-white dark:bg-brand-card p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200">
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200">{title}</h3>
-          <p className="text-3xl font-bold mt-2 text-brand-accent">{count}</p>
+          <h3 className="text-lg font-medium text-gray-700">{title}</h3>
+          <p className="text-3xl font-bold mt-2 text-[#84CED3]">{count}</p>
         </div>
-        <div className="p-3 rounded-full bg-opacity-10 bg-brand-accent dark:bg-opacity-20">
+        <div className="p-3 rounded-full bg-[#84CED3] bg-opacity-10">
           <Image src={icon} alt={title} width={24} height={24} />
         </div>
       </div>
       {linkHref && (
         <div className="mt-4">
-          <Link href={linkHref} className="text-brand-accent hover:underline">
+          <Link href={linkHref} className="text-[#84CED3] hover:text-[#70B8BD] transition-colors">
             {linkText}
           </Link>
         </div>
@@ -34,25 +34,25 @@ function ActivityItem({ title, description, time, status }) {
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+        return 'bg-green-100 text-green-800';
       case 'pending':
-        return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+        return 'bg-yellow-100 text-yellow-800';
       case 'cancelled':
-        return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700 py-3 last:border-0">
+    <div className="border-b border-gray-200 py-3 last:border-0">
       <div className="flex justify-between items-start">
         <div>
-          <h4 className="font-medium dark:text-gray-200">{title}</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
+          <h4 className="font-medium text-gray-800">{title}</h4>
+          <p className="text-sm text-gray-600">{description}</p>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-xs text-gray-500 dark:text-gray-400">{time}</span>
+          <span className="text-xs text-gray-500">{time}</span>
           {status && (
             <span className={`text-xs px-2 py-1 rounded-full mt-1 ${getStatusColor(status)}`}>
               {status}
@@ -69,15 +69,15 @@ function ActionCard({ title, description, icon, href }) {
   return (
     <Link 
       href={href}
-      className="block bg-white dark:bg-brand-card p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+      className="block bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200 hover:border-[#84CED3]"
     >
       <div className="flex items-start space-x-4">
-        <div className="p-3 rounded-full bg-opacity-10 bg-brand-accent dark:bg-opacity-20">
+        <div className="p-3 rounded-full bg-[#84CED3] bg-opacity-10">
           <Image src={icon} alt={title} width={24} height={24} />
         </div>
         <div>
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200">{title}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{description}</p>
+          <h3 className="text-lg font-medium text-gray-700">{title}</h3>
+          <p className="text-sm text-gray-600 mt-1">{description}</p>
         </div>
       </div>
     </Link>
@@ -103,11 +103,11 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
   const facilityCount = facilities ? facilities.length : 0;
   
   return (
-    <div className="min-h-screen bg-background dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       {/* AdminHeader is rendered in layout.js, no need to duplicate it here */}
       
       <main className="container mx-auto px-4 py-6">
-        <h2 className="text-xl font-semibold mb-4 dark:text-gray-200">Overview</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">Overview</h2>
         
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -179,8 +179,8 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
         {/* Recent Activity and Pending Approvals */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Recent Trips */}
-          <div className="bg-white dark:bg-brand-card rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4 dark:text-gray-200">Recent Trips</h2>
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Recent Trips</h2>
             {recentTrips && recentTrips.length > 0 ? (
               <div className="space-y-2">
                 {recentTrips.map((trip) => (
@@ -193,19 +193,19 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
                   />
                 ))}
                 <div className="mt-4 text-center">
-                  <Link href="/trips" className="text-primary dark:text-secondary hover:underline">
+                  <Link href="/trips" className="text-[#84CED3] hover:text-[#70B8BD] transition-colors">
                     View all trips
                   </Link>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-500 dark:text-gray-400">No recent trips found</p>
+              <p className="text-gray-500">No recent trips found</p>
             )}
           </div>
           
           {/* Pending Driver Verifications */}
-          <div className="bg-white dark:bg-brand-card rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4 dark:text-gray-200">Pending Driver Verifications</h2>
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Pending Driver Verifications</h2>
             {pendingDrivers && pendingDrivers.length > 0 ? (
               <div className="space-y-2">
                 {pendingDrivers.map((driver) => (
@@ -218,13 +218,13 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
                   />
                 ))}
                 <div className="mt-4 text-center">
-                  <Link href="/drivers?status=pending_verification" className="text-primary dark:text-secondary hover:underline">
+                  <Link href="/drivers?status=pending_verification" className="text-[#84CED3] hover:text-[#70B8BD] transition-colors">
                     View all pending verifications
                   </Link>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-500 dark:text-gray-400">No pending driver verifications</p>
+              <p className="text-gray-500">No pending driver verifications</p>
             )}
           </div>
         </div>

@@ -82,14 +82,14 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
         <h1 className="text-2xl font-bold">Facility Management</h1>
         <Link
           href="/facilities/add"
-          className="bg-primary text-onPrimary px-4 py-2 rounded hover:bg-opacity-90"
+          className="bg-[#84CED3] text-white px-4 py-2 rounded-lg hover:bg-[#70B8BD] transition-colors"
         >
           Add New Facility
         </Link>
       </div>
 
       {/* Search and Filter Controls */}
-      <div className="bg-surface p-4 rounded-lg shadow-sm mb-6">
+      <div className="bg-white p-4 rounded-lg shadow-sm mb-6 border border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Search</label>
@@ -98,7 +98,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, email, phone, address..."
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-[#84CED3] border-gray-300"
             />
           </div>
           
@@ -107,7 +107,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-[#84CED3] border-gray-300"
             >
               <option value="all">All Facilities</option>
               <option value="active">Active</option>
@@ -122,7 +122,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-[#84CED3] border-gray-300"
             >
               <option value="name">Name</option>
               <option value="email">Email</option>
@@ -137,7 +137,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-[#84CED3] border-gray-300"
             >
               <option value="asc">Ascending</option>
               <option value="desc">Descending</option>
@@ -147,7 +147,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
       </div>
 
       {/* Facilities Table */}
-      <div className="bg-surface rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -208,25 +208,25 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
                       <div className="flex space-x-2">
                         <Link
                           href={`/facilities/${facility.id}`}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-[#84CED3] hover:text-[#70B8BD] transition-colors"
                         >
                           View
                         </Link>
                         <Link
                           href={`/facilities/${facility.id}/edit`}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-[#84CED3] hover:text-[#70B8BD] transition-colors"
                         >
                           Edit
                         </Link>
                         <Link
                           href={`/facilities/${facility.id}/clients`}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-[#84CED3] hover:text-[#70B8BD] transition-colors"
                         >
                           Clients
                         </Link>
                         <Link
                           href={`/facilities/${facility.id}/trips`}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-[#84CED3] hover:text-[#70B8BD] transition-colors"
                         >
                           Trips
                         </Link>
@@ -241,7 +241,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
       </div>
       
       {/* Stats Summary */}
-      <div className="mt-6 bg-surface p-4 rounded-lg shadow-sm">
+      <div className="mt-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <div className="text-sm text-gray-600">
           Total Facilities: <span className="font-medium">{facilities.length}</span> |
           Showing: <span className="font-medium">{sortedFacilities.length}</span> |
