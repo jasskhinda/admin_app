@@ -44,6 +44,8 @@ export default function AddFacilityForm({ user, userProfile }) {
         return;
       }
 
+      console.log('Starting facility creation process...');
+      
       // First, create the facility record
       const facilityData = {
         name: formData.name,
@@ -67,46 +69,60 @@ export default function AddFacilityForm({ user, userProfile }) {
         .single();
 
       if (facilityError) {
+        console.error('Facility creation error:', facilityError);
         throw facilityError;
       }
 
+      console.log('Facility created successfully:', facility);
+
       // Create user and profile using the admin API
       console.log('Sending user creation request...');
-      const createUserResponse = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.contact_email,
-          password: formData.password,
-          role: 'facility',
-          userProfile: {
-            first_name: formData.name,
-            last_name: 'Facility',
-            phone_number: formData.phone_number,
-            facility_id: facility.id,
-            status: 'active'
-          }
-        })
-      });
-
-      console.log('User creation response status:', createUserResponse.status);
       
-      if (!createUserResponse.ok) {
-        const errorText = await createUserResponse.text();
-        console.error('User creation failed with status:', createUserResponse.status, 'Error:', errorText);
-        throw new Error(`Failed to create user: ${errorText}`);
+      try {
+        const createUserResponse = await fetch('/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.contact_email,
+            password: formData.password,
+            role: 'facility',
+            userProfile: {
+              first_name: formData.name,
+              last_name: 'Facility',
+              phone_number: formData.phone_number,
+              facility_id: facility.id,
+              status: 'active'
+            }
+          })
+        });
+
+        console.log('User creation response status:', createUserResponse.status);
+        
+        if (!createUserResponse.ok) {
+          const errorText = await createUserResponse.text();
+          console.error('User creation failed with status:', createUserResponse.status, 'Error:', errorText);
+          throw new Error(`Failed to create user: ${errorText}`);
+        }
+
+        const createUserResult = await createUserResponse.json();
+        console.log('User creation result:', createUserResult);
+
+        if (!createUserResult.success) {
+          throw new Error(createUserResult.error || 'Failed to create facility user');
+        }
+
+        console.log('User created successfully for facility');
+        
+      } catch (userError) {
+        console.error('User creation error:', userError);
+        // If user creation fails, we'll still show success for facility creation
+        // but show a warning
+        setError(`Facility created successfully, but user creation failed: ${userError.message}. Please create the user manually.`);
       }
 
-      const createUserResult = await createUserResponse.json();
-      console.log('User creation result:', createUserResult);
-
-      if (!createUserResult.success) {
-        throw new Error(createUserResult.error || 'Failed to create facility user');
-      }
-
-      console.log('Facility created successfully:', facility);
+      console.log('Process completed successfully');
       setSuccess(true);
       
       // Redirect to facilities list after short delay
