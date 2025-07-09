@@ -18,7 +18,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
       searchTerm === '' || 
       facility.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       facility.contact_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      facility.contact_phone?.includes(searchTerm) ||
+      facility.phone_number?.includes(searchTerm) ||
       facility.address?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Filter by status if needed
@@ -188,14 +188,14 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{facility.contact_email || 'No email'}</div>
-                      <div className="text-sm text-gray-500">{facility.contact_phone || 'No phone'}</div>
+                      <div className="text-sm text-gray-500">{facility.phone_number || 'No phone'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{facility.address || 'No address'}</div>
                       <div className="text-sm text-gray-500">{facility.facility_type || 'No type specified'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(facility.status || 'inactive')}
+                      {getStatusBadge(facility.status || 'active')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex flex-col">

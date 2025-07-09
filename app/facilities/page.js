@@ -72,12 +72,44 @@ export default async function FacilitiesPage() {
       facilitiesError = error;
     }
     
-    // Process facilities data to include counts (set to 0 for now)
-    const processedFacilities = facilities.map(facility => ({
-      ...facility,
-      client_count: 0, // Will be enhanced later
-      trip_count: 0,   // Will be enhanced later
-      active_users: 0  // Will be enhanced later
+    // Process facilities data to include counts
+    const processedFacilities = await Promise.all(facilities.map(async (facility) => {
+      let clientCount = 0;
+      let tripCount = 0;
+      let activeUsers = 0;
+      
+      try {
+        // Get client count for this facility
+        const { count: clients } = await supabase
+          .from('clients')
+          .select('*', { count: 'exact', head: true })
+          .eq('facility_id', facility.id);
+        clientCount = clients || 0;
+        
+        // Get trip count for this facility
+        const { count: trips } = await supabase
+          .from('trips')
+          .select('*', { count: 'exact', head: true })
+          .eq('facility_id', facility.id);
+        tripCount = trips || 0;
+        
+        // Get active users count for this facility
+        const { count: users } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('facility_id', facility.id)
+          .eq('status', 'active');
+        activeUsers = users || 0;
+      } catch (error) {
+        console.error('Error fetching counts for facility:', facility.id, error);
+      }
+      
+      return {
+        ...facility,
+        client_count: clientCount,
+        trip_count: tripCount,
+        active_users: activeUsers
+      };
     }));
     
     console.log('Processed facilities:', processedFacilities.length);

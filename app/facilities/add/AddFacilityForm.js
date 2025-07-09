@@ -49,7 +49,7 @@ export default function AddFacilityForm({ user, userProfile }) {
         name: formData.name,
         contact_email: formData.contact_email,
         billing_email: formData.billing_email || formData.contact_email,
-        contact_phone: formData.phone_number,
+        phone_number: formData.phone_number,
         address: formData.address,
         facility_type: formData.facility_type,
         status: formData.status,
