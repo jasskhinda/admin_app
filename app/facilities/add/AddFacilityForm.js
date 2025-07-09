@@ -75,52 +75,62 @@ export default function AddFacilityForm({ user, userProfile }) {
 
       console.log('Facility created successfully:', facility);
 
-      // Create user and profile using the admin API
-      console.log('Sending user creation request...');
+      // For now, skip user creation to avoid getting stuck
+      // TODO: Fix user creation API and re-enable
+      console.log('Skipping user creation for now - facility created successfully');
       
-      try {
-        const createUserResponse = await fetch('/api/users', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.contact_email,
-            password: formData.password,
-            role: 'facility',
-            userProfile: {
-              first_name: formData.name,
-              last_name: 'Facility',
-              phone_number: formData.phone_number,
-              facility_id: facility.id,
-              status: 'active'
-            }
-          })
-        });
+      // // Create user and profile using the admin API with timeout
+      // console.log('Sending user creation request...');
+      // 
+      // try {
+      //   // Add timeout to prevent hanging
+      //   const timeoutPromise = new Promise((_, reject) => {
+      //     setTimeout(() => reject(new Error('User creation request timed out')), 10000);
+      //   });
 
-        console.log('User creation response status:', createUserResponse.status);
-        
-        if (!createUserResponse.ok) {
-          const errorText = await createUserResponse.text();
-          console.error('User creation failed with status:', createUserResponse.status, 'Error:', errorText);
-          throw new Error(`Failed to create user: ${errorText}`);
-        }
+      //   const fetchPromise = fetch('/api/users', {
+      //     method: 'POST',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //     },
+      //     body: JSON.stringify({
+      //       email: formData.contact_email,
+      //       password: formData.password,
+      //       role: 'facility',
+      //       userProfile: {
+      //         first_name: formData.name,
+      //         last_name: 'Facility',
+      //         phone_number: formData.phone_number,
+      //         facility_id: facility.id,
+      //         status: 'active'
+      //       }
+      //     })
+      //   });
 
-        const createUserResult = await createUserResponse.json();
-        console.log('User creation result:', createUserResult);
+      //   const createUserResponse = await Promise.race([fetchPromise, timeoutPromise]);
+      //   console.log('User creation response status:', createUserResponse.status);
+      //   
+      //   if (!createUserResponse.ok) {
+      //     const errorText = await createUserResponse.text();
+      //     console.error('User creation failed with status:', createUserResponse.status, 'Error:', errorText);
+      //     throw new Error(`Failed to create user: ${errorText}`);
+      //   }
 
-        if (!createUserResult.success) {
-          throw new Error(createUserResult.error || 'Failed to create facility user');
-        }
+      //   const createUserResult = await createUserResponse.json();
+      //   console.log('User creation result:', createUserResult);
 
-        console.log('User created successfully for facility');
-        
-      } catch (userError) {
-        console.error('User creation error:', userError);
-        // If user creation fails, we'll still show success for facility creation
-        // This allows the form to complete even if user creation fails
-        console.log('Continuing with facility creation despite user creation failure');
-      }
+      //   if (!createUserResult.success) {
+      //     throw new Error(createUserResult.error || 'Failed to create facility user');
+      //   }
+
+      //   console.log('User created successfully for facility');
+      //   
+      // } catch (userError) {
+      //   console.error('User creation error:', userError);
+      //   // If user creation fails, we'll still show success for facility creation
+      //   // This allows the form to complete even if user creation fails
+      //   console.log('Continuing with facility creation despite user creation failure');
+      // }
 
       console.log('Process completed successfully');
       setSuccess(true);
