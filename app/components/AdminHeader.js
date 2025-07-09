@@ -11,17 +11,17 @@ export default function AdminHeader() {
 
   return (
     <header className="bg-white shadow-md">
-      <div className="container mx-auto flex justify-between items-center px-4 py-2">
-        <div className="flex items-center space-x-3">
-          <Image src="/LOGO2 (1).webp" alt="Logo" width={60} height={60} />
-          <div className="bg-[#84CED3] text-white px-3 py-1 rounded-lg text-sm font-medium">
+      <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
+        <div className="flex items-center space-x-4">
+          <Image src="/LOGO2 (1).webp" alt="Logo" width={80} height={80} />
+          <div className="bg-[#84CED3] text-white px-4 py-2 rounded-lg text-sm font-medium">
             Admin
           </div>
         </div>
         
         {user && (
-          <nav>
-            <ul className="hidden md:flex space-x-2">
+          <nav className="flex-1 mx-8">
+            <ul className="hidden lg:flex justify-center space-x-4">
               <li>
                 <Link href="/dashboard" className="bg-[#84CED3] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#70B8BD] transition-colors">
                   DASHBOARD
@@ -62,13 +62,13 @@ export default function AdminHeader() {
         )}
         
         {user && (
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <span className="mr-4 text-gray-700 text-sm">{userProfile?.full_name || user?.email}</span>
+          <div className="flex items-center space-x-4 flex-shrink-0">
+            <div className="flex items-center space-x-3">
+              <span className="text-gray-700 text-sm font-medium whitespace-nowrap">{userProfile?.full_name || user?.email}</span>
               <form action={signOut}>
                 <button 
                   type="submit"
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors whitespace-nowrap"
                 >
                   Sign out
                 </button>
