@@ -14,13 +14,13 @@ export default function AdminHeader() {
       <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
         <div className="flex items-center space-x-4">
           <Image src="/LOGO2 (1).webp" alt="Logo" width={80} height={80} />
-          <div className="bg-[#84CED3] text-white px-4 py-2 rounded-lg text-sm font-medium">
+          <div className="bg-[#84CED3] text-white px-2 py-1 rounded text-xs font-medium">
             Admin
           </div>
         </div>
         
         {user && (
-          <nav className="flex-1 mx-8">
+          <nav className="flex-1 mx-12">
             <ul className="hidden lg:flex justify-center space-x-4">
               <li>
                 <Link href="/dashboard" className="bg-[#84CED3] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#70B8BD] transition-colors">
@@ -50,11 +50,6 @@ export default function AdminHeader() {
               <li>
                 <Link href="/invoices" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
                   INVOICES
-                </Link>
-              </li>
-              <li>
-                <Link href="/profile" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
-                  PROFILE
                 </Link>
               </li>
             </ul>
