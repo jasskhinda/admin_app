@@ -1,11 +1,31 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/admin-supabase';
 
 export async function POST(request) {
   try {
     console.log('Profile creation API called');
+    
+    // Check if we're in build mode
+    if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      console.log('Build mode detected, returning early');
+      return NextResponse.json(
+        { error: 'Service not available during build' },
+        { status: 503 }
+      );
+    }
+    
+    // Dynamic import to avoid build-time errors
+    const { supabaseAdmin } = await import('@/lib/admin-supabase');
+    
+    // Check if supabaseAdmin is available
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not initialized');
+      return NextResponse.json(
+        { error: 'Service configuration error' },
+        { status: 500 }
+      );
+    }
     
     // Extract data from the request
     const { id, email, firstName, lastName, phoneNumber, role } = await request.json();
