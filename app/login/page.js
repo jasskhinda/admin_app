@@ -38,7 +38,7 @@ export default function Login() {
           <div className="flex items-center space-x-3">
             <Image src="/LOGO2 (1).webp" alt="Logo" width={60} height={60} />
             <div>
-              <h1 className="text-xl font-bold text-gray-800">Compassionate Rides</h1>
+              <h1 className="text-xl font-bold text-gray-800">Compassionate Care Transportation</h1>
               <div className="bg-[#84CED3] text-white px-3 py-1 rounded-lg text-sm font-medium inline-block">
                 Admin
               </div>

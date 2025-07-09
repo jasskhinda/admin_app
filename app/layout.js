@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Compassionate Rides Admin",
-  description: "Administration application for Compassionate Rides",
+  title: "Compassionate Care Transportation Admin",
+  description: "Administration application for Compassionate Care Transportation",
   icons: {
     icon: '/favicon.png',
   },

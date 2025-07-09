@@ -1,7 +1,7 @@
-# Compassionate Rides Admin Application
+# Compassionate Care Transportation Admin Application
 
 ## Overview
-The Compassionate Rides Admin Application helps manage transportation services for clients with special needs. It allows administrators to coordinate clients, drivers, trips, dispatching, and invoicing.
+The Compassionate Care Transportation Admin Application helps manage transportation services for clients with special needs. It allows administrators to coordinate clients, drivers, trips, dispatching, and invoicing.
 
 ## Core Features
 
