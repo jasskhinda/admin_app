@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
-import AdminHeader from '../../components/AdminHeader';
 import AddFacilityFormNew from './AddFacilityFormNew';
 
 export default async function AddFacilityPage() {
@@ -24,14 +23,5 @@ export default async function AddFacilityPage() {
     redirect('/login');
   }
   
-  return (
-    <div className="flex flex-col min-h-screen">
-      <AdminHeader />
-      <main className="flex-1 bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <AddFacilityFormNew />
-        </div>
-      </main>
-    </div>
-  );
+  return <AddFacilityFormNew />;
 }

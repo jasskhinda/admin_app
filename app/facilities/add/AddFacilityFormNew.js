@@ -15,8 +15,6 @@ export default function AddFacilityForm() {
     setLoading(true);
     setError('');
     
-    console.log('CLIENT: Form submitted');
-    
     const formData = new FormData(event.target);
     const data = {
       name: formData.get('name'),
@@ -28,15 +26,10 @@ export default function AddFacilityForm() {
       status: 'active'
     };
     
-    console.log('CLIENT: Form data prepared:', data);
-    
     try {
-      console.log('CLIENT: Calling server action...');
       await createFacility(data);
-      console.log('CLIENT: Server action completed successfully');
       // If successful, the server action will redirect
     } catch (err) {
-      console.error('CLIENT: Error caught:', err);
       setError(err.message || 'Failed to create facility');
       setLoading(false);
     }
