@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
 
 export default function AddFacilityForm() {
   const router = useRouter();
@@ -17,40 +16,76 @@ export default function AddFacilityForm() {
     setSuccess('');
 
     const formData = new FormData(e.target);
-    const facilityData = {
-      name: formData.get('name'),
-      contact_email: formData.get('contact_email'),
-      phone_number: formData.get('phone_number'),
-      address: formData.get('address'),
-      facility_type: formData.get('facility_type'),
-      status: 'active'
-    };
-
-    // Add billing email if provided
+    const email = formData.get('email');
+    const password = formData.get('password');
+    const facilityName = formData.get('name');
+    const contactEmail = formData.get('contact_email');
     const billingEmail = formData.get('billing_email');
-    if (billingEmail && billingEmail.trim()) {
-      facilityData.billing_email = billingEmail;
-    }
+    const phoneNumber = formData.get('phone_number');
+    const address = formData.get('address');
+    const facilityType = formData.get('facility_type');
 
     try {
-      const supabase = createClient();
-      
-      const { data: facility, error: facilityError } = await supabase
-        .from('facilities')
-        .insert([facilityData])
-        .select()
-        .single();
-        
-      if (facilityError) {
-        throw new Error(facilityError.message);
+      // Step 1: Create the facility record first
+      const facilityData = {
+        name: facilityName,
+        contact_email: contactEmail,
+        phone_number: phoneNumber,
+        address: address,
+        facility_type: facilityType,
+        status: 'active'
+      };
+
+      // Add billing email if provided
+      if (billingEmail && billingEmail.trim()) {
+        facilityData.billing_email = billingEmail;
       }
 
-      setSuccess('Facility successfully created!');
+      const facilityResponse = await fetch('/api/create-facility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(facilityData)
+      });
+
+      if (!facilityResponse.ok) {
+        const facilityError = await facilityResponse.json();
+        throw new Error(facilityError.error || 'Failed to create facility record');
+      }
+
+      const { facility } = await facilityResponse.json();
+
+      // Step 2: Create the user account for the facility
+      const userProfile = {
+        first_name: facilityName,
+        last_name: 'Facility',
+        phone_number: phoneNumber,
+        address: address,
+        facility_id: facility.id,
+        status: 'active'
+      };
+
+      const userResponse = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          userProfile: userProfile,
+          role: 'facility'
+        })
+      });
+
+      if (!userResponse.ok) {
+        const userError = await userResponse.json();
+        throw new Error(userError.error || 'Failed to create facility user account');
+      }
+
+      setSuccess('Facility and user account successfully created!');
       
       // Redirect after brief delay
       setTimeout(() => {
         router.push('/facilities');
-      }, 1500);
+      }, 2000);
       
     } catch (err) {
       console.error('Error creating facility:', err);
@@ -165,6 +200,41 @@ export default function AddFacilityForm() {
                 <option value="Medical Center">Medical Center</option>
                 <option value="Other">Other</option>
               </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Login Account Section */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h2 className="text-lg font-semibold mb-4">Login Account Information</h2>
+          <p className="text-sm text-gray-600 mb-4">This will create a user account that the facility can use to log into the facility app.</p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Login Email *
+              </label>
+              <input
+                type="email"
+                name="email"
+                required
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
+                placeholder="Enter login email address"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Password *
+              </label>
+              <input
+                type="password"
+                name="password"
+                required
+                minLength="6"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
+                placeholder="Enter password (minimum 6 characters)"
+              />
             </div>
           </div>
         </div>
