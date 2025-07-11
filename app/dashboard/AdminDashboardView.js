@@ -177,80 +177,220 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
         </div>
         
         {/* Recent Activity and Pending Approvals */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Recent Trips */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* Recent Trips - Full Width */}
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">Recent Trips</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-800">Recent Trips</h2>
+              <Link href="/trips" className="text-[#84CED3] hover:text-[#70B8BD] transition-colors text-sm font-medium">
+                View all trips →
+              </Link>
+            </div>
+            
             {recentTrips && recentTrips.length > 0 ? (
-              <div className="space-y-2">
-                {recentTrips.map((trip) => {
-                  // Determine client name based on trip type
-                  let clientName = 'Unknown Client';
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Facility Trips Section */}
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-center mb-4">
+                    <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0v-4a2 2 0 011-1h4a2 2 0 011 1v4M7 10h10M7 6h4" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-blue-800">Facility Trips</h3>
+                  </div>
                   
-                  if (trip.user_profile) {
-                    // Individual booking trip
-                    clientName = trip.user_profile.full_name || 
-                      (trip.user_profile.first_name && trip.user_profile.last_name 
-                        ? `${trip.user_profile.first_name} ${trip.user_profile.last_name}` 
-                        : trip.user_profile.email || 'Individual Client');
-                  } else if (trip.managed_client) {
-                    // Facility managed client trip
-                    clientName = trip.managed_client.first_name && trip.managed_client.last_name
-                      ? `${trip.managed_client.first_name} ${trip.managed_client.last_name}`
-                      : trip.managed_client.email || 'Managed Client';
+                  {(() => {
+                    const facilityTrips = recentTrips.filter(trip => trip.facility_id);
                     
-                    // Add facility name if available
-                    if (trip.facility?.name) {
-                      clientName += ` (${trip.facility.name})`;
+                    if (facilityTrips.length === 0) {
+                      return (
+                        <div className="text-center py-6">
+                          <svg className="w-12 h-12 text-blue-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0v-4a2 2 0 011-1h4a2 2 0 011 1v4" />
+                          </svg>
+                          <p className="text-blue-600 text-sm">No recent facility trips</p>
+                        </div>
+                      );
                     }
-                  } else if (trip.facility) {
-                    // Facility trip without specific client
-                    clientName = `Facility: ${trip.facility.name}`;
-                  }
+                    
+                    // Group facility trips by facility
+                    const tripsByFacility = facilityTrips.reduce((acc, trip) => {
+                      const facilityName = trip.facility?.name || 'Unknown Facility';
+                      if (!acc[facilityName]) {
+                        acc[facilityName] = [];
+                      }
+                      acc[facilityName].push(trip);
+                      return acc;
+                    }, {});
+                    
+                    return (
+                      <div className="space-y-4">
+                        {Object.entries(tripsByFacility).map(([facilityName, trips]) => (
+                          <div key={facilityName} className="bg-white rounded-lg p-3 border border-blue-200">
+                            <h4 className="font-medium text-blue-900 mb-2 text-sm">{facilityName}</h4>
+                            <div className="space-y-2">
+                              {trips.slice(0, 3).map((trip) => {
+                                const clientName = trip.managed_client 
+                                  ? (trip.managed_client.first_name && trip.managed_client.last_name
+                                      ? `${trip.managed_client.first_name} ${trip.managed_client.last_name}`
+                                      : trip.managed_client.email || 'Managed Client')
+                                  : 'Facility Client';
+                                
+                                return (
+                                  <div key={trip.id} className="flex justify-between items-start text-xs">
+                                    <div className="flex-1">
+                                      <div className="font-medium text-gray-900">{clientName}</div>
+                                      <div className="text-gray-600 truncate max-w-[200px]">
+                                        {trip.pickup_address?.substring(0, 25)}...
+                                      </div>
+                                      <div className="text-gray-500">
+                                        {trip.pickup_time ? formatDate(trip.pickup_time) : formatDate(trip.created_at)}
+                                      </div>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 ${
+                                      trip.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                      trip.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                      trip.status === 'upcoming' ? 'bg-blue-100 text-blue-700' :
+                                      'bg-gray-100 text-gray-700'
+                                    }`}>
+                                      {trip.status}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                              {trips.length > 3 && (
+                                <div className="text-center pt-2">
+                                  <span className="text-xs text-blue-600">+{trips.length - 3} more trips</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Individual Trips Section */}
+                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                  <div className="flex items-center mb-4">
+                    <div className="p-2 bg-green-100 rounded-lg mr-3">
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-green-800">Individual Trips</h3>
+                  </div>
                   
-                  return (
-                    <ActivityItem 
-                      key={trip.id}
-                      title={`Trip ${trip.id ? trip.id.substring(0, 8) : 'Unknown'}`}
-                      description={`${clientName} - ${trip.pickup_address ? trip.pickup_address.substring(0, 30) : 'Unknown'}...`}
-                      time={trip.pickup_time ? formatDate(trip.pickup_time) : (trip.created_at ? formatDate(trip.created_at) : 'Unknown date')}
-                      status={trip.status || 'unknown'}
-                    />
-                  );
-                })}
-                <div className="mt-4 text-center">
-                  <Link href="/trips" className="text-[#84CED3] hover:text-[#70B8BD] transition-colors">
-                    View all trips
-                  </Link>
+                  {(() => {
+                    const individualTrips = recentTrips.filter(trip => trip.user_id && !trip.facility_id);
+                    
+                    if (individualTrips.length === 0) {
+                      return (
+                        <div className="text-center py-6">
+                          <svg className="w-12 h-12 text-green-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <p className="text-green-600 text-sm">No recent individual trips</p>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div className="space-y-3">
+                        {individualTrips.slice(0, 5).map((trip) => {
+                          const clientName = trip.user_profile?.full_name || 
+                            (trip.user_profile?.first_name && trip.user_profile?.last_name 
+                              ? `${trip.user_profile.first_name} ${trip.user_profile.last_name}` 
+                              : trip.user_profile?.email || 'Individual Client');
+                          
+                          return (
+                            <div key={trip.id} className="bg-white rounded-lg p-3 border border-green-200">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900 text-sm">{clientName}</div>
+                                  <div className="text-gray-600 text-xs truncate max-w-[200px]">
+                                    {trip.pickup_address?.substring(0, 30)}...
+                                  </div>
+                                  <div className="text-gray-500 text-xs">
+                                    {trip.pickup_time ? formatDate(trip.pickup_time) : formatDate(trip.created_at)}
+                                  </div>
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 ${
+                                  trip.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                  trip.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                  trip.status === 'upcoming' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {trip.status}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {individualTrips.length > 5 && (
+                          <div className="text-center pt-2">
+                            <span className="text-xs text-green-600">+{individualTrips.length - 5} more trips</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             ) : (
-              <p className="text-gray-500">No recent trips found</p>
+              <div className="text-center py-12">
+                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-600 mb-2">No Recent Trips</h3>
+                <p className="text-gray-500">Recent trips will appear here once they are created.</p>
+              </div>
             )}
           </div>
           
-          {/* Pending Driver Verifications */}
+          {/* Pending Driver Verifications - Moved to full width below */}
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">Pending Driver Verifications</h2>
             {pendingDrivers && pendingDrivers.length > 0 ? (
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pendingDrivers.map((driver) => (
-                  <ActivityItem 
-                    key={driver.id}
-                    title={driver.full_name || 'Unknown'}
-                    description={`${driver.email || 'No email'} - Awaiting verification`}
-                    time={driver.created_at ? formatDate(driver.created_at) : 'Unknown date'}
-                    status="pending"
-                  />
+                  <div key={driver.id} className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                    <div className="flex items-start space-x-3">
+                      <div className="p-2 bg-yellow-100 rounded-lg">
+                        <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{driver.full_name || 'Unknown Driver'}</h4>
+                        <p className="text-sm text-gray-600 truncate">{driver.email || 'No email'}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Applied: {driver.created_at ? formatDate(driver.created_at) : 'Unknown date'}
+                        </p>
+                        <span className="inline-block mt-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                          Pending Verification
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-                <div className="mt-4 text-center">
-                  <Link href="/drivers?status=pending_verification" className="text-[#84CED3] hover:text-[#70B8BD] transition-colors">
-                    View all pending verifications
-                  </Link>
-                </div>
               </div>
             ) : (
-              <p className="text-gray-500">No pending driver verifications</p>
+              <div className="text-center py-8">
+                <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-gray-500">No pending driver verifications</p>
+              </div>
+            )}
+            {pendingDrivers && pendingDrivers.length > 0 && (
+              <div className="mt-6 text-center">
+                <Link href="/drivers?status=pending_verification" className="text-[#84CED3] hover:text-[#70B8BD] transition-colors text-sm font-medium">
+                  View all pending verifications →
+                </Link>
+              </div>
             )}
           </div>
         </div>
