@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 
+// Initialize Supabase client once outside component
+const supabase = createClient();
+
 export default function AddFacilityForm({ user, userProfile }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -21,10 +24,6 @@ export default function AddFacilityForm({ user, userProfile }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
-  
-  // Debug log
-  console.log('Supabase client initialized:', !!supabase);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -79,68 +78,36 @@ export default function AddFacilityForm({ user, userProfile }) {
       
       console.log('Creating facility with data:', facilityData);
       
-      try {
-        const { data: facility, error: facilityError } = await supabase
-          .from('facilities')
-          .insert([facilityData])
-          .select()
-          .single();
-          
-        console.log('Facility creation response:', { facility, facilityError });
-
-        if (facilityError) {
-          console.error('Facility creation error:', facilityError);
-          throw new Error(`Failed to create facility: ${facilityError.message}`);
-        }
-        
-        if (!facility) {
-          throw new Error('No facility data returned after creation');
-        }
-      } catch (dbError) {
-        console.error('Database operation error:', dbError);
-        throw dbError;
-      }
-
-      console.log('Facility created successfully:', facility);
-
-      // Skip user creation for now - admin can create manually
-      console.log('Facility created successfully. Admin can create user account manually.');
-      
-      // Optional: Try to create user but don't block on failure
-      fetch('/api/users', {
+      // Use API route to create facility
+      const response = await fetch('/api/facilities', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: formData.contact_email,
-          password: formData.password,
-          role: 'facility',
-          userProfile: {
-            first_name: formData.name,
-            last_name: 'Account',
-            phone_number: formData.phone_number,
-            facility_id: facility.id,
-            status: 'active'
-          }
-        })
-      }).then(response => {
-        if (response.ok) {
-          console.log('User account created successfully');
-        } else {
-          console.log('User creation failed but facility was created');
-        }
-      }).catch(err => {
-        console.log('User creation error (non-blocking):', err);
+        body: JSON.stringify(facilityData)
       });
-
-      console.log('Process completed successfully');
-      setSuccess(true);
       
-      // Redirect to facilities list after short delay
+      console.log('API response status:', response.status);
+      
+      const result = await response.json();
+      console.log('API response:', result);
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create facility');
+      }
+      
+      if (!result.success || !result.facility) {
+        throw new Error('Facility creation failed - no data returned');
+      }
+      
+      console.log('Facility created successfully:', result.facility);
+      
+      // Set success and redirect
+      setSuccess(true);
       setTimeout(() => {
         router.push('/facilities');
       }, 2000);
+      
       
     } catch (err) {
       console.error('Error creating facility:', err);
