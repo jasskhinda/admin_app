@@ -96,166 +96,187 @@ export default function AddFacilityForm() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Add New Facility</h1>
-        <p className="text-gray-600">Create a new facility in the system</p>
-      </div>
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="text-red-600">{error}</div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Facility Account</h1>
+          <p className="text-gray-600">Set up a new facility account with login credentials for the facility app</p>
         </div>
-      )}
 
-      {success && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div className="text-green-600">{success}</div>
-        </div>
-      )}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-lg">
+            <div className="text-red-700 font-medium">{error}</div>
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-lg font-semibold mb-4">Facility Information</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Facility Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                required
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
-                placeholder="Enter facility name"
-              />
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-400 rounded-lg">
+            <div className="text-green-700 font-medium">{success}</div>
+          </div>
+        )}
+
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+          <div className="px-8 py-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Facility Information</h2>
+            <p className="text-sm text-gray-500 mt-1">This information will be used to create the facility account and login credentials</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="px-8 py-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Facility Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="e.g., St. Mary's Hospital"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone_number"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Contact Email *
+                  </label>
+                  <input
+                    type="email"
+                    name="contact_email"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="contact@facility.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Facility Type *
+                  </label>
+                  <select
+                    name="facility_type"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    defaultValue="Hospital"
+                  >
+                    <option value="Hospital">Hospital</option>
+                    <option value="Clinic">Clinic</option>
+                    <option value="Nursing Home">Nursing Home</option>
+                    <option value="Assisted Living">Assisted Living</option>
+                    <option value="Rehabilitation Center">Rehabilitation Center</option>
+                    <option value="Medical Center">Medical Center</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Full Address *
+                  </label>
+                  <textarea
+                    name="address"
+                    required
+                    rows="3"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                    placeholder="123 Medical Drive, Suite 100, City, State 12345"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Billing Email <span className="text-gray-400 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="billing_email"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="billing@facility.com"
+                  />
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h3 className="text-sm font-semibold text-blue-900 mb-3">Login Credentials</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-1">
+                        Login Email *
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        required
+                        className="w-full px-3 py-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        placeholder="login@facility.com"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-1">
+                        Password *
+                      </label>
+                      <input
+                        type="password"
+                        name="password"
+                        required
+                        minLength="6"
+                        className="w-full px-3 py-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        placeholder="Minimum 6 characters"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-2">
+                    These credentials will be used to access the facility app
+                  </p>
+                </div>
+              </div>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Address *
-              </label>
-              <input
-                type="text"
-                name="address"
-                required
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
-                placeholder="Enter full address"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                name="phone_number"
-                required
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
-                placeholder="Enter phone number"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Contact Email *
-              </label>
-              <input
-                type="email"
-                name="contact_email"
-                required
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
-                placeholder="Enter contact email address"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Billing Email (Optional)
-              </label>
-              <input
-                type="email"
-                name="billing_email"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
-                placeholder="Enter billing email (optional)"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Facility Type
-              </label>
-              <select
-                name="facility_type"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
-                defaultValue="Hospital"
+
+            <div className="flex justify-end space-x-4 mt-8 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => router.push('/facilities')}
+                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
               >
-                <option value="Hospital">Hospital</option>
-                <option value="Clinic">Clinic</option>
-                <option value="Nursing Home">Nursing Home</option>
-                <option value="Assisted Living">Assisted Living</option>
-                <option value="Rehabilitation Center">Rehabilitation Center</option>
-                <option value="Medical Center">Medical Center</option>
-                <option value="Other">Other</option>
-              </select>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating Account...
+                  </>
+                ) : (
+                  'Create Facility Account'
+                )}
+              </button>
             </div>
-          </div>
+          </form>
         </div>
-
-        {/* Login Account Section */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-lg font-semibold mb-4">Login Account Information</h2>
-          <p className="text-sm text-gray-600 mb-4">This will create a user account that the facility can use to log into the facility app.</p>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Login Email *
-              </label>
-              <input
-                type="email"
-                name="email"
-                required
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
-                placeholder="Enter login email address"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Password *
-              </label>
-              <input
-                type="password"
-                name="password"
-                required
-                minLength="6"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
-                placeholder="Enter password (minimum 6 characters)"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={() => router.push('/facilities')}
-            className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 bg-[#84CED3] text-white rounded hover:bg-[#70B8BD] disabled:opacity-50 transition-colors"
-          >
-            {loading ? 'Creating...' : 'Add Facility'}
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }
