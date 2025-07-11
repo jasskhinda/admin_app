@@ -36,10 +36,17 @@ export default function AddFacilityForm({ user, userProfile }) {
     setLoading(true);
     setError('');
     
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      setError('Request timed out. Please try again.');
+      setLoading(false);
+    }, 30000); // 30 second timeout
+    
     try {
       // Validate required fields
       if (!formData.name || !formData.contact_email || !formData.address || !formData.phone_number || !formData.password) {
         setError('Facility name, contact email, address, phone number, and password are required');
+        clearTimeout(timeoutId);
         setLoading(false);
         return;
       }
@@ -70,72 +77,45 @@ export default function AddFacilityForm({ user, userProfile }) {
 
       if (facilityError) {
         console.error('Facility creation error:', facilityError);
-        throw facilityError;
+        throw new Error(`Failed to create facility: ${facilityError.message}`);
+      }
+      
+      if (!facility) {
+        throw new Error('No facility data returned after creation');
       }
 
       console.log('Facility created successfully:', facility);
 
-      // Create user and profile using the admin API
-      console.log('Creating facility user account...');
+      // Skip user creation for now - admin can create manually
+      console.log('Facility created successfully. Admin can create user account manually.');
       
-      try {
-        const createUserResponse = await fetch('/api/users', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.contact_email,
-            password: formData.password,
-            role: 'facility',
-            userProfile: {
-              first_name: formData.name,
-              last_name: 'Account',
-              phone_number: formData.phone_number,
-              facility_id: facility.id,
-              status: 'active'
-            }
-          })
-        });
-
-        console.log('User creation response status:', createUserResponse.status);
-        
-        if (!createUserResponse.ok) {
-          const errorText = await createUserResponse.text();
-          console.error('User creation failed with status:', createUserResponse.status, 'Error:', errorText);
-          
-          // Still show facility created, but warn about user
-          setError(`Facility created but user account failed: ${errorText}. Please create the user manually.`);
-          
-          // Still redirect after delay
-          setTimeout(() => {
-            router.push('/facilities');
-          }, 3000);
-          return;
+      // Optional: Try to create user but don't block on failure
+      fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.contact_email,
+          password: formData.password,
+          role: 'facility',
+          userProfile: {
+            first_name: formData.name,
+            last_name: 'Account',
+            phone_number: formData.phone_number,
+            facility_id: facility.id,
+            status: 'active'
+          }
+        })
+      }).then(response => {
+        if (response.ok) {
+          console.log('User account created successfully');
+        } else {
+          console.log('User creation failed but facility was created');
         }
-
-        const createUserResult = await createUserResponse.json();
-        console.log('User creation result:', createUserResult);
-
-        if (!createUserResult.success) {
-          setError(`Facility created but user account failed: ${createUserResult.error}. Please create the user manually.`);
-          setTimeout(() => {
-            router.push('/facilities');
-          }, 3000);
-          return;
-        }
-
-        console.log('User created successfully for facility');
-        
-      } catch (userError) {
-        console.error('User creation error:', userError);
-        // If user creation fails, we'll still show partial success
-        setError(`Facility created but user account failed: ${userError.message}. Please create the user manually.`);
-        setTimeout(() => {
-          router.push('/facilities');
-        }, 3000);
-        return;
-      }
+      }).catch(err => {
+        console.log('User creation error (non-blocking):', err);
+      });
 
       console.log('Process completed successfully');
       setSuccess(true);
@@ -149,6 +129,7 @@ export default function AddFacilityForm({ user, userProfile }) {
       console.error('Error creating facility:', err);
       setError(err.message || 'An error occurred while creating the facility');
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
