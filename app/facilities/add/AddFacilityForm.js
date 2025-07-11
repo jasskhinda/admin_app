@@ -78,29 +78,44 @@ export default function AddFacilityForm({ user, userProfile }) {
       
       console.log('Creating facility with data:', facilityData);
       
-      // Use API route to create facility
-      const response = await fetch('/api/facilities', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(facilityData)
-      });
+      // Try direct Supabase insert with better error handling
+      console.log('Attempting to create facility directly...');
       
-      console.log('API response status:', response.status);
+      let facility = null;
+      let insertError = null;
       
-      const result = await response.json();
-      console.log('API response:', result);
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create facility');
+      try {
+        const insertResult = await supabase
+          .from('facilities')
+          .insert([facilityData])
+          .select()
+          .single();
+          
+        facility = insertResult.data;
+        insertError = insertResult.error;
+        
+        console.log('Direct insert result:', { facility, insertError });
+      } catch (directError) {
+        console.error('Direct insert exception:', directError);
+        insertError = directError;
       }
       
-      if (!result.success || !result.facility) {
-        throw new Error('Facility creation failed - no data returned');
+      if (insertError) {
+        console.error('Facility creation error:', insertError);
+        
+        // Check if it's an RLS error
+        if (insertError.message?.includes('RLS') || insertError.code === '42501') {
+          throw new Error('Permission denied. Please ensure you have admin privileges.');
+        }
+        
+        throw new Error(`Failed to create facility: ${insertError.message || 'Unknown error'}`);
       }
       
-      console.log('Facility created successfully:', result.facility);
+      if (!facility) {
+        throw new Error('No facility data returned after creation');
+      }
+      
+      console.log('Facility created successfully:', facility);
       
       // Set success and redirect
       setSuccess(true);

@@ -1,28 +1,39 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST(request) {
   try {
     console.log('Facility creation API called');
     
-    // Get the regular client to check the admin's session
-    const supabase = createRouteHandlerClient({ cookies });
-    const { data: { session } } = await supabase.auth.getSession();
+    // Check cookies
+    const cookieStore = cookies();
+    const allCookies = cookieStore.getAll();
+    console.log('Available cookies:', allCookies.map(c => c.name));
+    
+    // Get the server client
+    const supabase = await createClient();
+    console.log('Supabase client created');
+    
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    console.log('Auth check result:', { user: user?.id, error: userError });
     
     // Ensure the user is logged in
-    if (!session) {
+    if (userError || !user) {
+      console.error('Auth error:', userError);
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - No valid session' },
         { status: 401 }
       );
     }
+    
+    console.log('Authenticated user:', user.id);
     
     // Verify the admin's role
     const { data: adminProfile, error: adminError } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
     
     if (adminError || !adminProfile || adminProfile.role !== 'admin') {
