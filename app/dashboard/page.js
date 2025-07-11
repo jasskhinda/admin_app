@@ -58,10 +58,29 @@ export default async function AdminDashboard() {
     ).map(([role, count]) => ({ role, count })) 
     : [];
   
-  // Fetch recent trips for the dashboard
+  // Fetch recent trips for the dashboard with client information
   const { data: recentTrips, error: tripsError } = await supabase
     .from('trips')
-    .select('*')
+    .select(`
+      *,
+      user_profile:user_id (
+        id,
+        first_name,
+        last_name,
+        full_name,
+        email
+      ),
+      managed_client:managed_client_id!facility_managed_clients (
+        id,
+        first_name,
+        last_name,
+        email
+      ),
+      facility:facility_id (
+        id,
+        name
+      )
+    `)
     .order('created_at', { ascending: false })
     .limit(5);
   

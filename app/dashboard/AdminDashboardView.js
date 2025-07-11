@@ -183,15 +183,41 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
             <h2 className="text-xl font-semibold mb-4 text-gray-800">Recent Trips</h2>
             {recentTrips && recentTrips.length > 0 ? (
               <div className="space-y-2">
-                {recentTrips.map((trip) => (
-                  <ActivityItem 
-                    key={trip.id}
-                    title={`Trip ${trip.id ? trip.id.substring(0, 8) : 'Unknown'}`}
-                    description={`${trip.user_id ? trip.user_id.substring(0, 8) : 'Unknown'} - ${trip.pickup_address ? trip.pickup_address.substring(0, 20) : 'Unknown'}...`}
-                    time={trip.created_at ? formatDate(trip.created_at) : 'Unknown date'}
-                    status={trip.status || 'unknown'}
-                  />
-                ))}
+                {recentTrips.map((trip) => {
+                  // Determine client name based on trip type
+                  let clientName = 'Unknown Client';
+                  
+                  if (trip.user_profile) {
+                    // Individual booking trip
+                    clientName = trip.user_profile.full_name || 
+                      (trip.user_profile.first_name && trip.user_profile.last_name 
+                        ? `${trip.user_profile.first_name} ${trip.user_profile.last_name}` 
+                        : trip.user_profile.email || 'Individual Client');
+                  } else if (trip.managed_client) {
+                    // Facility managed client trip
+                    clientName = trip.managed_client.first_name && trip.managed_client.last_name
+                      ? `${trip.managed_client.first_name} ${trip.managed_client.last_name}`
+                      : trip.managed_client.email || 'Managed Client';
+                    
+                    // Add facility name if available
+                    if (trip.facility?.name) {
+                      clientName += ` (${trip.facility.name})`;
+                    }
+                  } else if (trip.facility) {
+                    // Facility trip without specific client
+                    clientName = `Facility: ${trip.facility.name}`;
+                  }
+                  
+                  return (
+                    <ActivityItem 
+                      key={trip.id}
+                      title={`Trip ${trip.id ? trip.id.substring(0, 8) : 'Unknown'}`}
+                      description={`${clientName} - ${trip.pickup_address ? trip.pickup_address.substring(0, 30) : 'Unknown'}...`}
+                      time={trip.pickup_time ? formatDate(trip.pickup_time) : (trip.created_at ? formatDate(trip.created_at) : 'Unknown date')}
+                      status={trip.status || 'unknown'}
+                    />
+                  );
+                })}
                 <div className="mt-4 text-center">
                   <Link href="/trips" className="text-[#84CED3] hover:text-[#70B8BD] transition-colors">
                     View all trips
