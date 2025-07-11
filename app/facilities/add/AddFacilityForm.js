@@ -22,6 +22,9 @@ export default function AddFacilityForm({ user, userProfile }) {
   const [success, setSuccess] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  
+  // Debug log
+  console.log('Supabase client initialized:', !!supabase);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -52,6 +55,13 @@ export default function AddFacilityForm({ user, userProfile }) {
       }
 
       console.log('Starting facility creation process...');
+      console.log('User ID:', user?.id);
+      console.log('Form data:', formData);
+      
+      // Check if supabase client is properly initialized
+      if (!supabase || !supabase.from) {
+        throw new Error('Supabase client not properly initialized');
+      }
       
       // First, create the facility record
       const facilityData = {
@@ -69,19 +79,26 @@ export default function AddFacilityForm({ user, userProfile }) {
       
       console.log('Creating facility with data:', facilityData);
       
-      const { data: facility, error: facilityError } = await supabase
-        .from('facilities')
-        .insert([facilityData])
-        .select()
-        .single();
+      try {
+        const { data: facility, error: facilityError } = await supabase
+          .from('facilities')
+          .insert([facilityData])
+          .select()
+          .single();
+          
+        console.log('Facility creation response:', { facility, facilityError });
 
-      if (facilityError) {
-        console.error('Facility creation error:', facilityError);
-        throw new Error(`Failed to create facility: ${facilityError.message}`);
-      }
-      
-      if (!facility) {
-        throw new Error('No facility data returned after creation');
+        if (facilityError) {
+          console.error('Facility creation error:', facilityError);
+          throw new Error(`Failed to create facility: ${facilityError.message}`);
+        }
+        
+        if (!facility) {
+          throw new Error('No facility data returned after creation');
+        }
+      } catch (dbError) {
+        console.error('Database operation error:', dbError);
+        throw dbError;
       }
 
       console.log('Facility created successfully:', facility);
