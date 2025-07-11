@@ -3,165 +3,79 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import Link from 'next/link';
 
-// Initialize Supabase client once outside component
-const supabase = createClient();
-
-export default function AddFacilityForm({ user, userProfile }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    phone_number: '',
-    contact_email: '',
-    billing_email: '',
-    facility_type: 'Hospital',
-    password: '',
-    status: 'active'
-  });
-  
+export default function AddFacilityForm() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const router = useRouter();
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
-    // Set a timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      setError('Request timed out. Please try again.');
-      setLoading(false);
-    }, 30000); // 30 second timeout
-    
+    setSuccess('');
+
+    const formData = new FormData(e.target);
+    const facilityData = {
+      name: formData.get('name'),
+      contact_email: formData.get('contact_email'),
+      phone_number: formData.get('phone_number'),
+      address: formData.get('address'),
+      facility_type: formData.get('facility_type'),
+      status: 'active'
+    };
+
+    // Add billing email if provided
+    const billingEmail = formData.get('billing_email');
+    if (billingEmail && billingEmail.trim()) {
+      facilityData.billing_email = billingEmail;
+    }
+
     try {
-      // Validate required fields
-      if (!formData.name || !formData.contact_email || !formData.address || !formData.phone_number || !formData.password) {
-        setError('Facility name, contact email, address, phone number, and password are required');
-        clearTimeout(timeoutId);
-        setLoading(false);
-        return;
+      const supabase = createClient();
+      
+      const { data: facility, error: facilityError } = await supabase
+        .from('facilities')
+        .insert([facilityData])
+        .select()
+        .single();
+        
+      if (facilityError) {
+        throw new Error(facilityError.message);
       }
 
-      console.log('Starting facility creation process...');
-      console.log('User ID:', user?.id);
-      console.log('Form data:', formData);
+      setSuccess('Facility successfully created!');
       
-      // Check if supabase client is properly initialized
-      if (!supabase || !supabase.from) {
-        throw new Error('Supabase client not properly initialized');
-      }
-      
-      // First, create the facility record
-      const facilityData = {
-        name: formData.name,
-        contact_email: formData.contact_email,
-        billing_email: formData.billing_email || formData.contact_email,
-        phone_number: formData.phone_number,
-        address: formData.address,
-        facility_type: formData.facility_type,
-        status: formData.status
-      };
-      
-      console.log('Creating facility with data:', facilityData);
-      
-      // Try direct Supabase insert with better error handling
-      console.log('Attempting to create facility directly...');
-      
-      let facility = null;
-      let insertError = null;
-      
-      try {
-        const insertResult = await supabase
-          .from('facilities')
-          .insert([facilityData])
-          .select()
-          .single();
-          
-        facility = insertResult.data;
-        insertError = insertResult.error;
-        
-        console.log('Direct insert result:', { facility, insertError });
-      } catch (directError) {
-        console.error('Direct insert exception:', directError);
-        insertError = directError;
-      }
-      
-      if (insertError) {
-        console.error('Facility creation error:', insertError);
-        
-        // Check if it's an RLS error
-        if (insertError.message?.includes('RLS') || insertError.code === '42501') {
-          throw new Error('Permission denied. Please ensure you have admin privileges.');
-        }
-        
-        throw new Error(`Failed to create facility: ${insertError.message || 'Unknown error'}`);
-      }
-      
-      if (!facility) {
-        throw new Error('No facility data returned after creation');
-      }
-      
-      console.log('Facility created successfully:', facility);
-      
-      // Set success and redirect
-      setSuccess(true);
+      // Redirect after brief delay
       setTimeout(() => {
         router.push('/facilities');
-      }, 2000);
-      
+      }, 1500);
       
     } catch (err) {
       console.error('Error creating facility:', err);
-      setError(err.message || 'An error occurred while creating the facility');
+      setError(err.message || 'Failed to create facility');
     } finally {
-      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
 
-  if (success) {
-    return (
-      <div className="max-w-md mx-auto mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
-        <div className="text-center">
-          <div className="text-green-600 text-lg font-semibold mb-2">
-            Facility Created Successfully!
-          </div>
-          <div className="text-green-600 mb-4">
-            Redirecting to facilities list...
-          </div>
-          <Link
-            href="/facilities"
-            className="text-primary hover:text-primary-dark underline"
-          >
-            Go to Facilities List
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">Add New Facility</h1>
-          <p className="text-gray-600">Create a new facility in the system</p>
-        </div>
+    <div className="max-w-2xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2">Add New Facility</h1>
+        <p className="text-gray-600">Create a new facility in the system</p>
+      </div>
 
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <div className="text-red-600">{error}</div>
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="text-green-600">{success}</div>
         </div>
       )}
 
@@ -177,8 +91,6 @@ export default function AddFacilityForm({ user, userProfile }) {
               <input
                 type="text"
                 name="name"
-                value={formData.name}
-                onChange={handleInputChange}
                 required
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
                 placeholder="Enter facility name"
@@ -192,8 +104,6 @@ export default function AddFacilityForm({ user, userProfile }) {
               <input
                 type="text"
                 name="address"
-                value={formData.address}
-                onChange={handleInputChange}
                 required
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
                 placeholder="Enter full address"
@@ -207,8 +117,6 @@ export default function AddFacilityForm({ user, userProfile }) {
               <input
                 type="tel"
                 name="phone_number"
-                value={formData.phone_number}
-                onChange={handleInputChange}
                 required
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
                 placeholder="Enter phone number"
@@ -222,8 +130,6 @@ export default function AddFacilityForm({ user, userProfile }) {
               <input
                 type="email"
                 name="contact_email"
-                value={formData.contact_email}
-                onChange={handleInputChange}
                 required
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
                 placeholder="Enter contact email address"
@@ -232,13 +138,11 @@ export default function AddFacilityForm({ user, userProfile }) {
             
             <div>
               <label className="block text-sm font-medium mb-1">
-                Billing Email
+                Billing Email (Optional)
               </label>
               <input
                 type="email"
                 name="billing_email"
-                value={formData.billing_email}
-                onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
                 placeholder="Enter billing email (optional)"
               />
@@ -250,9 +154,8 @@ export default function AddFacilityForm({ user, userProfile }) {
               </label>
               <select
                 name="facility_type"
-                value={formData.facility_type}
-                onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
+                defaultValue="Hospital"
               >
                 <option value="Hospital">Hospital</option>
                 <option value="Clinic">Clinic</option>
@@ -263,31 +166,17 @@ export default function AddFacilityForm({ user, userProfile }) {
                 <option value="Other">Other</option>
               </select>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Password *
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#84CED3] focus:border-[#84CED3]"
-                placeholder="Enter password for facility login"
-              />
-            </div>
           </div>
         </div>
 
         <div className="flex justify-end space-x-4">
-          <Link
-            href="/facilities"
+          <button
+            type="button"
+            onClick={() => router.push('/facilities')}
             className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Cancel
-          </Link>
+          </button>
           <button
             type="submit"
             disabled={loading}
@@ -297,7 +186,6 @@ export default function AddFacilityForm({ user, userProfile }) {
           </button>
         </div>
       </form>
-      </div>
     </div>
   );
 }
