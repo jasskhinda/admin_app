@@ -70,10 +70,7 @@ export default function AddFacilityForm({ user, userProfile }) {
         phone_number: formData.phone_number,
         address: formData.address,
         facility_type: formData.facility_type,
-        status: formData.status,
-        created_by: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        status: formData.status
       };
       
       console.log('Creating facility with data:', facilityData);
