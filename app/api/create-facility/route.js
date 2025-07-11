@@ -41,14 +41,44 @@ export async function POST(request) {
     const facilityData = await request.json();
     console.log('CREATE FACILITY API: Facility data:', facilityData);
     
-    // Create the facility record
-    const { data: facility, error: facilityError } = await supabase
-      .from('facilities')
-      .insert([facilityData])
-      .select()
-      .single();
-      
-    console.log('CREATE FACILITY API: Insert result:', { facility, error: facilityError });
+    // Try to use admin client for facilities creation
+    let facility = null;
+    let facilityError = null;
+    
+    try {
+      // First try with regular client
+      const { data: regularFacility, error: regularError } = await supabase
+        .from('facilities')
+        .insert([facilityData])
+        .select()
+        .single();
+        
+      if (regularError) {
+        console.log('CREATE FACILITY API: Regular insert failed, trying admin client:', regularError);
+        
+        // Try with admin client
+        const { supabaseAdmin } = await import('@/lib/admin-supabase');
+        if (supabaseAdmin) {
+          const { data: adminFacility, error: adminError } = await supabaseAdmin
+            .from('facilities')
+            .insert([facilityData])
+            .select()
+            .single();
+            
+          facility = adminFacility;
+          facilityError = adminError;
+          console.log('CREATE FACILITY API: Admin insert result:', { facility, error: facilityError });
+        } else {
+          facilityError = regularError;
+        }
+      } else {
+        facility = regularFacility;
+        console.log('CREATE FACILITY API: Regular insert succeeded:', facility);
+      }
+    } catch (insertError) {
+      console.error('CREATE FACILITY API: Insert exception:', insertError);
+      facilityError = insertError;
+    }
       
     if (facilityError) {
       console.error('CREATE FACILITY API: Error creating facility:', facilityError);
