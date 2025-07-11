@@ -88,6 +88,16 @@ export default async function AdminDashboard() {
     console.error('Error fetching recent trips:', tripsError);
   }
   
+  // Debug logging
+  console.log('🔍 Admin Dashboard Debug:');
+  console.log('- Recent trips query result:', { 
+    data: recentTrips, 
+    error: tripsError,
+    count: recentTrips?.length || 0 
+  });
+  console.log('- User profiles count:', profiles?.length || 0);
+  console.log('- Facilities count:', facilities?.length || 0);
+  
   // Fetch pending driver verifications
   const { data: pendingDrivers, error: pendingDriversError } = await supabase
     .from('profiles')

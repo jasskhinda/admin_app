@@ -96,6 +96,15 @@ function formatDate(dateString) {
 }
 
 export default function AdminDashboardView({ userCounts, recentTrips, pendingDrivers, userProfile, facilities }) {
+  // Debug logging in component
+  console.log('🎯 AdminDashboardView received:', {
+    userCounts,
+    recentTripsCount: recentTrips?.length || 0,
+    recentTrips: recentTrips?.slice(0, 2), // Log first 2 trips
+    pendingDriversCount: pendingDrivers?.length || 0,
+    facilitiesCount: facilities?.length || 0
+  });
+
   // Calculate counts
   const clientCount = userCounts.find(count => count.role === 'client')?.count || 0;
   const driverCount = userCounts.find(count => count.role === 'driver')?.count || 0;
