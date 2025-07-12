@@ -246,6 +246,7 @@ export default function AddClientToFacilityForm({ facility }) {
               </button>
             </div>
           </form>
-      </div>
+        </div>
+    </div>
   );
 }

@@ -317,6 +317,7 @@ export default function FacilityClientsView({ facility, clients, user, userProfi
         {/* Results Summary */}
         <div className="mt-4 text-sm text-gray-600 text-center">
           Showing {sortedClients.length} of {clients.length} clients
+        </div>
       </div>
   );
 }

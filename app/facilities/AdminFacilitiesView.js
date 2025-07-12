@@ -360,6 +360,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
         {/* Results Summary */}
         <div className="mt-4 text-sm text-gray-600 text-center">
           Showing {sortedFacilities.length} of {facilities.length} facilities
+        </div>
       </div>
   );
 }

@@ -231,6 +231,7 @@ export default function EditFacilityForm({ facility }) {
               </button>
             </div>
           </form>
-      </div>
+        </div>
+    </div>
   );
 }
