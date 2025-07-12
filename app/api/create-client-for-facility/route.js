@@ -71,11 +71,13 @@ export async function POST(request) {
     let isExistingUser = false;
 
     // First, check if user already exists
-    const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(clientData.email);
+    const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.listUsers({
+      filter: `email.eq.${clientData.email}`
+    });
     
-    if (existingUser && existingUser.user) {
-      console.log('CREATE CLIENT FOR FACILITY API: User already exists:', existingUser.user.id);
-      newUserId = existingUser.user.id;
+    if (existingUser && existingUser.users && existingUser.users.length > 0) {
+      console.log('CREATE CLIENT FOR FACILITY API: User already exists:', existingUser.users[0].id);
+      newUserId = existingUser.users[0].id;
       isExistingUser = true;
       
       // Check if this user is already a client for this facility
