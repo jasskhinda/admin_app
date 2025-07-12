@@ -15,13 +15,13 @@ export default function FacilityClientsView({ facility, clients, user, userProfi
     if (!searchTerm) return true;
     
     const searchLower = searchTerm.toLowerCase();
-    const fullName = `${client.profiles?.first_name || ''} ${client.profiles?.last_name || ''}`.toLowerCase();
+    const fullName = `${client.first_name || ''} ${client.last_name || ''}`.toLowerCase();
     
     return (
       fullName.includes(searchLower) ||
-      client.profiles?.email?.toLowerCase().includes(searchLower) ||
-      client.profiles?.phone_number?.includes(searchTerm) ||
-      client.emergency_contact_name?.toLowerCase().includes(searchLower)
+      client.email?.toLowerCase().includes(searchLower) ||
+      client.phone_number?.includes(searchTerm) ||
+      client.emergency_contact?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -31,12 +31,12 @@ export default function FacilityClientsView({ facility, clients, user, userProfi
     
     switch (sortBy) {
       case 'name':
-        aVal = `${a.profiles?.first_name || ''} ${a.profiles?.last_name || ''}`;
-        bVal = `${b.profiles?.first_name || ''} ${b.profiles?.last_name || ''}`;
+        aVal = `${a.first_name || ''} ${a.last_name || ''}`;
+        bVal = `${b.first_name || ''} ${b.last_name || ''}`;
         break;
       case 'email':
-        aVal = a.profiles?.email || '';
-        bVal = b.profiles?.email || '';
+        aVal = a.email || '';
+        bVal = b.email || '';
         break;
       case 'trips':
         aVal = a.trip_count || 0;
@@ -196,13 +196,13 @@ export default function FacilityClientsView({ facility, clients, user, userProfi
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-gray-900">
-                          {client.profiles?.first_name} {client.profiles?.last_name}
+                          {client.first_name || 'Unknown'} {client.last_name || 'Client'}
                         </h3>
                         <p className="text-sm text-gray-600 mt-1">
-                          {client.profiles?.email}
+                          {client.email || 'No email provided'}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {client.profiles?.phone_number}
+                          {client.phone_number || 'No phone provided'}
                         </p>
                         <div className="mt-3 flex items-center space-x-4 text-sm">
                           <span className="text-gray-500">Trips: <span className="font-medium text-gray-900">{client.trip_count || 0}</span></span>
@@ -266,7 +266,7 @@ export default function FacilityClientsView({ facility, clients, user, userProfi
                       <td className="px-6 py-4">
                         <div>
                           <div className="text-sm font-semibold text-gray-900">
-                            {client.profiles?.first_name} {client.profiles?.last_name}
+                            {client.first_name || 'Unknown'} {client.last_name || 'Client'}
                           </div>
                           <div className="text-xs text-gray-400 mt-1">
                             ID: {client.user_id?.substring(0, 8)}
@@ -275,8 +275,8 @@ export default function FacilityClientsView({ facility, clients, user, userProfi
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm">
-                          <div className="text-gray-900">{client.profiles?.email || 'No email'}</div>
-                          <div className="text-gray-500">{client.profiles?.phone_number || 'No phone'}</div>
+                          <div className="text-gray-900">{client.email || 'No email provided'}</div>
+                          <div className="text-gray-500">{client.phone_number || 'No phone provided'}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">

@@ -17,10 +17,18 @@ export default function ClientDetailPage({ params }) {
 
   const loadClientData = async (session) => {
     try {
-      // Get client profile
+      // Get client profile with facility information
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          facilities (
+            id,
+            name,
+            address,
+            phone_number
+          )
+        `)
         .eq('id', clientId)
         .eq('role', 'client')
         .single();
@@ -36,6 +44,9 @@ export default function ClientDetailPage({ params }) {
         setLoading(false);
         return;
       }
+      
+      // Note: Email might not be available in profiles table
+      // It's stored in auth.users table which requires admin access
       
       setClient(data);
       setLoading(false);
@@ -90,10 +101,10 @@ export default function ClientDetailPage({ params }) {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">Client Details</h1>
           <button
-            onClick={() => router.push('/clients')}
+            onClick={() => router.back()}
             className="px-4 py-2 border border-brand-border rounded-md text-sm hover:bg-brand-border/10"
           >
-            Back to Clients
+            Back
           </button>
         </div>
         
@@ -136,7 +147,7 @@ export default function ClientDetailPage({ params }) {
                   
                   <div>
                     <p className="text-sm text-brand-muted">Email</p>
-                    <p className="font-medium">{client.email || 'N/A'}</p>
+                    <p className="font-medium">{client.email || 'Not provided'}</p>
                   </div>
                 </div>
                 
@@ -155,19 +166,41 @@ export default function ClientDetailPage({ params }) {
                 )}
               </div>
               
-              {/* Status Information */}
+              {/* Status & Facility Information */}
               <div className="space-y-4">
                 <h2 className="text-lg font-medium pb-2 border-b border-brand-border">
-                  Client Status
+                  Status & Facility
                 </h2>
                 
-                <div className="p-4 bg-brand-border/5 rounded-md">
+                <div className="p-4 bg-brand-border/5 rounded-md mb-4">
                   <p className="text-sm text-brand-muted mb-1">Status</p>
                   <div className="flex items-center">
-                    <span className={`inline-flex rounded-full h-3 w-3 mr-2 bg-green-500`}></span>
-                    <p className="font-medium">Active</p>
+                    <span className={`inline-flex rounded-full h-3 w-3 mr-2 ${client.status === 'active' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                    <p className="font-medium capitalize">{client.status || 'Active'}</p>
                   </div>
                 </div>
+                
+                {client.facilities && (
+                  <div className="p-4 bg-brand-border/5 rounded-md">
+                    <p className="text-sm text-brand-muted mb-1">Facility</p>
+                    <p className="font-medium">{client.facilities.name}</p>
+                    <p className="text-sm text-brand-muted mt-1">{client.facilities.address}</p>
+                  </div>
+                )}
+                
+                {client.accessibility_needs && (
+                  <div className="p-4 bg-brand-border/5 rounded-md">
+                    <p className="text-sm text-brand-muted mb-1">Accessibility Needs</p>
+                    <p className="font-medium">{client.accessibility_needs}</p>
+                  </div>
+                )}
+                
+                {client.medical_requirements && (
+                  <div className="p-4 bg-brand-border/5 rounded-md">
+                    <p className="text-sm text-brand-muted mb-1">Medical Requirements</p>
+                    <p className="font-medium">{client.medical_requirements}</p>
+                  </div>
+                )}
               </div>
             </div>
             
