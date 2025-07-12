@@ -1,246 +1,79 @@
-'use client';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/utils/supabase/server';
+import ClientDetailView from './ClientDetailView';
 
-import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-
-export default function ClientDetailPage({ params }) {
-  const router = useRouter();
-  const supabase = createClientComponentClient();
-  const unwrappedParams = use(params);
-  const clientId = unwrappedParams.id;
+export default async function ClientDetailPage({ params }) {
+  const supabase = await createClient();
+  const clientId = params.id;
   
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [client, setClient] = useState(null);
-
-  const loadClientData = async (session) => {
-    try {
-      // Get client profile with facility information
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          facilities (
-            id,
-            name,
-            address,
-            phone_number
-          )
-        `)
-        .eq('id', clientId)
-        .eq('role', 'client')
-        .single();
-      
-      if (error) {
-        setError(`Error fetching client: ${error.message}`);
-        setLoading(false);
-        return;
-      }
-      
-      if (!data) {
-        setError("Client not found");
-        setLoading(false);
-        return;
-      }
-      
-      // Note: Email might not be available in profiles table
-      // It's stored in auth.users table which requires admin access
-      
-      setClient(data);
-      setLoading(false);
-    } catch (err) {
-      setError(`An unexpected error occurred: ${err.message}`);
-      setLoading(false);
-    }
-  };
-
-  // Check auth status when component mounts
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-      
-      setUser(session.user);
-      
-      // Check if user has admin role
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error || !profile || profile.role !== 'admin') {
-        // Not an admin, redirect to login
-        supabase.auth.signOut();
-        router.push('/login?error=Access%20denied');
-        return;
-      }
-      
-      // Load the client data
-      await loadClientData(session);
-    };
-    
-    checkAuth();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, supabase, clientId]);
+  // Get the user - always use getUser for security
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
   
-  // Show loading if not authenticated yet
-  if (!user) {
-    return null;
+  if (userError || !user) {
+    redirect('/login');
   }
   
+  // Get user profile to verify admin role
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  
+  if (profileError || !profile || profile.role !== 'admin') {
+    redirect('/login');
+  }
+
+  // Get client profile with facility information
+  const { data: client, error: clientError } = await supabase
+    .from('profiles')
+    .select(`
+      *,
+      facilities (
+        id,
+        name,
+        address,
+        phone_number,
+        contact_email
+      )
+    `)
+    .eq('id', clientId)
+    .eq('role', 'client')
+    .single();
+  
+  if (clientError || !client) {
+    redirect('/clients');
+  }
+
+  // Get trip statistics
+  const { count: totalTrips } = await supabase
+    .from('trips')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', clientId);
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const { count: monthTrips } = await supabase
+    .from('trips')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', clientId)
+    .gte('created_at', `${currentMonth}-01`);
+
+  // Get recent trips
+  const { data: recentTrips } = await supabase
+    .from('trips')
+    .select('*')
+    .eq('user_id', clientId)
+    .order('created_at', { ascending: false })
+    .limit(5);
+  
   return (
-    <div className="min-h-screen">
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold">Client Details</h1>
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 border border-brand-border rounded-md text-sm hover:bg-brand-border/10"
-          >
-            Back
-          </button>
-        </div>
-        
-        {loading && (
-          <div className="text-center py-12">
-            <p>Loading client information...</p>
-          </div>
-        )}
-        
-        {error && (
-          <div className="mb-6 p-4 border-l-4 border-red-500 bg-red-50 text-red-700 rounded">
-            <p>{error}</p>
-          </div>
-        )}
-        
-        {client && !loading && (
-          <div className="bg-brand-card shadow rounded-lg p-6 border border-brand-border">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Personal Information */}
-              <div className="md:col-span-2 space-y-4">
-                <h2 className="text-lg font-medium pb-2 border-b border-brand-border">
-                  Personal Information
-                </h2>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-brand-muted">First Name</p>
-                    <p className="font-medium">{client.first_name || 'N/A'}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-brand-muted">Last Name</p>
-                    <p className="font-medium">{client.last_name || 'N/A'}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-brand-muted">Phone Number</p>
-                    <p className="font-medium">{client.phone_number || 'N/A'}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-brand-muted">Email</p>
-                    <p className="font-medium">{client.email || 'Not provided'}</p>
-                  </div>
-                </div>
-                
-                {client.address && (
-                  <div>
-                    <p className="text-sm text-brand-muted">Address</p>
-                    <p className="font-medium">{client.address}</p>
-                  </div>
-                )}
-                
-                {client.notes && (
-                  <div>
-                    <p className="text-sm text-brand-muted">Notes</p>
-                    <p className="font-medium whitespace-pre-line">{client.notes}</p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Status & Facility Information */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-medium pb-2 border-b border-brand-border">
-                  Status & Facility
-                </h2>
-                
-                <div className="p-4 bg-brand-border/5 rounded-md mb-4">
-                  <p className="text-sm text-brand-muted mb-1">Status</p>
-                  <div className="flex items-center">
-                    <span className={`inline-flex rounded-full h-3 w-3 mr-2 ${client.status === 'active' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
-                    <p className="font-medium capitalize">{client.status || 'Active'}</p>
-                  </div>
-                </div>
-                
-                {client.facilities && (
-                  <div className="p-4 bg-brand-border/5 rounded-md">
-                    <p className="text-sm text-brand-muted mb-1">Facility</p>
-                    <p className="font-medium">{client.facilities.name}</p>
-                    <p className="text-sm text-brand-muted mt-1">{client.facilities.address}</p>
-                  </div>
-                )}
-                
-                {client.accessibility_needs && (
-                  <div className="p-4 bg-brand-border/5 rounded-md">
-                    <p className="text-sm text-brand-muted mb-1">Accessibility Needs</p>
-                    <p className="font-medium">{client.accessibility_needs}</p>
-                  </div>
-                )}
-                
-                {client.medical_requirements && (
-                  <div className="p-4 bg-brand-border/5 rounded-md">
-                    <p className="text-sm text-brand-muted mb-1">Medical Requirements</p>
-                    <p className="font-medium">{client.medical_requirements}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Trip Statistics (placeholder) */}
-            <div className="mt-8 space-y-4">
-              <h2 className="text-lg font-medium pb-2 border-b border-brand-border">
-                Service Statistics
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-brand-border/5 rounded-md">
-                  <p className="text-sm text-brand-muted">Total Trips</p>
-                  <p className="text-2xl font-medium">0</p>
-                </div>
-                
-                <div className="p-4 bg-brand-border/5 rounded-md">
-                  <p className="text-sm text-brand-muted">This Month</p>
-                  <p className="text-2xl font-medium">0</p>
-                </div>
-                
-                <div className="p-4 bg-brand-border/5 rounded-md">
-                  <p className="text-sm text-brand-muted">Last Trip</p>
-                  <p className="text-lg font-medium">N/A</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Recent Trips (placeholder for future implementation) */}
-            <div className="mt-8 space-y-4">
-              <h2 className="text-lg font-medium pb-2 border-b border-brand-border">
-                Recent Trips
-              </h2>
-              
-              <div className="text-center py-8 text-brand-muted">
-                <p>No recent trips found</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+    <ClientDetailView 
+      client={client}
+      stats={{
+        totalTrips: totalTrips || 0,
+        monthTrips: monthTrips || 0,
+        recentTrips: recentTrips || []
+      }}
+    />
   );
 }
