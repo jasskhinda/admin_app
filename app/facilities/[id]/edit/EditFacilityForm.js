@@ -62,8 +62,7 @@ export default function EditFacilityForm({ facility }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto py-8 px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Facility</h1>
           <p className="text-gray-600">Update facility information and settings</p>
@@ -232,8 +231,6 @@ export default function EditFacilityForm({ facility }) {
               </button>
             </div>
           </form>
-        </div>
       </div>
-    </div>
   );
 }

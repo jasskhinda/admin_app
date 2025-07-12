@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '../../../components/AdminHeader';
 
 export default function FacilityClientsView({ facility, clients, user, userProfile }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,10 +69,7 @@ export default function FacilityClientsView({ facility, clients, user, userProfi
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <AdminHeader />
-      <main className="flex-1 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -321,9 +317,6 @@ export default function FacilityClientsView({ facility, clients, user, userProfi
         {/* Results Summary */}
         <div className="mt-4 text-sm text-gray-600 text-center">
           Showing {sortedClients.length} of {clients.length} clients
-        </div>
-        </div>
-      </main>
-    </div>
+      </div>
   );
 }

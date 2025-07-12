@@ -58,114 +58,97 @@ export async function POST(request) {
     // Generate a temporary password for the client
     const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(10).slice(-2);
 
-    // Step 1: Create user account using the existing /api/users endpoint
-    const userProfile = {
+    console.log('CREATE CLIENT FOR FACILITY API: Creating user account...');
+    
+    // Get admin client for user creation
+    const { supabaseAdmin } = await import('@/lib/admin-supabase');
+    if (!supabaseAdmin) {
+      throw new Error('Admin client not available');
+    }
+
+    // Step 1: Create auth user
+    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: clientData.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { role: 'client' }
+    });
+
+    if (createError) {
+      console.error('CREATE CLIENT FOR FACILITY API: Auth user creation failed:', createError);
+      throw new Error(`Error creating auth user: ${createError.message}`);
+    }
+
+    const newUserId = userData.user.id;
+    console.log('CREATE CLIENT FOR FACILITY API: Auth user created:', newUserId);
+
+    // Step 2: Create profile
+    const profileData = {
+      id: newUserId,
+      role: 'client',
+      email: clientData.email,
       first_name: clientData.firstName,
       last_name: clientData.lastName,
       phone_number: clientData.phoneNumber,
       address: clientData.address,
       facility_id: clientData.facilityId,
-      status: 'active'
+      status: 'active',
+      created_at: new Date().toISOString()
     };
 
-    console.log('CREATE CLIENT FOR FACILITY API: Creating user account...');
-    
-    // Create user account
-    const userResponse = await fetch(new URL('/api/users', request.url), {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': request.headers.get('Authorization') || '',
-        'Cookie': request.headers.get('Cookie') || ''
-      },
-      body: JSON.stringify({
-        email: clientData.email,
-        password: tempPassword,
-        userProfile: userProfile,
-        role: 'client'
-      })
-    });
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert([profileData]);
 
-    if (!userResponse.ok) {
-      const userError = await userResponse.json();
-      console.error('CREATE CLIENT FOR FACILITY API: User creation failed:', userError);
-      throw new Error(userError.error || 'Failed to create user account');
+    if (profileError) {
+      console.error('CREATE CLIENT FOR FACILITY API: Profile creation failed:', profileError);
+      throw new Error(`Error creating profile: ${profileError.message}`);
     }
 
-    const userResult = await userResponse.json();
-    console.log('CREATE CLIENT FOR FACILITY API: User created:', userResult);
+    console.log('CREATE CLIENT FOR FACILITY API: Profile created successfully');
 
-    // Step 2: Create client record in clients table
+    // Step 3: Create client record in clients table
     const clientRecord = {
-      user_id: userResult.userId,
+      user_id: newUserId,
       facility_id: clientData.facilityId,
       accessibility_needs: clientData.accessibilityNeeds || null,
       medical_requirements: clientData.medicalRequirements || null,
       emergency_contact_name: clientData.emergencyContact || null,
-      status: 'active'
+      status: 'active',
+      created_at: new Date().toISOString()
     };
 
-    console.log('CREATE CLIENT FOR FACILITY API: Creating client record...');
+    console.log('CREATE CLIENT FOR FACILITY API: Creating client record...', clientRecord);
 
-    // Try to use admin client for client creation
-    let clientResult = null;
-    let clientError = null;
-    
-    try {
-      // First try with regular client
-      const { data: regularClient, error: regularError } = await supabase
-        .from('clients')
-        .insert([clientRecord])
-        .select()
-        .single();
-        
-      if (regularError) {
-        console.log('CREATE CLIENT FOR FACILITY API: Regular insert failed, trying admin client:', regularError);
-        
-        // Try with admin client
-        const { supabaseAdmin } = await import('@/lib/admin-supabase');
-        if (supabaseAdmin) {
-          const { data: adminClient, error: adminError } = await supabaseAdmin
-            .from('clients')
-            .insert([clientRecord])
-            .select()
-            .single();
-            
-          clientResult = adminClient;
-          clientError = adminError;
-          console.log('CREATE CLIENT FOR FACILITY API: Admin insert result:', { client: clientResult, error: clientError });
-        } else {
-          clientError = regularError;
-        }
-      } else {
-        clientResult = regularClient;
-        console.log('CREATE CLIENT FOR FACILITY API: Regular insert succeeded:', clientResult);
-      }
-    } catch (insertError) {
-      console.error('CREATE CLIENT FOR FACILITY API: Insert exception:', insertError);
-      clientError = insertError;
-    }
+    const { data: clientResult, error: clientError } = await supabaseAdmin
+      .from('clients')
+      .insert([clientRecord])
+      .select()
+      .single();
       
     if (clientError) {
-      console.error('CREATE CLIENT FOR FACILITY API: Error creating client record:', clientError);
+      console.error('CREATE CLIENT FOR FACILITY API: Client record creation failed:', clientError);
       return NextResponse.json(
         { error: `Error creating client record: ${clientError.message}` },
         { status: 500 }
       );
     }
     
-    console.log('CREATE CLIENT FOR FACILITY API: Success');
+    console.log('CREATE CLIENT FOR FACILITY API: Success - all records created');
     return NextResponse.json({
       success: true,
       client: clientResult,
-      user: userResult,
+      user: {
+        userId: newUserId,
+        email: clientData.email
+      },
       message: `Client successfully created and associated with ${facility.name}`
     });
     
   } catch (error) {
     console.error('CREATE CLIENT FOR FACILITY API: Unexpected error:', error);
     return NextResponse.json({
-      error: 'An unexpected error occurred'
+      error: error.message || 'An unexpected error occurred'
     }, { status: 500 });
   }
 }
