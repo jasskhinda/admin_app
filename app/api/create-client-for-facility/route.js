@@ -66,44 +66,76 @@ export async function POST(request) {
       throw new Error('Admin client not available');
     }
 
-    // Step 1: Create auth user
-    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: clientData.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { role: 'client' }
-    });
+    // Step 1: Check if user already exists, if not create auth user
+    let newUserId;
+    let isExistingUser = false;
 
-    if (createError) {
-      console.error('CREATE CLIENT FOR FACILITY API: Auth user creation failed:', createError);
-      throw new Error(`Error creating auth user: ${createError.message}`);
+    // First, check if user already exists
+    const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(clientData.email);
+    
+    if (existingUser && existingUser.user) {
+      console.log('CREATE CLIENT FOR FACILITY API: User already exists:', existingUser.user.id);
+      newUserId = existingUser.user.id;
+      isExistingUser = true;
+      
+      // Check if this user is already a client for this facility
+      const { data: existingClient, error: clientCheckError } = await supabaseAdmin
+        .from('clients')
+        .select('id')
+        .eq('user_id', newUserId)
+        .eq('facility_id', clientData.facilityId)
+        .single();
+        
+      if (existingClient) {
+        return NextResponse.json(
+          { error: 'Client already exists for this facility' },
+          { status: 409 }
+        );
+      }
+    } else {
+      // Create new auth user
+      const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: clientData.email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { role: 'client' }
+      });
+
+      if (createError) {
+        console.error('CREATE CLIENT FOR FACILITY API: Auth user creation failed:', createError);
+        throw new Error(`Error creating auth user: ${createError.message}`);
+      }
+
+      newUserId = userData.user.id;
+      console.log('CREATE CLIENT FOR FACILITY API: Auth user created:', newUserId);
     }
 
-    const newUserId = userData.user.id;
-    console.log('CREATE CLIENT FOR FACILITY API: Auth user created:', newUserId);
+    // Step 2: Update or create profile (only if not an existing user)
+    if (!isExistingUser) {
+      const profileUpdate = {
+        role: 'client',
+        first_name: clientData.firstName,
+        last_name: clientData.lastName,
+        phone_number: clientData.phoneNumber,
+        address: clientData.address,
+        facility_id: clientData.facilityId,
+        status: 'active'
+      };
 
-    // Step 2: Update the automatically created profile
-    const profileUpdate = {
-      role: 'client',
-      first_name: clientData.firstName,
-      last_name: clientData.lastName,
-      phone_number: clientData.phoneNumber,
-      address: clientData.address,
-      facility_id: clientData.facilityId,
-      status: 'active'
-    };
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update(profileUpdate)
+        .eq('id', newUserId);
 
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .update(profileUpdate)
-      .eq('id', newUserId);
+      if (profileError) {
+        console.error('CREATE CLIENT FOR FACILITY API: Profile update failed:', profileError);
+        throw new Error(`Error updating profile: ${profileError.message}`);
+      }
 
-    if (profileError) {
-      console.error('CREATE CLIENT FOR FACILITY API: Profile update failed:', profileError);
-      throw new Error(`Error updating profile: ${profileError.message}`);
+      console.log('CREATE CLIENT FOR FACILITY API: Profile updated successfully');
+    } else {
+      console.log('CREATE CLIENT FOR FACILITY API: Skipping profile update for existing user');
     }
-
-    console.log('CREATE CLIENT FOR FACILITY API: Profile updated successfully');
 
     // Step 3: Create client record in clients table
     const clientRecord = {
@@ -140,7 +172,9 @@ export async function POST(request) {
         userId: newUserId,
         email: clientData.email
       },
-      message: `Client successfully created and associated with ${facility.name}`
+      message: isExistingUser 
+        ? `Existing user successfully associated with ${facility.name}` 
+        : `Client successfully created and associated with ${facility.name}`
     });
     
   } catch (error) {
