@@ -34,19 +34,12 @@ export default async function FacilityClientsPage({ params }) {
     redirect('/facilities');
   }
 
-  // Get clients for this facility
+  // Get clients for this facility - fetch from profiles table
   const { data: clients, error: clientsError } = await supabase
-    .from('clients')
-    .select(`
-      *,
-      profiles:user_id (
-        first_name,
-        last_name,
-        email,
-        phone_number
-      )
-    `)
+    .from('profiles')
+    .select('*')
     .eq('facility_id', params.id)
+    .eq('role', 'client')
     .order('created_at', { ascending: false });
 
   // Get trips count for each client
@@ -54,10 +47,11 @@ export default async function FacilityClientsPage({ params }) {
     const { count: tripCount } = await supabase
       .from('trips')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', client.user_id);
+      .eq('user_id', client.id);
     
     return {
       ...client,
+      user_id: client.id, // Add user_id for compatibility
       trip_count: tripCount || 0
     };
   }));
