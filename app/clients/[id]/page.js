@@ -45,6 +45,22 @@ export default async function ClientDetailPage({ params }) {
     redirect('/clients');
   }
 
+  // Get email from auth.users if not in profile
+  if (!client.email) {
+    try {
+      // Import admin client
+      const { supabaseAdmin } = await import('@/lib/admin-supabase');
+      if (supabaseAdmin) {
+        const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(clientId);
+        if (authUser?.email) {
+          client.email = authUser.email;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching email:', error);
+    }
+  }
+
   // Get trip statistics
   const { count: totalTrips } = await supabase
     .from('trips')
