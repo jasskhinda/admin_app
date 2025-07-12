@@ -235,21 +235,21 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
                         href={`/facilities/${facility.id}`}
                         className="text-sm font-medium text-blue-600 hover:text-blue-700"
                       >
-                        View Details
+                        View Facility
                       </Link>
                       <span className="text-gray-300">•</span>
                       <Link
                         href={`/facilities/${facility.id}/edit`}
                         className="text-sm font-medium text-blue-600 hover:text-blue-700"
                       >
-                        Edit
+                        Edit Facility
                       </Link>
                       <span className="text-gray-300">•</span>
                       <Link
                         href={`/facilities/${facility.id}/clients`}
                         className="text-sm font-medium text-blue-600 hover:text-blue-700"
                       >
-                        Clients
+                        View Facility Clients
                       </Link>
                     </div>
                   </div>
@@ -334,19 +334,19 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
                             href={`/facilities/${facility.id}`}
                             className="text-sm font-medium text-blue-600 hover:text-blue-700 px-3 py-1 rounded hover:bg-blue-50 transition-colors"
                           >
-                            View
+                            View Facility
                           </Link>
                           <Link
                             href={`/facilities/${facility.id}/edit`}
                             className="text-sm font-medium text-blue-600 hover:text-blue-700 px-3 py-1 rounded hover:bg-blue-50 transition-colors"
                           >
-                            Edit
+                            Edit Facility
                           </Link>
                           <Link
                             href={`/facilities/${facility.id}/clients`}
                             className="text-sm font-medium text-blue-600 hover:text-blue-700 px-3 py-1 rounded hover:bg-blue-50 transition-colors"
                           >
-                            Clients
+                            View Facility Clients
                           </Link>
                         </div>
                       </td>
