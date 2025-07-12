@@ -82,30 +82,28 @@ export async function POST(request) {
     const newUserId = userData.user.id;
     console.log('CREATE CLIENT FOR FACILITY API: Auth user created:', newUserId);
 
-    // Step 2: Create profile
-    const profileData = {
-      id: newUserId,
+    // Step 2: Update the automatically created profile
+    const profileUpdate = {
       role: 'client',
-      email: clientData.email,
       first_name: clientData.firstName,
       last_name: clientData.lastName,
       phone_number: clientData.phoneNumber,
       address: clientData.address,
       facility_id: clientData.facilityId,
-      status: 'active',
-      created_at: new Date().toISOString()
+      status: 'active'
     };
 
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert([profileData]);
+      .update(profileUpdate)
+      .eq('id', newUserId);
 
     if (profileError) {
-      console.error('CREATE CLIENT FOR FACILITY API: Profile creation failed:', profileError);
-      throw new Error(`Error creating profile: ${profileError.message}`);
+      console.error('CREATE CLIENT FOR FACILITY API: Profile update failed:', profileError);
+      throw new Error(`Error updating profile: ${profileError.message}`);
     }
 
-    console.log('CREATE CLIENT FOR FACILITY API: Profile created successfully');
+    console.log('CREATE CLIENT FOR FACILITY API: Profile updated successfully');
 
     // Step 3: Create client record in clients table
     const clientRecord = {
