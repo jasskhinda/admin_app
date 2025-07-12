@@ -139,31 +139,16 @@ export async function POST(request) {
       console.log('CREATE CLIENT FOR FACILITY API: Skipping profile update for existing user');
     }
 
-    // Step 3: Create client record in clients table
-    const clientRecord = {
-      user_id: newUserId,
-      facility_id: clientData.facilityId,
-      accessibility_needs: clientData.accessibilityNeeds || null,
-      medical_requirements: clientData.medicalRequirements || null,
-      emergency_contact_name: clientData.emergencyContact || null,
-      status: 'active',
-      created_at: new Date().toISOString()
-    };
-
-    console.log('CREATE CLIENT FOR FACILITY API: Creating client record...', clientRecord);
-
+    // Step 3: Get the created/updated profile as the client result
     const { data: clientResult, error: clientError } = await supabaseAdmin
-      .from('clients')
-      .insert([clientRecord])
-      .select()
+      .from('profiles')
+      .select('*')
+      .eq('id', newUserId)
       .single();
       
     if (clientError) {
-      console.error('CREATE CLIENT FOR FACILITY API: Client record creation failed:', clientError);
-      return NextResponse.json(
-        { error: `Error creating client record: ${clientError.message}` },
-        { status: 500 }
-      );
+      console.error('CREATE CLIENT FOR FACILITY API: Failed to retrieve client profile:', clientError);
+      throw new Error(`Error retrieving client profile: ${clientError.message || JSON.stringify(clientError)}`);
     }
     
     console.log('CREATE CLIENT FOR FACILITY API: Success - all records created');
