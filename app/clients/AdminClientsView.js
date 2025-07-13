@@ -169,7 +169,7 @@ export default function AdminClientsView({ user, userProfile, data }) {
         try {
             const endpoint = deleteModal.type === 'client' 
                 ? `/api/admin/delete-client-simple?clientId=${deleteModal.item.id}`
-                : `/api/admin/delete-facility?facilityId=${deleteModal.item.id}`;
+                : `/api/admin/delete-facility-simple?facilityId=${deleteModal.item.id}`;
                 
             const response = await fetch(endpoint, {
                 method: 'DELETE',
@@ -718,13 +718,20 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                             }
                                         </span>?
                                         {deleteModal.type === 'facility' && (
-                                            <span className="block mt-2 text-red-600 font-medium">
-                                                This will also delete all associated clients, trips, and data.
+                                            <span className="block mt-3 text-amber-700 bg-amber-50 p-2 rounded text-sm">
+                                                <strong>Complete Facility Deletion:</strong><br/>
+                                                • All facility administrators will be removed<br/>
+                                                • All associated clients will be deleted<br/>
+                                                • All trips and invoices will be permanently removed<br/>
+                                                • All managed client records will be cleared
                                             </span>
                                         )}
                                     </p>
                                     <p className="text-xs text-gray-400 mt-2">
-                                        This action cannot be undone. We'll check for pending trips and bills before deletion.
+                                        {deleteModal.type === 'facility' 
+                                            ? 'This comprehensive deletion cannot be undone. The system will safely remove all associated data.'
+                                            : 'This action cannot be undone. We\'ll safely remove all associated data.'
+                                        }
                                     </p>
                                     {deleteError && (
                                         <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
