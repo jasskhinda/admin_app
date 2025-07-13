@@ -133,11 +133,11 @@ export default async function AssignTripPage({ params }) {
                         }
                     }
                     
-                    // Method 3: For facility trips, try to find client in facility_clients table
+                    // Method 3: For facility trips, try to find client in facility_managed_clients table
                     if (!trip.profiles && trip.facility_id && trip.managed_client_id) {
                         try {
                             const { data: facilityClient } = await supabase
-                                .from('facility_clients')
+                                .from('facility_managed_clients')
                                 .select(`
                                     id,
                                     client_id,
@@ -150,11 +150,11 @@ export default async function AssignTripPage({ params }) {
                                 .single();
                             
                             if (facilityClient?.profiles) {
-                                console.log(`Found facility client via managed_client_id for trip ${trip.id}:`, facilityClient.profiles);
+                                console.log(`Found facility managed client via managed_client_id for trip ${trip.id}:`, facilityClient.profiles);
                                 trip.profiles = facilityClient.profiles;
                             }
                         } catch (facilityClientError) {
-                            console.warn(`Could not fetch facility client for trip ${trip.id}:`, facilityClientError.message);
+                            console.warn(`Could not fetch facility managed client for trip ${trip.id}:`, facilityClientError.message);
                         }
                     }
                     

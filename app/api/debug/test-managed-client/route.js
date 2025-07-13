@@ -36,19 +36,19 @@ export async function GET(request) {
       results.auth_lookup = { error: err.message };
     }
     
-    // Check if it exists in facility_clients
+    // Check if it exists in facility_managed_clients
     try {
       const { data: facilityClient, error } = await supabase
-        .from('facility_clients')
+        .from('facility_managed_clients')
         .select(`
           *,
           profiles:client_id (*)
         `)
         .eq('client_id', managedClientId);
       
-      results.facility_clients_lookup = { data: facilityClient, error: error?.message };
+      results.facility_managed_clients_lookup = { data: facilityClient, error: error?.message };
     } catch (err) {
-      results.facility_clients_lookup = { error: err.message };
+      results.facility_managed_clients_lookup = { error: err.message };
     }
     
     // Get all profiles to see what exists
