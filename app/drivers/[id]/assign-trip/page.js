@@ -88,13 +88,18 @@ export default async function AssignTripPage({ params }) {
 
                 // Enhanced client information fetching
                 for (let trip of availableTrips) {
-                    console.log(`Processing trip ${trip.id}, fields:`, {
+                    console.log(`\n=== Processing trip ${trip.id} ===`);
+                    console.log('Trip fields:', {
                         user_id: trip.user_id,
                         client_id: trip.client_id,
                         client_email: trip.client_email,
                         client_name: trip.client_name,
                         passenger_name: trip.passenger_name,
-                        facility_id: trip.facility_id
+                        passenger_email: trip.passenger_email,
+                        contact_name: trip.contact_name,
+                        contact_email: trip.contact_email,
+                        facility_id: trip.facility_id,
+                        status: trip.status
                     });
 
                     // Try to get client information from multiple sources
@@ -151,49 +156,92 @@ export default async function AssignTripPage({ params }) {
                         }
                     }
                     
-                    // For facility trips, try looking in facility_clients table
+                    // For facility trips, try multiple approaches to find client data
                     if (!trip.profiles && trip.facility_id) {
                         try {
-                            // Try to find the client in facility_clients table
-                            const { data: facilityClients } = await supabase
-                                .from('facility_clients')
-                                .select(`
-                                    id,
-                                    client_id,
-                                    profiles!facility_clients_client_id_fkey(
-                                        id, first_name, last_name, full_name, email, phone_number, role
-                                    )
-                                `)
-                                .eq('facility_id', trip.facility_id);
+                            // Method 1: Try to find by direct client_id reference in facility_clients
+                            if (trip.client_id || trip.user_id) {
+                                const clientIdToUse = trip.client_id || trip.user_id;
+                                const { data: facilityClient } = await supabase
+                                    .from('facility_clients')
+                                    .select(`
+                                        id,
+                                        client_id,
+                                        profiles:client_id (
+                                            id, first_name, last_name, full_name, email, phone_number, role
+                                        )
+                                    `)
+                                    .eq('facility_id', trip.facility_id)
+                                    .eq('client_id', clientIdToUse)
+                                    .single();
+                                
+                                if (facilityClient?.profiles) {
+                                    console.log(`Found facility client by ID for trip ${trip.id}:`, facilityClient.profiles);
+                                    trip.profiles = facilityClient.profiles;
+                                }
+                            }
                             
-                            if (facilityClients && facilityClients.length > 0) {
-                                // If there's a specific client reference in the trip, use that
-                                let matchingClient = null;
+                            // Method 2: If no direct ID match, try to find all facility clients and match by name/email
+                            if (!trip.profiles) {
+                                const { data: facilityClients } = await supabase
+                                    .from('facility_clients')
+                                    .select(`
+                                        id,
+                                        client_id,
+                                        profiles:client_id (
+                                            id, first_name, last_name, full_name, email, phone_number, role
+                                        )
+                                    `)
+                                    .eq('facility_id', trip.facility_id);
                                 
-                                if (trip.client_email) {
-                                    matchingClient = facilityClients.find(fc => 
-                                        fc.profiles?.email === trip.client_email
-                                    );
-                                }
-                                
-                                if (!matchingClient && trip.client_name) {
-                                    matchingClient = facilityClients.find(fc => 
-                                        fc.profiles?.full_name === trip.client_name ||
-                                        `${fc.profiles?.first_name} ${fc.profiles?.last_name}`.trim() === trip.client_name
-                                    );
-                                }
-                                
-                                // If still no match, try to match by passenger name fields
-                                if (!matchingClient && trip.passenger_name) {
-                                    matchingClient = facilityClients.find(fc => 
-                                        fc.profiles?.full_name === trip.passenger_name ||
-                                        `${fc.profiles?.first_name} ${fc.profiles?.last_name}`.trim() === trip.passenger_name
-                                    );
-                                }
-                                
-                                if (matchingClient && matchingClient.profiles) {
-                                    console.log(`Found facility client for trip ${trip.id}:`, matchingClient.profiles);
-                                    trip.profiles = matchingClient.profiles;
+                                if (facilityClients && facilityClients.length > 0) {
+                                    console.log(`Found ${facilityClients.length} facility clients for facility ${trip.facility_id}`);
+                                    
+                                    let matchingClient = null;
+                                    
+                                    // Try to match by email first (most reliable)
+                                    if (trip.client_email || trip.passenger_email) {
+                                        const emailToMatch = trip.client_email || trip.passenger_email;
+                                        matchingClient = facilityClients.find(fc => 
+                                            fc.profiles?.email === emailToMatch
+                                        );
+                                        console.log(`Email match attempt for ${emailToMatch}:`, matchingClient ? 'Found' : 'Not found');
+                                    }
+                                    
+                                    // Try to match by full name
+                                    if (!matchingClient && (trip.client_name || trip.passenger_name)) {
+                                        const nameToMatch = trip.client_name || trip.passenger_name;
+                                        matchingClient = facilityClients.find(fc => {
+                                            const profileFullName = fc.profiles?.full_name;
+                                            const constructedName = `${fc.profiles?.first_name || ''} ${fc.profiles?.last_name || ''}`.trim();
+                                            return profileFullName === nameToMatch || constructedName === nameToMatch;
+                                        });
+                                        console.log(`Name match attempt for "${nameToMatch}":`, matchingClient ? 'Found' : 'Not found');
+                                    }
+                                    
+                                    // Try to match by first + last name fields
+                                    if (!matchingClient && (trip.client_first_name || trip.passenger_first_name)) {
+                                        const firstNameToMatch = trip.client_first_name || trip.passenger_first_name;
+                                        const lastNameToMatch = trip.client_last_name || trip.passenger_last_name;
+                                        
+                                        matchingClient = facilityClients.find(fc => {
+                                            return fc.profiles?.first_name === firstNameToMatch && 
+                                                   (!lastNameToMatch || fc.profiles?.last_name === lastNameToMatch);
+                                        });
+                                        console.log(`First/Last name match attempt for "${firstNameToMatch} ${lastNameToMatch}":`, matchingClient ? 'Found' : 'Not found');
+                                    }
+                                    
+                                    if (matchingClient?.profiles) {
+                                        console.log(`Found matching facility client for trip ${trip.id}:`, matchingClient.profiles);
+                                        trip.profiles = matchingClient.profiles;
+                                    } else {
+                                        console.log(`No matching facility client found for trip ${trip.id}. Available clients:`, 
+                                            facilityClients.map(fc => ({
+                                                email: fc.profiles?.email,
+                                                name: fc.profiles?.full_name || `${fc.profiles?.first_name} ${fc.profiles?.last_name}`.trim()
+                                            }))
+                                        );
+                                    }
                                 }
                             }
                         } catch (facilityClientError) {
@@ -236,26 +284,63 @@ export default async function AssignTripPage({ params }) {
                     // Enhanced fallback: use trip fields directly if no profile found
                     if (!trip.profiles || (!trip.profiles.full_name && !trip.profiles.first_name && !trip.profiles.email)) {
                         console.log(`Using fallback data for trip ${trip.id}`);
+                        
+                        // Try to construct the best possible client information from available trip fields
+                        const fullNameOptions = [
+                            trip.client_name,
+                            trip.passenger_name,
+                            trip.contact_name,
+                            trip.booking_contact_name,
+                            (trip.client_first_name && trip.client_last_name) ? 
+                                `${trip.client_first_name} ${trip.client_last_name}` : null,
+                            (trip.passenger_first_name && trip.passenger_last_name) ? 
+                                `${trip.passenger_first_name} ${trip.passenger_last_name}` : null,
+                            (trip.contact_first_name && trip.contact_last_name) ? 
+                                `${trip.contact_first_name} ${trip.contact_last_name}` : null
+                        ].filter(Boolean);
+                        
+                        const emailOptions = [
+                            trip.client_email,
+                            trip.passenger_email,
+                            trip.contact_email,
+                            trip.booking_email,
+                            trip.requester_email
+                        ].filter(Boolean);
+                        
+                        const phoneOptions = [
+                            trip.client_phone,
+                            trip.passenger_phone,
+                            trip.contact_phone,
+                            trip.booking_phone,
+                            trip.phone_number
+                        ].filter(Boolean);
+                        
                         const fallbackProfile = {
-                            full_name: trip.client_name || trip.passenger_name || 
-                                     (trip.client_first_name && trip.client_last_name ? 
-                                      `${trip.client_first_name} ${trip.client_last_name}` : null) ||
-                                     (trip.passenger_first_name && trip.passenger_last_name ? 
-                                      `${trip.passenger_first_name} ${trip.passenger_last_name}` : null),
-                            first_name: trip.client_first_name || trip.passenger_first_name || 
-                                       (trip.client_name ? trip.client_name.split(' ')[0] : null) ||
-                                       (trip.passenger_name ? trip.passenger_name.split(' ')[0] : null),
-                            last_name: trip.client_last_name || trip.passenger_last_name ||
-                                      (trip.client_name ? trip.client_name.split(' ').slice(1).join(' ') : null) ||
-                                      (trip.passenger_name ? trip.passenger_name.split(' ').slice(1).join(' ') : null),
-                            email: trip.client_email || trip.passenger_email,
-                            phone_number: trip.client_phone || trip.passenger_phone
+                            full_name: fullNameOptions[0] || null,
+                            first_name: trip.client_first_name || trip.passenger_first_name || trip.contact_first_name ||
+                                       (fullNameOptions[0] ? fullNameOptions[0].split(' ')[0] : null),
+                            last_name: trip.client_last_name || trip.passenger_last_name || trip.contact_last_name ||
+                                      (fullNameOptions[0] ? fullNameOptions[0].split(' ').slice(1).join(' ') : null),
+                            email: emailOptions[0] || null,
+                            phone_number: phoneOptions[0] || null
                         };
                         
                         // Only use fallback if we have some useful information
                         if (fallbackProfile.full_name || fallbackProfile.email || fallbackProfile.first_name) {
                             trip.profiles = { ...trip.profiles, ...fallbackProfile };
                             console.log(`Applied fallback profile for trip ${trip.id}:`, fallbackProfile);
+                            console.log(`Available name options were:`, fullNameOptions);
+                            console.log(`Available email options were:`, emailOptions);
+                        } else {
+                            console.log(`No usable client data found for trip ${trip.id}. Trip fields:`, {
+                                client_name: trip.client_name,
+                                passenger_name: trip.passenger_name,
+                                client_email: trip.client_email,
+                                passenger_email: trip.passenger_email,
+                                user_id: trip.user_id,
+                                client_id: trip.client_id,
+                                facility_id: trip.facility_id
+                            });
                         }
                     }
                     
