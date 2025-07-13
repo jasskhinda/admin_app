@@ -416,9 +416,15 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
-                              {trip.profiles?.full_name || `${trip.profiles?.first_name || ''} ${trip.profiles?.last_name || ''}`.trim() || 'Unknown Client'}
+                              {trip.profiles?.full_name || 
+                               `${trip.profiles?.first_name || ''} ${trip.profiles?.last_name || ''}`.trim() || 
+                               trip.client_name ||
+                               trip.passenger_name ||
+                               'Unknown Client'}
                             </div>
-                            <div className="text-sm text-gray-500">{trip.profiles?.email}</div>
+                            <div className="text-sm text-gray-500">
+                              {trip.profiles?.email || trip.client_email || trip.passenger_email || 'No email'}
+                            </div>
                           </div>
                         </div>
                       </td>

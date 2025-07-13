@@ -62,20 +62,10 @@ export default async function AssignTripPage({ params }) {
         let tripsFetchError = null;
         
         try {
-            // First, try to get all trips to understand what's in the database
+            // First, try to get all trips without joins to see if table exists
             const { data: allTripsData, error: allTripsError } = await supabase
                 .from('trips')
-                .select(`
-                    *,
-                    profiles!trips_user_id_fkey (
-                        id,
-                        first_name,
-                        last_name,
-                        full_name,
-                        email,
-                        phone_number
-                    )
-                `)
+                .select('*')
                 .order('created_at', { ascending: false });
 
             if (allTripsError) {
@@ -95,6 +85,63 @@ export default async function AssignTripPage({ params }) {
                     return acc;
                 }, {});
                 console.log('Trip status breakdown:', statusCounts);
+
+                // Now try to get client information for each trip separately
+                for (let trip of availableTrips) {
+                    if (trip.user_id) {
+                        try {
+                            const { data: clientProfile } = await supabase
+                                .from('profiles')
+                                .select('id, first_name, last_name, full_name, email, phone_number')
+                                .eq('id', trip.user_id)
+                                .single();
+                            
+                            if (clientProfile) {
+                                trip.profiles = clientProfile;
+                            }
+                        } catch (clientError) {
+                            console.warn(`Could not fetch client for trip ${trip.id}:`, clientError.message);
+                        }
+                    }
+                }
+
+                // For trips without user_id, try other common field names
+                for (let trip of availableTrips) {
+                    if (!trip.profiles && trip.client_id) {
+                        try {
+                            const { data: clientProfile } = await supabase
+                                .from('profiles')
+                                .select('id, first_name, last_name, full_name, email, phone_number')
+                                .eq('id', trip.client_id)
+                                .single();
+                            
+                            if (clientProfile) {
+                                trip.profiles = clientProfile;
+                            }
+                        } catch (clientError) {
+                            console.warn(`Could not fetch client for trip ${trip.id}:`, clientError.message);
+                        }
+                    }
+                }
+
+                // If still no profile data, try using email directly from trips table
+                for (let trip of availableTrips) {
+                    if (!trip.profiles && trip.client_email) {
+                        try {
+                            const { data: clientProfile } = await supabase
+                                .from('profiles')
+                                .select('id, first_name, last_name, full_name, email, phone_number')
+                                .eq('email', trip.client_email)
+                                .single();
+                            
+                            if (clientProfile) {
+                                trip.profiles = clientProfile;
+                            }
+                        } catch (clientError) {
+                            console.warn(`Could not fetch client by email for trip ${trip.id}:`, clientError.message);
+                        }
+                    }
+                }
             }
         } catch (error) {
             console.warn('Could not fetch trips:', error.message);
