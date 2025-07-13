@@ -12,6 +12,8 @@ export default function AdminClientsView({ user, userProfile, data }) {
     const [sortBy, setSortBy] = useState('name');
     const [sortOrder, setSortOrder] = useState('asc');
     const [expandedFacilities, setExpandedFacilities] = useState(new Set());
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: null, item: null, loading: false });
+    const [deleteError, setDeleteError] = useState('');
 
     // Combine all clients for filtering and sorting
     const allClients = useMemo(() => {
@@ -141,6 +143,60 @@ export default function AdminClientsView({ user, userProfile, data }) {
             month: 'short',
             day: 'numeric'
         });
+    };
+
+    const handleDeleteClient = async (client) => {
+        setDeleteModal({ isOpen: true, type: 'client', item: client, loading: false });
+        setDeleteError('');
+    };
+
+    const handleDeleteFacility = async (facilityId, facilityName) => {
+        setDeleteModal({ 
+            isOpen: true, 
+            type: 'facility', 
+            item: { id: facilityId, name: facilityName }, 
+            loading: false 
+        });
+        setDeleteError('');
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteModal.item) return;
+        
+        setDeleteModal(prev => ({ ...prev, loading: true }));
+        setDeleteError('');
+        
+        try {
+            const endpoint = deleteModal.type === 'client' 
+                ? `/api/admin/delete-client?clientId=${deleteModal.item.id}`
+                : `/api/admin/delete-facility?facilityId=${deleteModal.item.id}`;
+                
+            const response = await fetch(endpoint, {
+                method: 'DELETE',
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+                setDeleteError(result.error || 'Deletion failed');
+                setDeleteModal(prev => ({ ...prev, loading: false }));
+                return;
+            }
+            
+            // Success - refresh the page
+            setDeleteModal({ isOpen: false, type: null, item: null, loading: false });
+            router.refresh();
+            
+        } catch (error) {
+            console.error('Delete error:', error);
+            setDeleteError('An unexpected error occurred');
+            setDeleteModal(prev => ({ ...prev, loading: false }));
+        }
+    };
+
+    const cancelDelete = () => {
+        setDeleteModal({ isOpen: false, type: null, item: null, loading: false });
+        setDeleteError('');
     };
 
     return (
@@ -365,12 +421,23 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                                             {formatDate(client.created_at)}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                            <Link
-                                                                href={`/clients/${client.id}`}
-                                                                className="text-blue-600 hover:text-blue-900"
-                                                            >
-                                                                View Details
-                                                            </Link>
+                                                            <div className="flex items-center justify-end space-x-2">
+                                                                <Link
+                                                                    href={`/clients/${client.id}`}
+                                                                    className="text-blue-600 hover:text-blue-900"
+                                                                >
+                                                                    View Details
+                                                                </Link>
+                                                                <button
+                                                                    onClick={() => handleDeleteClient(client)}
+                                                                    className="text-red-600 hover:text-red-900 ml-4"
+                                                                    title="Delete Client"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -390,11 +457,11 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                 <div className="space-y-4">
                                     {Object.entries(clientsByFacility).map(([facilityId, facilityData]) => (
                                         <div key={facilityId} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                                            <div
-                                                className="px-6 py-4 bg-gray-50 cursor-pointer flex justify-between items-center"
-                                                onClick={() => toggleFacility(facilityId)}
-                                            >
-                                                <div>
+                                            <div className="px-6 py-4 bg-gray-50 flex justify-between items-center">
+                                                <div 
+                                                    className="flex-1 cursor-pointer"
+                                                    onClick={() => toggleFacility(facilityId)}
+                                                >
                                                     <h4 className="text-lg font-medium text-gray-900">
                                                         {facilityData.facilityName}
                                                     </h4>
@@ -402,16 +469,31 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                                         {facilityData.clients.length} clients
                                                     </p>
                                                 </div>
-                                                <svg
-                                                    className={`w-5 h-5 text-gray-400 transition-transform ${
-                                                        expandedFacilities.has(facilityId) ? 'rotate-180' : ''
-                                                    }`}
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
+                                                <div className="flex items-center space-x-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteFacility(facilityId, facilityData.facilityName);
+                                                        }}
+                                                        className="text-red-600 hover:text-red-900 p-1"
+                                                        title="Delete Facility"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                    <svg
+                                                        className={`w-5 h-5 text-gray-400 transition-transform cursor-pointer ${
+                                                            expandedFacilities.has(facilityId) ? 'rotate-180' : ''
+                                                        }`}
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                        onClick={() => toggleFacility(facilityId)}
+                                                    >
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </div>
                                             </div>
                                             {expandedFacilities.has(facilityId) && (
                                                 <div className="border-t border-gray-200">
@@ -462,16 +544,29 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                                                         </span>
                                                                     </td>
                                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                                        {client.client_type === 'authenticated' ? (
-                                                                            <Link
-                                                                                href={`/clients/${client.id}`}
-                                                                                className="text-blue-600 hover:text-blue-900"
-                                                                            >
-                                                                                View Details
-                                                                            </Link>
-                                                                        ) : (
-                                                                            <span className="text-gray-400">Managed</span>
-                                                                        )}
+                                                                        <div className="flex items-center justify-end space-x-2">
+                                                                            {client.client_type === 'authenticated' ? (
+                                                                                <Link
+                                                                                    href={`/clients/${client.id}`}
+                                                                                    className="text-blue-600 hover:text-blue-900"
+                                                                                >
+                                                                                    View Details
+                                                                                </Link>
+                                                                            ) : (
+                                                                                <span className="text-gray-400">Managed</span>
+                                                                            )}
+                                                                            {client.client_type === 'authenticated' && (
+                                                                                <button
+                                                                                    onClick={() => handleDeleteClient(client)}
+                                                                                    className="text-red-600 hover:text-red-900 ml-4"
+                                                                                    title="Delete Client"
+                                                                                >
+                                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                                    </svg>
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
                                                                     </td>
                                                                 </tr>
                                                             ))}
@@ -558,16 +653,29 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    {client.client_type === 'authenticated' ? (
-                                                        <Link
-                                                            href={`/clients/${client.id}`}
-                                                            className="text-blue-600 hover:text-blue-900"
-                                                        >
-                                                            View Details
-                                                        </Link>
-                                                    ) : (
-                                                        <span className="text-gray-400">Managed</span>
-                                                    )}
+                                                    <div className="flex items-center justify-end space-x-2">
+                                                        {client.client_type === 'authenticated' ? (
+                                                            <Link
+                                                                href={`/clients/${client.id}`}
+                                                                className="text-blue-600 hover:text-blue-900"
+                                                            >
+                                                                View Details
+                                                            </Link>
+                                                        ) : (
+                                                            <span className="text-gray-400">Managed</span>
+                                                        )}
+                                                        {client.client_type === 'authenticated' && (
+                                                            <button
+                                                                onClick={() => handleDeleteClient(client)}
+                                                                className="text-red-600 hover:text-red-900 ml-4"
+                                                                title="Delete Client"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
@@ -586,6 +694,66 @@ export default function AdminClientsView({ user, userProfile, data }) {
                         <span>Total: {data.totalClients} clients across all categories</span>
                     )}
                 </div>
+
+                {/* Delete Confirmation Modal */}
+                {deleteModal.isOpen && (
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                            <div className="mt-3 text-center">
+                                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                                    <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 13.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
+                                    Delete {deleteModal.type === 'client' ? 'Client' : 'Facility'}
+                                </h3>
+                                <div className="mt-2 px-7 py-3">
+                                    <p className="text-sm text-gray-500">
+                                        Are you sure you want to delete {' '}
+                                        <span className="font-medium">
+                                            {deleteModal.type === 'client' 
+                                                ? deleteModal.item?.full_name || `${deleteModal.item?.first_name} ${deleteModal.item?.last_name}`
+                                                : deleteModal.item?.name
+                                            }
+                                        </span>?
+                                        {deleteModal.type === 'facility' && (
+                                            <span className="block mt-2 text-red-600 font-medium">
+                                                This will also delete all associated clients, trips, and data.
+                                            </span>
+                                        )}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-2">
+                                        This action cannot be undone. We'll check for pending trips and bills before deletion.
+                                    </p>
+                                    {deleteError && (
+                                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                                            <p className="text-sm text-red-700">{deleteError}</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="items-center px-4 py-3">
+                                    <div className="flex space-x-3">
+                                        <button
+                                            onClick={cancelDelete}
+                                            disabled={deleteModal.loading}
+                                            className="px-4 py-2 bg-gray-300 text-gray-700 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={confirmDelete}
+                                            disabled={deleteModal.loading}
+                                            className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                                        >
+                                            {deleteModal.loading ? 'Deleting...' : 'Delete'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
