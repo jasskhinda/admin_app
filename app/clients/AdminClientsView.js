@@ -168,7 +168,7 @@ export default function AdminClientsView({ user, userProfile, data }) {
         
         try {
             const endpoint = deleteModal.type === 'client' 
-                ? `/api/admin/delete-client?clientId=${deleteModal.item.id}`
+                ? `/api/admin/delete-client-simple?clientId=${deleteModal.item.id}`
                 : `/api/admin/delete-facility?facilityId=${deleteModal.item.id}`;
                 
             const response = await fetch(endpoint, {

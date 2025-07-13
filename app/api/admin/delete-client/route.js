@@ -110,9 +110,10 @@ export async function DELETE(request) {
     
     // 2. Check for pending invoices/bills
     let pendingInvoices = [];
-    let hasInvoicesError = false;
     
     try {
+      console.log(`Checking invoices for client: ${clientId}`);
+      
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select('id, status, total')
@@ -120,23 +121,33 @@ export async function DELETE(request) {
         .in('status', ['pending', 'overdue']);
         
       if (invoicesError) {
-        console.error('Error checking invoices:', invoicesError);
-        // Check if it's a table not found error
-        if (invoicesError.code === '42P01') {
-          console.log('Invoices table not found, proceeding without invoice validation');
+        console.error('Invoices query error:', {
+          message: invoicesError.message,
+          code: invoicesError.code,
+          details: invoicesError.details,
+          hint: invoicesError.hint
+        });
+        
+        // Check if it's a table not found error or column not found
+        if (invoicesError.code === '42P01' || invoicesError.message?.includes('does not exist')) {
+          console.log('Invoices table or columns not found, proceeding without invoice validation');
         } else {
-          hasInvoicesError = true;
+          return NextResponse.json({ 
+            error: `Error checking client invoices: ${invoicesError.message}`,
+            details: invoicesError.code 
+          }, { status: 500 });
         }
       } else {
+        console.log(`Found ${invoices?.length || 0} invoices for client`);
         pendingInvoices = invoices || [];
+        console.log(`Found ${pendingInvoices.length} pending invoices`);
       }
     } catch (error) {
       console.error('Exception checking invoices:', error);
-      hasInvoicesError = true;
-    }
-    
-    if (hasInvoicesError) {
-      return NextResponse.json({ error: 'Error checking client invoices' }, { status: 500 });
+      return NextResponse.json({ 
+        error: `Exception checking client invoices: ${error.message}`,
+        details: error.stack 
+      }, { status: 500 });
     }
     
     if (pendingInvoices && pendingInvoices.length > 0) {
