@@ -193,74 +193,38 @@ export default async function AssignTripPage({ params }) {
                         }
                     }
                     
-                    // ALWAYS use trip fields as fallback - don't require profile lookup to fail first
-                    // This ensures we show client information even if database relationships are missing
-                    if (!trip.profiles || !trip.profiles.full_name || !trip.profiles.email) {
-                        console.log(`Applying/enhancing client data for trip ${trip.id}`);
+                    // ALWAYS create a fallback profile for display purposes
+                    if (!trip.profiles || !trip.profiles.full_name) {
+                        console.log(`Creating fallback profile for trip ${trip.id}`);
                         
-                        // Try to construct the best possible client information from available trip fields
-                        const fullNameOptions = [
-                            trip.client_name,
-                            trip.passenger_name,
-                            trip.contact_name,
-                            trip.booking_contact_name,
-                            (trip.client_first_name && trip.client_last_name) ? 
-                                `${trip.client_first_name} ${trip.client_last_name}` : null,
-                            (trip.passenger_first_name && trip.passenger_last_name) ? 
-                                `${trip.passenger_first_name} ${trip.passenger_last_name}` : null,
-                            (trip.contact_first_name && trip.contact_last_name) ? 
-                                `${trip.contact_first_name} ${trip.contact_last_name}` : null
-                        ].filter(Boolean);
+                        // For facility trips, create a generic client name if we can't find the actual client
+                        let fallbackName = 'Unknown Client';
+                        let fallbackEmail = 'No email available';
                         
-                        const emailOptions = [
-                            trip.client_email,
-                            trip.passenger_email,
-                            trip.contact_email,
-                            trip.booking_email,
-                            trip.requester_email
-                        ].filter(Boolean);
-                        
-                        const phoneOptions = [
-                            trip.client_phone,
-                            trip.passenger_phone,
-                            trip.contact_phone,
-                            trip.booking_phone,
-                            trip.phone_number
-                        ].filter(Boolean);
+                        if (trip.facility_id && trip.managed_client_id) {
+                            // For facility trips, show a more descriptive name
+                            fallbackName = `Facility Client (ID: ${trip.managed_client_id.substring(0, 8)}...)`;
+                            fallbackEmail = 'Contact facility for client details';
+                        } else if (trip.user_id) {
+                            // For individual bookings
+                            fallbackName = `Individual Client (ID: ${trip.user_id.substring(0, 8)}...)`;
+                        }
                         
                         const fallbackProfile = {
-                            full_name: fullNameOptions[0] || null,
-                            first_name: trip.client_first_name || trip.passenger_first_name || trip.contact_first_name ||
-                                       (fullNameOptions[0] ? fullNameOptions[0].split(' ')[0] : null),
-                            last_name: trip.client_last_name || trip.passenger_last_name || trip.contact_last_name ||
-                                      (fullNameOptions[0] ? fullNameOptions[0].split(' ').slice(1).join(' ') : null),
-                            email: emailOptions[0] || null,
-                            phone_number: phoneOptions[0] || null
+                            full_name: fallbackName,
+                            email: fallbackEmail,
+                            first_name: fallbackName.split(' ')[0],
+                            last_name: fallbackName.split(' ').slice(1).join(' ') || '',
+                            role: trip.facility_id ? 'facility_client' : 'client'
                         };
                         
-                        // Apply fallback data (merge with existing profile if any)
-                        if (fallbackProfile.full_name || fallbackProfile.email || fallbackProfile.first_name) {
-                            trip.profiles = {
-                                ...(trip.profiles || {}),
-                                ...Object.fromEntries(
-                                    Object.entries(fallbackProfile).filter(([key, value]) => 
-                                        value !== null && (!trip.profiles || !trip.profiles[key])
-                                    )
-                                )
-                            };
-                            console.log(`Applied/enhanced profile for trip ${trip.id}:`, trip.profiles);
-                            console.log(`Used name: ${fallbackProfile.full_name}, email: ${fallbackProfile.email}`);
-                        } else {
-                            console.log(`No usable client data found for trip ${trip.id}. Trip fields:`, {
-                                client_name: trip.client_name,
-                                passenger_name: trip.passenger_name,
-                                client_email: trip.client_email,
-                                passenger_email: trip.passenger_email,
-                                user_id: trip.user_id,
-                                client_id: trip.client_id,
-                                facility_id: trip.facility_id
-                            });
-                        }
+                        // Merge with any existing profile data
+                        trip.profiles = {
+                            ...fallbackProfile,
+                            ...(trip.profiles || {})
+                        };
+                        
+                        console.log(`Applied fallback profile for trip ${trip.id}:`, trip.profiles);
                     } else {
                         console.log(`Trip ${trip.id} already has complete profile:`, trip.profiles);
                     }
