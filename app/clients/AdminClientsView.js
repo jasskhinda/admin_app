@@ -167,9 +167,18 @@ export default function AdminClientsView({ user, userProfile, data }) {
         setDeleteError('');
         
         try {
-            const endpoint = deleteModal.type === 'client' 
-                ? `/api/admin/delete-client-simple?clientId=${deleteModal.item.id}`
-                : `/api/admin/delete-facility-simple?facilityId=${deleteModal.item.id}`;
+            let endpoint;
+            
+            if (deleteModal.type === 'client') {
+                // Determine if it's an authenticated client or managed client
+                if (deleteModal.item.client_type === 'managed') {
+                    endpoint = `/api/admin/delete-managed-client?clientId=${deleteModal.item.id}`;
+                } else {
+                    endpoint = `/api/admin/delete-client-simple?clientId=${deleteModal.item.id}`;
+                }
+            } else {
+                endpoint = `/api/admin/delete-facility-simple?facilityId=${deleteModal.item.id}`;
+            }
                 
             const response = await fetch(endpoint, {
                 method: 'DELETE',
@@ -555,17 +564,15 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                                                             ) : (
                                                                                 <span className="text-gray-400">Managed</span>
                                                                             )}
-                                                                            {client.client_type === 'authenticated' && (
-                                                                                <button
-                                                                                    onClick={() => handleDeleteClient(client)}
-                                                                                    className="text-red-600 hover:text-red-900 ml-4"
-                                                                                    title="Delete Client"
-                                                                                >
-                                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                                    </svg>
-                                                                                </button>
-                                                                            )}
+                                                                            <button
+                                                                                onClick={() => handleDeleteClient(client)}
+                                                                                className="text-red-600 hover:text-red-900 ml-4"
+                                                                                title={`Delete ${client.client_type === 'authenticated' ? 'Client' : 'Managed Client'}`}
+                                                                            >
+                                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                                </svg>
+                                                                            </button>
                                                                         </div>
                                                                     </td>
                                                                 </tr>
@@ -664,17 +671,15 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                                         ) : (
                                                             <span className="text-gray-400">Managed</span>
                                                         )}
-                                                        {client.client_type === 'authenticated' && (
-                                                            <button
-                                                                onClick={() => handleDeleteClient(client)}
-                                                                className="text-red-600 hover:text-red-900 ml-4"
-                                                                title="Delete Client"
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                </svg>
-                                                            </button>
-                                                        )}
+                                                        <button
+                                                            onClick={() => handleDeleteClient(client)}
+                                                            className="text-red-600 hover:text-red-900 ml-4"
+                                                            title={`Delete ${client.client_type === 'authenticated' ? 'Client' : 'Managed Client'}`}
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -706,7 +711,10 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                     </svg>
                                 </div>
                                 <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
-                                    Delete {deleteModal.type === 'client' ? 'Client' : 'Facility'}
+                                    Delete {deleteModal.type === 'client' 
+                                        ? (deleteModal.item?.client_type === 'managed' ? 'Managed Client' : 'Client')
+                                        : 'Facility'
+                                    }
                                 </h3>
                                 <div className="mt-2 px-7 py-3">
                                     <p className="text-sm text-gray-500">
@@ -724,6 +732,14 @@ export default function AdminClientsView({ user, userProfile, data }) {
                                                 • All associated clients will be deleted<br/>
                                                 • All trips and invoices will be permanently removed<br/>
                                                 • All managed client records will be cleared
+                                            </span>
+                                        )}
+                                        {deleteModal.type === 'client' && deleteModal.item?.client_type === 'managed' && (
+                                            <span className="block mt-3 text-blue-700 bg-blue-50 p-2 rounded text-sm">
+                                                <strong>Managed Client Deletion:</strong><br/>
+                                                • Client record will be permanently removed<br/>
+                                                • Associated trips and invoices will be deleted<br/>
+                                                • No user account to remove (managed clients don't have login access)
                                             </span>
                                         )}
                                     </p>

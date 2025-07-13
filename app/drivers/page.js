@@ -55,27 +55,29 @@ export default async function AdminDriversPage() {
         // For each driver, get their trips
         const driversWithTrips = await Promise.all((drivers || []).map(async (driver) => {
             // Get trips assigned to this driver
-            const { data: trips, error: tripsError } = await supabase
-                .from('trips')
-                .select('*')
-                .eq('driver_id', driver.id)
-                .order('created_at', { ascending: false });
+            let trips = [];
+            let tripCount = 0;
+            let completedTrips = 0;
+            let lastTrip = null;
+            
+            try {
+                const { data: tripsData, error: tripsError } = await supabase
+                    .from('trips')
+                    .select('*')
+                    .eq('driver_id', driver.id)
+                    .order('created_at', { ascending: false });
 
-            if (tripsError) {
-                console.error(`Error fetching trips for driver ${driver.id}:`, tripsError);
-                return {
-                    ...driver,
-                    trips: [],
-                    trip_count: 0,
-                    completed_trips: 0,
-                    last_trip: null
-                };
+                if (tripsError && tripsError.code !== '42P01') {
+                    console.error(`Error fetching trips for driver ${driver.id}:`, tripsError);
+                } else if (tripsData) {
+                    trips = tripsData;
+                    tripCount = trips.length;
+                    completedTrips = trips.filter(trip => trip.status === 'completed').length;
+                    lastTrip = trips.length > 0 ? trips[0] : null;
+                }
+            } catch (error) {
+                console.warn(`Could not fetch trips for driver ${driver.id}:`, error.message);
             }
-
-            // Calculate stats
-            const tripCount = trips?.length || 0;
-            const completedTrips = trips?.filter(trip => trip.status === 'completed')?.length || 0;
-            const lastTrip = trips && trips.length > 0 ? trips[0] : null;
 
             // Try to fetch vehicle information
             let vehicle = null;
@@ -90,7 +92,7 @@ export default async function AdminDriversPage() {
                     vehicle = vehicleData;
                 }
             } catch (vehicleError) {
-                console.error(`Error fetching vehicle for driver ${driver.id}:`, vehicleError);
+                console.warn(`Could not fetch vehicle for driver ${driver.id}:`, vehicleError.message);
             }
 
             return {
@@ -102,6 +104,23 @@ export default async function AdminDriversPage() {
                 vehicle
             };
         }));
+
+        // Get email addresses from auth.users for drivers
+        const { supabaseAdmin } = await import('@/lib/admin-supabase');
+        if (supabaseAdmin) {
+            for (let driver of driversWithTrips) {
+                if (!driver.email && driver.id) {
+                    try {
+                        const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(driver.id);
+                        if (authUser?.email) {
+                            driver.email = authUser.email;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching email for driver:', driver.id);
+                    }
+                }
+            }
+        }
         
         return <AdminDriversView user={user} userProfile={profile} drivers={driversWithTrips} />;
     } catch (error) {
