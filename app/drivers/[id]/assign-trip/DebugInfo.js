@@ -72,8 +72,24 @@ export default function DebugInfo({ trips, facility }) {
         </div>
 
         <div>
-          <h4 className="font-medium text-yellow-800 mb-2">Database Structure Check:</h4>
-          <div className="bg-white p-3 rounded border">
+          <h4 className="font-medium text-yellow-800 mb-2">Testing Specific Client ID:</h4>
+          <div className="bg-white p-3 rounded border space-y-2">
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/debug/test-managed-client');
+                  const data = await response.json();
+                  console.log('Managed client test results:', data);
+                  alert('Managed client test results logged to console (F12)');
+                } catch (err) {
+                  console.error('Error:', err);
+                  alert('Error testing managed client');
+                }
+              }}
+              className="px-3 py-1 bg-red-500 text-white rounded text-xs mr-2"
+            >
+              Test Managed Client ID
+            </button>
             <button
               onClick={async () => {
                 try {
