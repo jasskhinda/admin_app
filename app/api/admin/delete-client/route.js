@@ -47,14 +47,39 @@ export async function DELETE(request) {
     
     // 1. Check for pending or upcoming trips
     const now = new Date().toISOString();
-    const { data: pendingTrips, error: tripsError } = await supabase
-      .from('trips')
-      .select('id, status, pickup_datetime')
-      .eq('user_id', clientId)
-      .or(`status.eq.pending,status.eq.confirmed,status.eq.in_progress,pickup_datetime.gte.${now}`);
-      
-    if (tripsError) {
-      console.error('Error checking trips:', tripsError);
+    
+    let pendingTrips = [];
+    let hasTripsError = false;
+    
+    // Try to check trips, but don't fail if trips table doesn't exist
+    try {
+      const { data: trips, error: tripsError } = await supabase
+        .from('trips')
+        .select('id, status, pickup_datetime')
+        .eq('user_id', clientId);
+        
+      if (tripsError) {
+        console.error('Error checking trips:', tripsError);
+        // Check if it's a table not found error
+        if (tripsError.code === '42P01') {
+          console.log('Trips table not found, proceeding without trip validation');
+        } else {
+          hasTripsError = true;
+        }
+      } else {
+        // Filter for pending/upcoming trips
+        pendingTrips = (trips || []).filter(trip => {
+          const isPending = ['pending', 'confirmed', 'in_progress'].includes(trip.status);
+          const isUpcoming = new Date(trip.pickup_datetime) > new Date();
+          return isPending || isUpcoming;
+        });
+      }
+    } catch (error) {
+      console.error('Exception checking trips:', error);
+      hasTripsError = true;
+    }
+    
+    if (hasTripsError) {
       return NextResponse.json({ error: 'Error checking client trips' }, { status: 500 });
     }
     
@@ -73,14 +98,33 @@ export async function DELETE(request) {
     }
     
     // 2. Check for pending invoices/bills
-    const { data: pendingInvoices, error: invoicesError } = await supabase
-      .from('invoices')
-      .select('id, status, total')
-      .eq('user_id', clientId)
-      .in('status', ['pending', 'overdue']);
-      
-    if (invoicesError) {
-      console.error('Error checking invoices:', invoicesError);
+    let pendingInvoices = [];
+    let hasInvoicesError = false;
+    
+    try {
+      const { data: invoices, error: invoicesError } = await supabase
+        .from('invoices')
+        .select('id, status, total')
+        .eq('user_id', clientId)
+        .in('status', ['pending', 'overdue']);
+        
+      if (invoicesError) {
+        console.error('Error checking invoices:', invoicesError);
+        // Check if it's a table not found error
+        if (invoicesError.code === '42P01') {
+          console.log('Invoices table not found, proceeding without invoice validation');
+        } else {
+          hasInvoicesError = true;
+        }
+      } else {
+        pendingInvoices = invoices || [];
+      }
+    } catch (error) {
+      console.error('Exception checking invoices:', error);
+      hasInvoicesError = true;
+    }
+    
+    if (hasInvoicesError) {
       return NextResponse.json({ error: 'Error checking client invoices' }, { status: 500 });
     }
     
@@ -108,25 +152,33 @@ export async function DELETE(request) {
     // Delete related records first (in order of dependencies)
     
     // Delete completed trips (keep for record purposes, but could be archived instead)
-    const { error: tripsDeleteError } = await supabase
-      .from('trips')
-      .delete()
-      .eq('user_id', clientId);
-      
-    if (tripsDeleteError) {
-      console.error('Error deleting trips:', tripsDeleteError);
-      return NextResponse.json({ error: 'Error deleting client trips' }, { status: 500 });
+    try {
+      const { error: tripsDeleteError } = await supabase
+        .from('trips')
+        .delete()
+        .eq('user_id', clientId);
+        
+      if (tripsDeleteError && tripsDeleteError.code !== '42P01') {
+        console.error('Error deleting trips:', tripsDeleteError);
+        return NextResponse.json({ error: 'Error deleting client trips' }, { status: 500 });
+      }
+    } catch (error) {
+      console.warn('Could not delete trips (table may not exist):', error);
     }
     
     // Delete paid invoices (keep for record purposes, but could be archived instead)
-    const { error: invoicesDeleteError } = await supabase
-      .from('invoices')
-      .delete()
-      .eq('user_id', clientId);
-      
-    if (invoicesDeleteError) {
-      console.error('Error deleting invoices:', invoicesDeleteError);
-      return NextResponse.json({ error: 'Error deleting client invoices' }, { status: 500 });
+    try {
+      const { error: invoicesDeleteError } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('user_id', clientId);
+        
+      if (invoicesDeleteError && invoicesDeleteError.code !== '42P01') {
+        console.error('Error deleting invoices:', invoicesDeleteError);
+        return NextResponse.json({ error: 'Error deleting client invoices' }, { status: 500 });
+      }
+    } catch (error) {
+      console.warn('Could not delete invoices (table may not exist):', error);
     }
     
     // Delete managed client record if exists
