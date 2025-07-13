@@ -281,9 +281,10 @@ export default async function AssignTripPage({ params }) {
                         }
                     }
                     
-                    // Enhanced fallback: use trip fields directly if no profile found
-                    if (!trip.profiles || (!trip.profiles.full_name && !trip.profiles.first_name && !trip.profiles.email)) {
-                        console.log(`Using fallback data for trip ${trip.id}`);
+                    // ALWAYS use trip fields as fallback - don't require profile lookup to fail first
+                    // This ensures we show client information even if database relationships are missing
+                    if (!trip.profiles || !trip.profiles.full_name || !trip.profiles.email) {
+                        console.log(`Applying/enhancing client data for trip ${trip.id}`);
                         
                         // Try to construct the best possible client information from available trip fields
                         const fullNameOptions = [
@@ -325,12 +326,18 @@ export default async function AssignTripPage({ params }) {
                             phone_number: phoneOptions[0] || null
                         };
                         
-                        // Only use fallback if we have some useful information
+                        // Apply fallback data (merge with existing profile if any)
                         if (fallbackProfile.full_name || fallbackProfile.email || fallbackProfile.first_name) {
-                            trip.profiles = { ...trip.profiles, ...fallbackProfile };
-                            console.log(`Applied fallback profile for trip ${trip.id}:`, fallbackProfile);
-                            console.log(`Available name options were:`, fullNameOptions);
-                            console.log(`Available email options were:`, emailOptions);
+                            trip.profiles = {
+                                ...(trip.profiles || {}),
+                                ...Object.fromEntries(
+                                    Object.entries(fallbackProfile).filter(([key, value]) => 
+                                        value !== null && (!trip.profiles || !trip.profiles[key])
+                                    )
+                                )
+                            };
+                            console.log(`Applied/enhanced profile for trip ${trip.id}:`, trip.profiles);
+                            console.log(`Used name: ${fallbackProfile.full_name}, email: ${fallbackProfile.email}`);
                         } else {
                             console.log(`No usable client data found for trip ${trip.id}. Trip fields:`, {
                                 client_name: trip.client_name,
@@ -342,6 +349,8 @@ export default async function AssignTripPage({ params }) {
                                 facility_id: trip.facility_id
                             });
                         }
+                    } else {
+                        console.log(`Trip ${trip.id} already has complete profile:`, trip.profiles);
                     }
                     
                     console.log(`Final profile for trip ${trip.id}:`, trip.profiles);

@@ -32,68 +32,64 @@ export default function DebugInfo({ trips, facility }) {
       
       <div className="space-y-4 text-sm">
         <div>
-          <h4 className="font-medium text-yellow-800 mb-2">Sample Trip Data (first 3 trips):</h4>
+          <h4 className="font-medium text-yellow-800 mb-2">Complete Trip Data (first trip - ALL fields):</h4>
           <div className="bg-white p-3 rounded border max-h-96 overflow-y-auto">
             <pre className="whitespace-pre-wrap text-xs">
-              {JSON.stringify(trips.slice(0, 3).map(trip => ({
-                id: trip.id,
-                status: trip.status,
-                facility_id: trip.facility_id,
-                user_id: trip.user_id,
-                client_id: trip.client_id,
-                client_name: trip.client_name,
-                client_email: trip.client_email,
-                passenger_name: trip.passenger_name,
-                passenger_email: trip.passenger_email,
-                contact_name: trip.contact_name,
-                contact_email: trip.contact_email,
-                profiles: trip.profiles,
-                facility: trip.facility
-              })), null, 2)}
+              {JSON.stringify(trips[0] || {}, null, 2)}
             </pre>
           </div>
         </div>
         
         <div>
+          <h4 className="font-medium text-yellow-800 mb-2">Available Field Names:</h4>
+          <div className="bg-white p-3 rounded border">
+            <div className="text-xs grid grid-cols-3 gap-2">
+              {trips[0] ? Object.keys(trips[0]).sort().map(key => (
+                <div key={key} className="font-mono">
+                  {key}: {typeof trips[0][key]}
+                </div>
+              )) : 'No trips available'}
+            </div>
+          </div>
+        </div>
+        
+        <div>
           <h4 className="font-medium text-yellow-800 mb-2">Total Trips: {trips.length}</h4>
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div>
-              <strong>With facility_id:</strong> {trips.filter(t => t.facility_id).length}
-            </div>
-            <div>
-              <strong>With profiles:</strong> {trips.filter(t => t.profiles).length}
-            </div>
-            <div>
-              <strong>With client_name:</strong> {trips.filter(t => t.client_name).length}
-            </div>
-            <div>
-              <strong>With client_email:</strong> {trips.filter(t => t.client_email).length}
-            </div>
-            <div>
-              <strong>With passenger_name:</strong> {trips.filter(t => t.passenger_name).length}
-            </div>
-            <div>
-              <strong>With passenger_email:</strong> {trips.filter(t => t.passenger_email).length}
-            </div>
+          <div className="grid grid-cols-3 gap-4 text-xs">
+            <div><strong>With facility_id:</strong> {trips.filter(t => t.facility_id).length}</div>
+            <div><strong>With profiles:</strong> {trips.filter(t => t.profiles).length}</div>
+            <div><strong>With user_id:</strong> {trips.filter(t => t.user_id).length}</div>
+            
+            {/* Check for common client field variations */}
+            {['client_name', 'client_email', 'passenger_name', 'passenger_email', 
+              'name', 'email', 'customer_name', 'customer_email', 'patient_name', 
+              'patient_email', 'booking_name', 'booking_email'].map(field => (
+              <div key={field}>
+                <strong>{field}:</strong> {trips.filter(t => t[field]).length}
+              </div>
+            ))}
           </div>
         </div>
 
         <div>
-          <h4 className="font-medium text-yellow-800 mb-2">Facility Trips (showing facility info):</h4>
-          <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto">
-            <pre className="whitespace-pre-wrap text-xs">
-              {JSON.stringify(trips.filter(t => t.facility_id).map(trip => ({
-                id: trip.id,
-                facility_name: trip.facility?.name,
-                client_info: {
-                  profiles: trip.profiles,
-                  client_name: trip.client_name,
-                  passenger_name: trip.passenger_name,
-                  client_email: trip.client_email,
-                  passenger_email: trip.passenger_email
+          <h4 className="font-medium text-yellow-800 mb-2">Database Structure Check:</h4>
+          <div className="bg-white p-3 rounded border">
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/debug/database-structure');
+                  const data = await response.json();
+                  console.log('Database structure:', data);
+                  alert('Database structure logged to console (F12)');
+                } catch (err) {
+                  console.error('Error:', err);
+                  alert('Error checking database structure');
                 }
-              })), null, 2)}
-            </pre>
+              }}
+              className="px-3 py-1 bg-blue-500 text-white rounded text-xs"
+            >
+              Check Database Structure
+            </button>
           </div>
         </div>
       </div>
