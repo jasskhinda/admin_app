@@ -88,6 +88,15 @@ export default async function AssignTripPage({ params }) {
 
                 // Enhanced client information fetching
                 for (let trip of availableTrips) {
+                    console.log(`Processing trip ${trip.id}, fields:`, {
+                        user_id: trip.user_id,
+                        client_id: trip.client_id,
+                        client_email: trip.client_email,
+                        client_name: trip.client_name,
+                        passenger_name: trip.passenger_name,
+                        facility_id: trip.facility_id
+                    });
+
                     // Try to get client information from multiple sources
                     if (trip.user_id) {
                         try {
@@ -98,6 +107,7 @@ export default async function AssignTripPage({ params }) {
                                 .single();
                             
                             if (clientProfile) {
+                                console.log(`Found profile for user_id ${trip.user_id}:`, clientProfile);
                                 trip.profiles = clientProfile;
                             }
                         } catch (clientError) {
@@ -115,6 +125,7 @@ export default async function AssignTripPage({ params }) {
                                 .single();
                             
                             if (clientProfile) {
+                                console.log(`Found profile for client_id ${trip.client_id}:`, clientProfile);
                                 trip.profiles = clientProfile;
                             }
                         } catch (clientError) {
@@ -132,10 +143,61 @@ export default async function AssignTripPage({ params }) {
                                 .single();
                             
                             if (clientProfile) {
+                                console.log(`Found profile for email ${trip.client_email}:`, clientProfile);
                                 trip.profiles = clientProfile;
                             }
                         } catch (clientError) {
                             console.warn(`Could not fetch client by email for trip ${trip.id}:`, clientError.message);
+                        }
+                    }
+                    
+                    // For facility trips, try looking in facility_clients table
+                    if (!trip.profiles && trip.facility_id) {
+                        try {
+                            // Try to find the client in facility_clients table
+                            const { data: facilityClients } = await supabase
+                                .from('facility_clients')
+                                .select(`
+                                    id,
+                                    client_id,
+                                    profiles!facility_clients_client_id_fkey(
+                                        id, first_name, last_name, full_name, email, phone_number, role
+                                    )
+                                `)
+                                .eq('facility_id', trip.facility_id);
+                            
+                            if (facilityClients && facilityClients.length > 0) {
+                                // If there's a specific client reference in the trip, use that
+                                let matchingClient = null;
+                                
+                                if (trip.client_email) {
+                                    matchingClient = facilityClients.find(fc => 
+                                        fc.profiles?.email === trip.client_email
+                                    );
+                                }
+                                
+                                if (!matchingClient && trip.client_name) {
+                                    matchingClient = facilityClients.find(fc => 
+                                        fc.profiles?.full_name === trip.client_name ||
+                                        `${fc.profiles?.first_name} ${fc.profiles?.last_name}`.trim() === trip.client_name
+                                    );
+                                }
+                                
+                                // If still no match, try to match by passenger name fields
+                                if (!matchingClient && trip.passenger_name) {
+                                    matchingClient = facilityClients.find(fc => 
+                                        fc.profiles?.full_name === trip.passenger_name ||
+                                        `${fc.profiles?.first_name} ${fc.profiles?.last_name}`.trim() === trip.passenger_name
+                                    );
+                                }
+                                
+                                if (matchingClient && matchingClient.profiles) {
+                                    console.log(`Found facility client for trip ${trip.id}:`, matchingClient.profiles);
+                                    trip.profiles = matchingClient.profiles;
+                                }
+                            }
+                        } catch (facilityClientError) {
+                            console.warn(`Could not fetch facility clients for trip ${trip.id}:`, facilityClientError.message);
                         }
                     }
                     
@@ -150,6 +212,7 @@ export default async function AssignTripPage({ params }) {
                             
                             if (facilityData) {
                                 trip.facility = facilityData;
+                                console.log(`Found facility for trip ${trip.id}:`, facilityData.name);
                             }
                         } catch (facilityError) {
                             console.warn(`Could not fetch facility for trip ${trip.id}:`, facilityError.message);
@@ -163,22 +226,40 @@ export default async function AssignTripPage({ params }) {
                             if (authUser?.email) {
                                 if (!trip.profiles) trip.profiles = {};
                                 trip.profiles.email = authUser.email;
+                                console.log(`Found auth email for trip ${trip.id}:`, authUser.email);
                             }
                         } catch (authError) {
                             console.warn(`Could not fetch auth email for trip ${trip.id}`);
                         }
                     }
                     
-                    // Fallback: use trip fields directly if no profile found
-                    if (!trip.profiles) {
-                        trip.profiles = {
-                            full_name: trip.client_name || trip.passenger_name || null,
-                            first_name: trip.client_first_name || trip.passenger_first_name || null,
-                            last_name: trip.client_last_name || trip.passenger_last_name || null,
-                            email: trip.client_email || trip.passenger_email || null,
-                            phone_number: trip.client_phone || trip.passenger_phone || null
+                    // Enhanced fallback: use trip fields directly if no profile found
+                    if (!trip.profiles || (!trip.profiles.full_name && !trip.profiles.first_name && !trip.profiles.email)) {
+                        console.log(`Using fallback data for trip ${trip.id}`);
+                        const fallbackProfile = {
+                            full_name: trip.client_name || trip.passenger_name || 
+                                     (trip.client_first_name && trip.client_last_name ? 
+                                      `${trip.client_first_name} ${trip.client_last_name}` : null) ||
+                                     (trip.passenger_first_name && trip.passenger_last_name ? 
+                                      `${trip.passenger_first_name} ${trip.passenger_last_name}` : null),
+                            first_name: trip.client_first_name || trip.passenger_first_name || 
+                                       (trip.client_name ? trip.client_name.split(' ')[0] : null) ||
+                                       (trip.passenger_name ? trip.passenger_name.split(' ')[0] : null),
+                            last_name: trip.client_last_name || trip.passenger_last_name ||
+                                      (trip.client_name ? trip.client_name.split(' ').slice(1).join(' ') : null) ||
+                                      (trip.passenger_name ? trip.passenger_name.split(' ').slice(1).join(' ') : null),
+                            email: trip.client_email || trip.passenger_email,
+                            phone_number: trip.client_phone || trip.passenger_phone
                         };
+                        
+                        // Only use fallback if we have some useful information
+                        if (fallbackProfile.full_name || fallbackProfile.email || fallbackProfile.first_name) {
+                            trip.profiles = { ...trip.profiles, ...fallbackProfile };
+                            console.log(`Applied fallback profile for trip ${trip.id}:`, fallbackProfile);
+                        }
                     }
+                    
+                    console.log(`Final profile for trip ${trip.id}:`, trip.profiles);
                 }
             }
         } catch (error) {
@@ -207,6 +288,18 @@ export default async function AssignTripPage({ params }) {
                     }
                 }
             }
+        }
+        
+        console.log(`Processed ${availableTrips.length} trips. Sample trip data:`);
+        if (availableTrips.length > 0) {
+            console.log('First trip:', {
+                id: availableTrips[0].id,
+                facility_id: availableTrips[0].facility_id,
+                client_name: availableTrips[0].client_name,
+                passenger_name: availableTrips[0].passenger_name,
+                profiles: availableTrips[0].profiles,
+                facility: availableTrips[0].facility
+            });
         }
 
         return (
