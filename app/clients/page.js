@@ -30,61 +30,120 @@ export default async function AdminClientsPage() {
             redirect('/login?error=Access%20denied.%20Admin%20privileges%20required.');
         }
         
-        // Fetch clients (users with role 'client')
-        let clients = [];
+        // Fetch all clients (users with role 'client')
+        let allClients = [];
         
-        // Try with the most reliable approach first
         try {
             const { data: clientProfiles, error: clientsError } = await supabase
                 .from('profiles')
-                .select('*')
+                .select(`
+                    *,
+                    facilities (
+                        id,
+                        name,
+                        address,
+                        phone_number
+                    )
+                `)
                 .eq('role', 'client')
                 .order('created_at', { ascending: false });
             
             if (clientsError) {
                 console.error('Error fetching clients:', clientsError);
             } else {
-                clients = clientProfiles || [];
+                allClients = clientProfiles || [];
             }
         } catch (fetchError) {
             console.error('Exception in client profiles fetching:', fetchError);
-            clients = [];
+            allClients = [];
         }
-        
-        console.log(`Successfully fetched ${clients.length} clients`);
 
-        // For each client, get their trips
-        const clientsWithTrips = await Promise.all((clients || []).map(async (client) => {
-            const { data: trips, error: tripsError } = await supabase
+        // Fetch all facilities for the filter dropdown
+        const { data: facilities } = await supabase
+            .from('facilities')
+            .select('id, name')
+            .order('name');
+
+        // Get managed clients from facility app
+        const { data: managedClients } = await supabase
+            .from('facility_managed_clients')
+            .select(`
+                *,
+                facilities!facility_id (
+                    id,
+                    name,
+                    address,
+                    phone_number
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        // Combine both types of clients
+        const individualClients = allClients.filter(client => !client.facility_id);
+        const facilityClients = allClients.filter(client => client.facility_id);
+
+        // Add managed clients to the list (these are non-authenticated clients)
+        const allManagedClients = (managedClients || []).map(client => ({
+            ...client,
+            client_type: 'managed',
+            full_name: `${client.first_name || ''} ${client.last_name || ''}`.trim()
+        }));
+        
+        // For each client, get their trips count
+        const clientsWithStats = await Promise.all(allClients.map(async (client) => {
+            const { count: tripCount } = await supabase
+                .from('trips')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', client.id);
+
+            const { data: lastTrip } = await supabase
                 .from('trips')
                 .select('*')
                 .eq('user_id', client.id)
-                .order('created_at', { ascending: false });
-
-            if (tripsError) {
-                console.error(`Error fetching trips for client ${client.id}:`, tripsError);
-                return {
-                    ...client,
-                    trips: [],
-                    trip_count: 0,
-                    last_trip: null,
-                    recent_status: null
-                };
-            }
-
-            const tripCount = trips?.length || 0;
-            const lastTrip = trips && trips.length > 0 ? trips[0] : null;
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
 
             return {
                 ...client,
-                trips: trips || [],
-                trip_count: tripCount,
+                client_type: 'authenticated',
+                trip_count: tripCount || 0,
                 last_trip: lastTrip,
-                recent_status: lastTrip?.status || null
+                full_name: `${client.first_name || ''} ${client.last_name || ''}`.trim()
             };
         }));
+
+        // Get email addresses from auth.users for authenticated clients
+        const { supabaseAdmin } = await import('@/lib/admin-supabase');
+        if (supabaseAdmin) {
+            for (let client of clientsWithStats) {
+                if (!client.email && client.id) {
+                    try {
+                        const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(client.id);
+                        if (authUser?.email) {
+                            client.email = authUser.email;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching email for client:', client.id);
+                    }
+                }
+            }
+        }
+
+        // Organize data for the view
+        const organizedData = {
+            individualClients: clientsWithStats.filter(c => !c.facility_id),
+            facilityClients: clientsWithStats.filter(c => c.facility_id),
+            managedClients: allManagedClients,
+            facilities: facilities || [],
+            totalClients: clientsWithStats.length + allManagedClients.length
+        };
         
-        return <AdminClientsView user={user} userProfile={profile} clients={clientsWithTrips} />;
+        return <AdminClientsView 
+            user={user} 
+            userProfile={profile} 
+            data={organizedData}
+        />;
     } catch (error) {
         console.error('Error in admin clients page:', error);
         redirect('/login?error=server_error');

@@ -90,6 +90,8 @@ export default async function ClientDetailPage({ params }) {
         monthTrips: monthTrips || 0,
         recentTrips: recentTrips || []
       }}
+      user={user}
+      userProfile={profile}
     />
   );
 }
