@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import DebugInfo from './DebugInfo';
 
 export default function AssignTripView({ user, userProfile, driver, availableTrips, allTrips, allDrivers, tripsFetchError }) {
   const router = useRouter();
@@ -157,6 +158,9 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
             </div>
           </div>
         </div>
+
+        {/* Debug Info */}
+        <DebugInfo trips={availableTrips} />
 
         {/* Driver Info Card */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
