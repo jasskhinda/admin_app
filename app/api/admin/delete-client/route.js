@@ -49,38 +49,49 @@ export async function DELETE(request) {
     const now = new Date().toISOString();
     
     let pendingTrips = [];
-    let hasTripsError = false;
     
     // Try to check trips, but don't fail if trips table doesn't exist
     try {
+      console.log(`Checking trips for client: ${clientId}`);
+      
       const { data: trips, error: tripsError } = await supabase
         .from('trips')
         .select('id, status, pickup_datetime')
         .eq('user_id', clientId);
         
       if (tripsError) {
-        console.error('Error checking trips:', tripsError);
-        // Check if it's a table not found error
-        if (tripsError.code === '42P01') {
-          console.log('Trips table not found, proceeding without trip validation');
+        console.error('Trips query error:', {
+          message: tripsError.message,
+          code: tripsError.code,
+          details: tripsError.details,
+          hint: tripsError.hint
+        });
+        
+        // Check if it's a table not found error or column not found
+        if (tripsError.code === '42P01' || tripsError.message?.includes('does not exist')) {
+          console.log('Trips table or columns not found, proceeding without trip validation');
         } else {
-          hasTripsError = true;
+          return NextResponse.json({ 
+            error: `Error checking client trips: ${tripsError.message}`,
+            details: tripsError.code 
+          }, { status: 500 });
         }
       } else {
+        console.log(`Found ${trips?.length || 0} trips for client`);
         // Filter for pending/upcoming trips
         pendingTrips = (trips || []).filter(trip => {
           const isPending = ['pending', 'confirmed', 'in_progress'].includes(trip.status);
           const isUpcoming = new Date(trip.pickup_datetime) > new Date();
           return isPending || isUpcoming;
         });
+        console.log(`Found ${pendingTrips.length} blocking trips`);
       }
     } catch (error) {
       console.error('Exception checking trips:', error);
-      hasTripsError = true;
-    }
-    
-    if (hasTripsError) {
-      return NextResponse.json({ error: 'Error checking client trips' }, { status: 500 });
+      return NextResponse.json({ 
+        error: `Exception checking client trips: ${error.message}`,
+        details: error.stack 
+      }, { status: 500 });
     }
     
     if (pendingTrips && pendingTrips.length > 0) {
