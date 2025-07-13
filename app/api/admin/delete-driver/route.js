@@ -52,18 +52,28 @@ export async function DELETE(request) {
     try {
       const { data: activeTrips, error: tripsError } = await supabase
         .from('trips')
-        .select('id, status, pickup_datetime')
+        .select('id, status, created_at')
         .eq('driver_id', driverId)
         .in('status', ['pending', 'confirmed', 'in_progress']);
         
-      if (tripsError && tripsError.code !== '42P01') {
-        console.error('Error checking active trips:', tripsError);
-        return NextResponse.json({ 
-          error: `Error checking driver trips: ${tripsError.message}` 
-        }, { status: 500 });
-      }
-      
-      if (activeTrips && activeTrips.length > 0) {
+      if (tripsError) {
+        console.error('Trips query error:', {
+          message: tripsError.message,
+          code: tripsError.code,
+          details: tripsError.details,
+          hint: tripsError.hint
+        });
+        
+        // Check if it's a table not found error or column not found
+        if (tripsError.code === '42P01' || tripsError.message?.includes('does not exist')) {
+          console.log('Trips table or columns not found, proceeding without trip validation');
+        } else {
+          return NextResponse.json({ 
+            error: `Error checking driver trips: ${tripsError.message}`,
+            details: tripsError.code 
+          }, { status: 500 });
+        }
+      } else if (activeTrips && activeTrips.length > 0) {
         hasActiveTrips = true;
         console.log(`Found ${activeTrips.length} active trips for driver`);
       }
