@@ -292,13 +292,13 @@ export default async function DriverDetailPage({ params }) {
                                 <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
                                 <div className="space-y-3">
                                     <Link
-                                        href={`/trips/new?driver=${driverId}`}
+                                        href={`/drivers/${driverId}/assign-trip`}
                                         className="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                                     >
                                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                         </svg>
-                                        Assign New Trip
+                                        Assign Trip
                                     </Link>
                                     <Link
                                         href={`/drivers/${driverId}/edit`}

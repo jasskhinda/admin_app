@@ -81,7 +81,7 @@ export default function AdminDriversView({ user, userProfile, drivers }) {
   };
 
   const handleAssignTrip = (driverId) => {
-    router.push(`/trips/new?driver=${driverId}`);
+    router.push(`/drivers/${driverId}/assign-trip`);
   };
 
   const handleDeleteDriver = (driver) => {
