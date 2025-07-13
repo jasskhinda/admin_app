@@ -56,7 +56,7 @@ export default async function AssignTripPage({ params }) {
             }
         }
 
-        // Fetch available trips (trips without assigned drivers)
+        // Fetch all trips (not just available ones) to show different statuses
         let availableTrips = [];
         let allTrips = [];
         let tripsFetchError = null;
@@ -75,9 +75,9 @@ export default async function AssignTripPage({ params }) {
                 allTrips = allTripsData;
                 console.log(`Found ${allTrips.length} total trips in database`);
                 
-                // Filter for available trips (no driver assigned)
-                availableTrips = allTrips.filter(trip => !trip.driver_id);
-                console.log(`Found ${availableTrips.length} trips without assigned drivers`);
+                // Show all trips, not just unassigned ones
+                availableTrips = allTrips;
+                console.log(`Showing ${availableTrips.length} total trips`);
                 
                 // Log trip statuses for debugging
                 const statusCounts = allTrips.reduce((acc, trip) => {
@@ -86,13 +86,14 @@ export default async function AssignTripPage({ params }) {
                 }, {});
                 console.log('Trip status breakdown:', statusCounts);
 
-                // Now try to get client information for each trip separately
+                // Enhanced client information fetching
                 for (let trip of availableTrips) {
+                    // Try to get client information from multiple sources
                     if (trip.user_id) {
                         try {
                             const { data: clientProfile } = await supabase
                                 .from('profiles')
-                                .select('id, first_name, last_name, full_name, email, phone_number')
+                                .select('id, first_name, last_name, full_name, email, phone_number, role')
                                 .eq('id', trip.user_id)
                                 .single();
                             
@@ -103,15 +104,13 @@ export default async function AssignTripPage({ params }) {
                             console.warn(`Could not fetch client for trip ${trip.id}:`, clientError.message);
                         }
                     }
-                }
-
-                // For trips without user_id, try other common field names
-                for (let trip of availableTrips) {
+                    
+                    // Try client_id if user_id didn't work
                     if (!trip.profiles && trip.client_id) {
                         try {
                             const { data: clientProfile } = await supabase
                                 .from('profiles')
-                                .select('id, first_name, last_name, full_name, email, phone_number')
+                                .select('id, first_name, last_name, full_name, email, phone_number, role')
                                 .eq('id', trip.client_id)
                                 .single();
                             
@@ -119,18 +118,16 @@ export default async function AssignTripPage({ params }) {
                                 trip.profiles = clientProfile;
                             }
                         } catch (clientError) {
-                            console.warn(`Could not fetch client for trip ${trip.id}:`, clientError.message);
+                            console.warn(`Could not fetch client by client_id for trip ${trip.id}:`, clientError.message);
                         }
                     }
-                }
-
-                // If still no profile data, try using email directly from trips table
-                for (let trip of availableTrips) {
+                    
+                    // Try email lookup if still no profile
                     if (!trip.profiles && trip.client_email) {
                         try {
                             const { data: clientProfile } = await supabase
                                 .from('profiles')
-                                .select('id, first_name, last_name, full_name, email, phone_number')
+                                .select('id, first_name, last_name, full_name, email, phone_number, role')
                                 .eq('email', trip.client_email)
                                 .single();
                             
@@ -140,6 +137,47 @@ export default async function AssignTripPage({ params }) {
                         } catch (clientError) {
                             console.warn(`Could not fetch client by email for trip ${trip.id}:`, clientError.message);
                         }
+                    }
+                    
+                    // If trip has facility_id, fetch facility information
+                    if (trip.facility_id) {
+                        try {
+                            const { data: facilityData } = await supabase
+                                .from('facilities')
+                                .select('id, name, address, phone_number')
+                                .eq('id', trip.facility_id)
+                                .single();
+                            
+                            if (facilityData) {
+                                trip.facility = facilityData;
+                            }
+                        } catch (facilityError) {
+                            console.warn(`Could not fetch facility for trip ${trip.id}:`, facilityError.message);
+                        }
+                    }
+                    
+                    // Get email from auth if still no email found
+                    if (!trip.profiles?.email && trip.user_id && supabaseAdmin) {
+                        try {
+                            const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(trip.user_id);
+                            if (authUser?.email) {
+                                if (!trip.profiles) trip.profiles = {};
+                                trip.profiles.email = authUser.email;
+                            }
+                        } catch (authError) {
+                            console.warn(`Could not fetch auth email for trip ${trip.id}`);
+                        }
+                    }
+                    
+                    // Fallback: use trip fields directly if no profile found
+                    if (!trip.profiles) {
+                        trip.profiles = {
+                            full_name: trip.client_name || trip.passenger_name || null,
+                            first_name: trip.client_first_name || trip.passenger_first_name || null,
+                            last_name: trip.client_last_name || trip.passenger_last_name || null,
+                            email: trip.client_email || trip.passenger_email || null,
+                            phone_number: trip.client_phone || trip.passenger_phone || null
+                        };
                     }
                 }
             }
