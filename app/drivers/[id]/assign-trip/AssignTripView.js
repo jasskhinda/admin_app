@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function AssignTripView({ user, userProfile, driver, availableTrips, allDrivers }) {
+export default function AssignTripView({ user, userProfile, driver, availableTrips, allTrips, allDrivers, tripsFetchError }) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -108,9 +108,15 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
       approved: { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
       confirmed: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Confirmed' },
+      scheduled: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Scheduled' },
+      created: { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Created' },
+      draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' },
+      in_progress: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'In Progress' },
+      completed: { bg: 'bg-green-100', text: 'text-green-800', label: 'Completed' },
+      cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
     };
     
-    const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
+    const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status || 'Unknown' };
     
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
@@ -195,6 +201,9 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
                 <option value="confirmed">Confirmed</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="created">Created</option>
+                <option value="draft">Draft</option>
               </select>
             </div>
             
@@ -226,12 +235,26 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <div className="flex items-center">
               <div className="flex-shrink-0 p-3 bg-blue-100 rounded-lg">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Total Trips</p>
+                <p className="text-2xl font-semibold text-gray-900">{allTrips.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 p-3 bg-green-100 rounded-lg">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="ml-4">
@@ -243,9 +266,9 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
 
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <div className="flex items-center">
-              <div className="flex-shrink-0 p-3 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div className="flex-shrink-0 p-3 bg-yellow-100 rounded-lg">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
               </div>
               <div className="ml-4">
@@ -296,13 +319,86 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedTrips.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                      <div className="flex flex-col items-center">
-                        <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        <p className="text-lg font-medium">No available trips found</p>
-                        <p className="text-sm">Try adjusting your search or filter criteria</p>
+                    <td colSpan="5" className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center max-w-md mx-auto">
+                        {tripsFetchError ? (
+                          <>
+                            <svg className="w-16 h-16 text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Unable to Load Trips</h3>
+                            <p className="text-sm text-gray-500 mb-4">There was an error loading trip data from the database.</p>
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-left w-full">
+                              <p className="text-sm text-red-700 font-medium">Error Details:</p>
+                              <p className="text-xs text-red-600 mt-1 font-mono">{tripsFetchError.message}</p>
+                            </div>
+                          </>
+                        ) : allTrips.length === 0 ? (
+                          <>
+                            <svg className="w-16 h-16 text-blue-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Trips in System</h3>
+                            <p className="text-sm text-gray-500 mb-4">There are currently no trips in the database.</p>
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 w-full">
+                              <p className="text-sm text-blue-700">
+                                <strong>Next Steps:</strong><br/>
+                                • Create trips in the trip management system<br/>
+                                • Import existing trip data<br/>
+                                • Wait for clients to book new trips
+                              </p>
+                            </div>
+                          </>
+                        ) : availableTrips.length === 0 ? (
+                          <>
+                            <svg className="w-16 h-16 text-green-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">All Trips Are Assigned</h3>
+                            <p className="text-sm text-gray-500 mb-4">Great news! All {allTrips.length} trips in the system already have drivers assigned.</p>
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4 w-full">
+                              <p className="text-sm text-green-700">
+                                <strong>Current Status:</strong><br/>
+                                • Total trips in system: {allTrips.length}<br/>
+                                • Trips with drivers: {allTrips.filter(trip => trip.driver_id).length}<br/>
+                                • Available drivers: {allDrivers.length}
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-16 h-16 text-yellow-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Trips Match Your Filters</h3>
+                            <p className="text-sm text-gray-500 mb-4">Try adjusting your search or filter criteria to see more trips.</p>
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 w-full">
+                              <p className="text-sm text-yellow-700">
+                                <strong>Available Data:</strong><br/>
+                                • Total trips: {allTrips.length}<br/>
+                                • Available trips: {availableTrips.length}<br/>
+                                • Filtered results: {sortedTrips.length}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                        <div className="mt-6 flex space-x-3">
+                          <Link
+                            href="/trips/new"
+                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Create New Trip
+                          </Link>
+                          <Link
+                            href="/trips"
+                            className="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
+                          >
+                            View All Trips
+                          </Link>
+                        </div>
                       </div>
                     </td>
                   </tr>

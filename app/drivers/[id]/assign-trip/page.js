@@ -56,10 +56,14 @@ export default async function AssignTripPage({ params }) {
             }
         }
 
-        // Fetch available trips (pending/approved trips without assigned drivers)
+        // Fetch available trips (trips without assigned drivers)
         let availableTrips = [];
+        let allTrips = [];
+        let tripsFetchError = null;
+        
         try {
-            const { data: trips, error: tripsError } = await supabase
+            // First, try to get all trips to understand what's in the database
+            const { data: allTripsData, error: allTripsError } = await supabase
                 .from('trips')
                 .select(`
                     *,
@@ -72,17 +76,29 @@ export default async function AssignTripPage({ params }) {
                         phone_number
                     )
                 `)
-                .is('driver_id', null)
-                .in('status', ['pending', 'approved', 'confirmed'])
                 .order('created_at', { ascending: false });
 
-            if (tripsError && tripsError.code !== '42P01') {
-                console.error('Error fetching trips:', tripsError);
-            } else if (trips) {
-                availableTrips = trips;
+            if (allTripsError) {
+                console.error('Error fetching all trips:', allTripsError);
+                tripsFetchError = allTripsError;
+            } else if (allTripsData) {
+                allTrips = allTripsData;
+                console.log(`Found ${allTrips.length} total trips in database`);
+                
+                // Filter for available trips (no driver assigned)
+                availableTrips = allTrips.filter(trip => !trip.driver_id);
+                console.log(`Found ${availableTrips.length} trips without assigned drivers`);
+                
+                // Log trip statuses for debugging
+                const statusCounts = allTrips.reduce((acc, trip) => {
+                    acc[trip.status] = (acc[trip.status] || 0) + 1;
+                    return acc;
+                }, {});
+                console.log('Trip status breakdown:', statusCounts);
             }
         } catch (error) {
             console.warn('Could not fetch trips:', error.message);
+            tripsFetchError = error;
         }
 
         // Fetch all drivers for reference
@@ -114,7 +130,9 @@ export default async function AssignTripPage({ params }) {
                 userProfile={profile}
                 driver={driver}
                 availableTrips={availableTrips}
+                allTrips={allTrips}
                 allDrivers={allDrivers || []}
+                tripsFetchError={tripsFetchError}
             />
         );
     } catch (error) {
