@@ -91,19 +91,32 @@ export default async function AssignTripPage({ params }) {
                     console.log(`\n=== Processing trip ${trip.id} ===`);
                     console.log('Trip fields:', {
                         user_id: trip.user_id,
-                        client_id: trip.client_id,
-                        client_email: trip.client_email,
-                        client_name: trip.client_name,
-                        passenger_name: trip.passenger_name,
-                        passenger_email: trip.passenger_email,
-                        contact_name: trip.contact_name,
-                        contact_email: trip.contact_email,
+                        managed_client_id: trip.managed_client_id,
                         facility_id: trip.facility_id,
-                        status: trip.status
+                        status: trip.status,
+                        bill_to: trip.bill_to
                     });
 
-                    // Try to get client information from multiple sources
-                    if (trip.user_id) {
+                    // Method 1: Try managed_client_id (for facility trips)
+                    if (trip.managed_client_id) {
+                        try {
+                            const { data: clientProfile } = await supabase
+                                .from('profiles')
+                                .select('id, first_name, last_name, full_name, email, phone_number, role')
+                                .eq('id', trip.managed_client_id)
+                                .single();
+                            
+                            if (clientProfile) {
+                                console.log(`Found profile for managed_client_id ${trip.managed_client_id}:`, clientProfile);
+                                trip.profiles = clientProfile;
+                            }
+                        } catch (clientError) {
+                            console.warn(`Could not fetch client for managed_client_id ${trip.managed_client_id}:`, clientError.message);
+                        }
+                    }
+
+                    // Method 2: Try user_id (for individual bookings)
+                    if (!trip.profiles && trip.user_id) {
                         try {
                             const { data: clientProfile } = await supabase
                                 .from('profiles')
@@ -120,132 +133,28 @@ export default async function AssignTripPage({ params }) {
                         }
                     }
                     
-                    // Try client_id if user_id didn't work
-                    if (!trip.profiles && trip.client_id) {
+                    // Method 3: For facility trips, try to find client in facility_clients table
+                    if (!trip.profiles && trip.facility_id && trip.managed_client_id) {
                         try {
-                            const { data: clientProfile } = await supabase
-                                .from('profiles')
-                                .select('id, first_name, last_name, full_name, email, phone_number, role')
-                                .eq('id', trip.client_id)
+                            const { data: facilityClient } = await supabase
+                                .from('facility_clients')
+                                .select(`
+                                    id,
+                                    client_id,
+                                    profiles:client_id (
+                                        id, first_name, last_name, full_name, email, phone_number, role
+                                    )
+                                `)
+                                .eq('facility_id', trip.facility_id)
+                                .eq('client_id', trip.managed_client_id)
                                 .single();
                             
-                            if (clientProfile) {
-                                console.log(`Found profile for client_id ${trip.client_id}:`, clientProfile);
-                                trip.profiles = clientProfile;
-                            }
-                        } catch (clientError) {
-                            console.warn(`Could not fetch client by client_id for trip ${trip.id}:`, clientError.message);
-                        }
-                    }
-                    
-                    // Try email lookup if still no profile
-                    if (!trip.profiles && trip.client_email) {
-                        try {
-                            const { data: clientProfile } = await supabase
-                                .from('profiles')
-                                .select('id, first_name, last_name, full_name, email, phone_number, role')
-                                .eq('email', trip.client_email)
-                                .single();
-                            
-                            if (clientProfile) {
-                                console.log(`Found profile for email ${trip.client_email}:`, clientProfile);
-                                trip.profiles = clientProfile;
-                            }
-                        } catch (clientError) {
-                            console.warn(`Could not fetch client by email for trip ${trip.id}:`, clientError.message);
-                        }
-                    }
-                    
-                    // For facility trips, try multiple approaches to find client data
-                    if (!trip.profiles && trip.facility_id) {
-                        try {
-                            // Method 1: Try to find by direct client_id reference in facility_clients
-                            if (trip.client_id || trip.user_id) {
-                                const clientIdToUse = trip.client_id || trip.user_id;
-                                const { data: facilityClient } = await supabase
-                                    .from('facility_clients')
-                                    .select(`
-                                        id,
-                                        client_id,
-                                        profiles:client_id (
-                                            id, first_name, last_name, full_name, email, phone_number, role
-                                        )
-                                    `)
-                                    .eq('facility_id', trip.facility_id)
-                                    .eq('client_id', clientIdToUse)
-                                    .single();
-                                
-                                if (facilityClient?.profiles) {
-                                    console.log(`Found facility client by ID for trip ${trip.id}:`, facilityClient.profiles);
-                                    trip.profiles = facilityClient.profiles;
-                                }
-                            }
-                            
-                            // Method 2: If no direct ID match, try to find all facility clients and match by name/email
-                            if (!trip.profiles) {
-                                const { data: facilityClients } = await supabase
-                                    .from('facility_clients')
-                                    .select(`
-                                        id,
-                                        client_id,
-                                        profiles:client_id (
-                                            id, first_name, last_name, full_name, email, phone_number, role
-                                        )
-                                    `)
-                                    .eq('facility_id', trip.facility_id);
-                                
-                                if (facilityClients && facilityClients.length > 0) {
-                                    console.log(`Found ${facilityClients.length} facility clients for facility ${trip.facility_id}`);
-                                    
-                                    let matchingClient = null;
-                                    
-                                    // Try to match by email first (most reliable)
-                                    if (trip.client_email || trip.passenger_email) {
-                                        const emailToMatch = trip.client_email || trip.passenger_email;
-                                        matchingClient = facilityClients.find(fc => 
-                                            fc.profiles?.email === emailToMatch
-                                        );
-                                        console.log(`Email match attempt for ${emailToMatch}:`, matchingClient ? 'Found' : 'Not found');
-                                    }
-                                    
-                                    // Try to match by full name
-                                    if (!matchingClient && (trip.client_name || trip.passenger_name)) {
-                                        const nameToMatch = trip.client_name || trip.passenger_name;
-                                        matchingClient = facilityClients.find(fc => {
-                                            const profileFullName = fc.profiles?.full_name;
-                                            const constructedName = `${fc.profiles?.first_name || ''} ${fc.profiles?.last_name || ''}`.trim();
-                                            return profileFullName === nameToMatch || constructedName === nameToMatch;
-                                        });
-                                        console.log(`Name match attempt for "${nameToMatch}":`, matchingClient ? 'Found' : 'Not found');
-                                    }
-                                    
-                                    // Try to match by first + last name fields
-                                    if (!matchingClient && (trip.client_first_name || trip.passenger_first_name)) {
-                                        const firstNameToMatch = trip.client_first_name || trip.passenger_first_name;
-                                        const lastNameToMatch = trip.client_last_name || trip.passenger_last_name;
-                                        
-                                        matchingClient = facilityClients.find(fc => {
-                                            return fc.profiles?.first_name === firstNameToMatch && 
-                                                   (!lastNameToMatch || fc.profiles?.last_name === lastNameToMatch);
-                                        });
-                                        console.log(`First/Last name match attempt for "${firstNameToMatch} ${lastNameToMatch}":`, matchingClient ? 'Found' : 'Not found');
-                                    }
-                                    
-                                    if (matchingClient?.profiles) {
-                                        console.log(`Found matching facility client for trip ${trip.id}:`, matchingClient.profiles);
-                                        trip.profiles = matchingClient.profiles;
-                                    } else {
-                                        console.log(`No matching facility client found for trip ${trip.id}. Available clients:`, 
-                                            facilityClients.map(fc => ({
-                                                email: fc.profiles?.email,
-                                                name: fc.profiles?.full_name || `${fc.profiles?.first_name} ${fc.profiles?.last_name}`.trim()
-                                            }))
-                                        );
-                                    }
-                                }
+                            if (facilityClient?.profiles) {
+                                console.log(`Found facility client via managed_client_id for trip ${trip.id}:`, facilityClient.profiles);
+                                trip.profiles = facilityClient.profiles;
                             }
                         } catch (facilityClientError) {
-                            console.warn(`Could not fetch facility clients for trip ${trip.id}:`, facilityClientError.message);
+                            console.warn(`Could not fetch facility client for trip ${trip.id}:`, facilityClientError.message);
                         }
                     }
                     
@@ -267,17 +176,20 @@ export default async function AssignTripPage({ params }) {
                         }
                     }
                     
-                    // Get email from auth if still no email found
-                    if (!trip.profiles?.email && trip.user_id && supabaseAdmin) {
-                        try {
-                            const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(trip.user_id);
-                            if (authUser?.email) {
-                                if (!trip.profiles) trip.profiles = {};
-                                trip.profiles.email = authUser.email;
-                                console.log(`Found auth email for trip ${trip.id}:`, authUser.email);
+                    // Get email from auth if still no email found (try both managed_client_id and user_id)
+                    if (!trip.profiles?.email && supabaseAdmin) {
+                        const idToTry = trip.managed_client_id || trip.user_id;
+                        if (idToTry) {
+                            try {
+                                const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(idToTry);
+                                if (authUser?.email) {
+                                    if (!trip.profiles) trip.profiles = {};
+                                    trip.profiles.email = authUser.email;
+                                    console.log(`Found auth email for trip ${trip.id} using ${trip.managed_client_id ? 'managed_client_id' : 'user_id'}:`, authUser.email);
+                                }
+                            } catch (authError) {
+                                console.warn(`Could not fetch auth email for trip ${trip.id}`);
                             }
-                        } catch (authError) {
-                            console.warn(`Could not fetch auth email for trip ${trip.id}`);
                         }
                     }
                     
