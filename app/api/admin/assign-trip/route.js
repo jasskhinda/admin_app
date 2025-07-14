@@ -81,6 +81,14 @@ export async function POST(request) {
     }
     
     console.log(`Assigning trip ${tripId} to driver ${driverId}`);
+    console.log('Trip data:', { 
+      id: trip.id, 
+      status: trip.status, 
+      driver_id: trip.driver_id,
+      user_id: trip.user_id,
+      managed_client_id: trip.managed_client_id,
+      facility_id: trip.facility_id
+    });
     
     // Assign the trip to the driver
     const { data: updatedTrip, error: updateError } = await supabase
@@ -88,9 +96,7 @@ export async function POST(request) {
       .update({ 
         driver_id: driverId,
         status: 'confirmed', // Update status to confirmed when assigned
-        updated_at: new Date().toISOString(),
-        assigned_at: new Date().toISOString(),
-        assigned_by: user.id
+        updated_at: new Date().toISOString()
       })
       .eq('id', tripId)
       .select()
@@ -98,7 +104,12 @@ export async function POST(request) {
       
     if (updateError) {
       console.error('Error assigning trip:', updateError);
-      return NextResponse.json({ error: 'Error assigning trip' }, { status: 500 });
+      console.error('Update error details:', JSON.stringify(updateError, null, 2));
+      return NextResponse.json({ 
+        error: 'Error assigning trip',
+        details: updateError.message,
+        code: updateError.code 
+      }, { status: 500 });
     }
     
     // Optionally update driver status to indicate they're on a trip

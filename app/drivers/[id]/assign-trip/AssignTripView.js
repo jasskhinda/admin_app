@@ -73,8 +73,12 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
       
       const result = await response.json();
       
+      console.log('Assignment response:', { status: response.status, result });
+      
       if (!response.ok) {
-        setAssignError(result.error || 'Assignment failed');
+        const errorMessage = result.details ? `${result.error}: ${result.details}` : result.error || 'Assignment failed';
+        console.error('Assignment failed:', errorMessage);
+        setAssignError(errorMessage);
         setAssignModal(prev => ({ ...prev, loading: false }));
         return;
       }

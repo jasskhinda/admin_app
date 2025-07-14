@@ -46,21 +46,20 @@ export default async function AdminTripDetailsPage({ params }) {
                 tripError = fetchError;
             } else if (tripData) {
                 trip = tripData;
+                console.log('Trip data found:', {
+                    id: trip.id,
+                    user_id: trip.user_id,
+                    managed_client_id: trip.managed_client_id,
+                    facility_id: trip.facility_id,
+                    status: trip.status,
+                    client_name: trip.client_name,
+                    passenger_name: trip.passenger_name
+                });
                 
-                // Fetch client information
+                // Fetch client information - prioritize facility_managed_clients for facility trips
                 if (trip.managed_client_id) {
-                    try {
-                        const { data: clientProfile } = await supabase
-                            .from('profiles')
-                            .select('id, first_name, last_name, full_name, email, phone_number, role')
-                            .eq('id', trip.managed_client_id)
-                            .single();
-                        
-                        if (clientProfile) {
-                            trip.client = clientProfile;
-                        }
-                    } catch (clientError) {
-                        // Try facility_managed_clients table
+                    // For facility trips, try facility_managed_clients table first
+                    if (trip.facility_id) {
                         try {
                             const { data: facilityClient } = await supabase
                                 .from('facility_managed_clients')
@@ -69,6 +68,7 @@ export default async function AdminTripDetailsPage({ params }) {
                                 .single();
                             
                             if (facilityClient) {
+                                console.log(`Found facility managed client:`, facilityClient);
                                 trip.client = {
                                     id: facilityClient.id,
                                     first_name: facilityClient.first_name,
@@ -80,7 +80,25 @@ export default async function AdminTripDetailsPage({ params }) {
                                 };
                             }
                         } catch (facilityClientError) {
-                            console.warn('Could not fetch facility managed client');
+                            console.warn('Could not fetch facility managed client, trying profiles table');
+                        }
+                    }
+                    
+                    // If not found in facility_managed_clients, try profiles table
+                    if (!trip.client) {
+                        try {
+                            const { data: clientProfile } = await supabase
+                                .from('profiles')
+                                .select('id, first_name, last_name, full_name, email, phone_number, role')
+                                .eq('id', trip.managed_client_id)
+                                .single();
+                            
+                            if (clientProfile) {
+                                console.log(`Found client profile:`, clientProfile);
+                                trip.client = clientProfile;
+                            }
+                        } catch (clientError) {
+                            console.warn('Could not fetch client from profiles table');
                         }
                     }
                 } else if (trip.user_id) {
@@ -97,6 +115,21 @@ export default async function AdminTripDetailsPage({ params }) {
                     } catch (clientError) {
                         console.warn('Could not fetch client for user_id');
                     }
+                }
+                
+                // If no client found, create fallback from trip data
+                if (!trip.client) {
+                    console.log('No client profile found, creating fallback from trip data');
+                    trip.client = {
+                        id: trip.managed_client_id || trip.user_id || null,
+                        first_name: trip.client_name ? trip.client_name.split(' ')[0] : '',
+                        last_name: trip.client_name ? trip.client_name.split(' ').slice(1).join(' ') : '',
+                        full_name: trip.client_name || trip.passenger_name || 'Unknown Client',
+                        email: trip.client_email || 'No email available',
+                        phone_number: trip.client_phone || null,
+                        role: trip.facility_id ? 'facility_client' : 'client'
+                    };
+                    console.log('Created fallback client:', trip.client);
                 }
                 
                 // Fetch facility information if exists

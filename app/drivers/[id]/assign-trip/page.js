@@ -106,44 +106,8 @@ export default async function AssignTripPage({ params }) {
                         bill_to: trip.bill_to
                     });
 
-                    // Method 1: Try managed_client_id (for facility trips)
-                    if (trip.managed_client_id) {
-                        try {
-                            const { data: clientProfile } = await supabase
-                                .from('profiles')
-                                .select('id, first_name, last_name, full_name, email, phone_number, role')
-                                .eq('id', trip.managed_client_id)
-                                .single();
-                            
-                            if (clientProfile) {
-                                console.log(`Found profile for managed_client_id ${trip.managed_client_id}:`, clientProfile);
-                                trip.profiles = clientProfile;
-                            }
-                        } catch (clientError) {
-                            console.warn(`Could not fetch client for managed_client_id ${trip.managed_client_id}:`, clientError.message);
-                        }
-                    }
-
-                    // Method 2: Try user_id (for individual bookings)
-                    if (!trip.profiles && trip.user_id) {
-                        try {
-                            const { data: clientProfile } = await supabase
-                                .from('profiles')
-                                .select('id, first_name, last_name, full_name, email, phone_number, role')
-                                .eq('id', trip.user_id)
-                                .single();
-                            
-                            if (clientProfile) {
-                                console.log(`Found profile for user_id ${trip.user_id}:`, clientProfile);
-                                trip.profiles = clientProfile;
-                            }
-                        } catch (clientError) {
-                            console.warn(`Could not fetch client for trip ${trip.id}:`, clientError.message);
-                        }
-                    }
-                    
-                    // Method 3: For facility trips, fetch client directly from facility_managed_clients table
-                    if (!trip.profiles && trip.facility_id && trip.managed_client_id) {
+                    // Method 1: For facility trips, try facility_managed_clients table first
+                    if (trip.facility_id && trip.managed_client_id) {
                         try {
                             const { data: facilityClient } = await supabase
                                 .from('facility_managed_clients')
@@ -166,6 +130,42 @@ export default async function AssignTripPage({ params }) {
                             }
                         } catch (facilityClientError) {
                             console.warn(`Could not fetch facility managed client for trip ${trip.id}:`, facilityClientError.message);
+                        }
+                    }
+
+                    // Method 2: Try managed_client_id in profiles table (for non-facility trips)
+                    if (!trip.profiles && trip.managed_client_id) {
+                        try {
+                            const { data: clientProfile } = await supabase
+                                .from('profiles')
+                                .select('id, first_name, last_name, full_name, email, phone_number, role')
+                                .eq('id', trip.managed_client_id)
+                                .single();
+                            
+                            if (clientProfile) {
+                                console.log(`Found profile for managed_client_id ${trip.managed_client_id}:`, clientProfile);
+                                trip.profiles = clientProfile;
+                            }
+                        } catch (clientError) {
+                            console.warn(`Could not fetch client for managed_client_id ${trip.managed_client_id}:`, clientError.message);
+                        }
+                    }
+
+                    // Method 3: Try user_id (for individual bookings)
+                    if (!trip.profiles && trip.user_id) {
+                        try {
+                            const { data: clientProfile } = await supabase
+                                .from('profiles')
+                                .select('id, first_name, last_name, full_name, email, phone_number, role')
+                                .eq('id', trip.user_id)
+                                .single();
+                            
+                            if (clientProfile) {
+                                console.log(`Found profile for user_id ${trip.user_id}:`, clientProfile);
+                                trip.profiles = clientProfile;
+                            }
+                        } catch (clientError) {
+                            console.warn(`Could not fetch client for trip ${trip.id}:`, clientError.message);
                         }
                     }
                     
@@ -209,16 +209,18 @@ export default async function AssignTripPage({ params }) {
                         console.log(`Creating fallback profile for trip ${trip.id}`);
                         
                         // For facility trips, create a generic client name if we can't find the actual client
-                        let fallbackName = 'Unknown Client';
-                        let fallbackEmail = 'No email available';
+                        let fallbackName = trip.client_name || trip.passenger_name || 'Unknown Client';
+                        let fallbackEmail = trip.client_email || 'No email available';
                         
-                        if (trip.facility_id && trip.managed_client_id) {
-                            // For facility trips, show a more descriptive name
-                            fallbackName = `Facility Client (ID: ${trip.managed_client_id.substring(0, 8)}...)`;
-                            fallbackEmail = 'Contact facility for client details';
-                        } else if (trip.user_id) {
-                            // For individual bookings
-                            fallbackName = `Individual Client (ID: ${trip.user_id.substring(0, 8)}...)`;
+                        if (!fallbackName || fallbackName === 'Unknown Client') {
+                            if (trip.facility_id && trip.managed_client_id) {
+                                // For facility trips, show a more descriptive name
+                                fallbackName = `Facility Client (ID: ${trip.managed_client_id.substring(0, 8)}...)`;
+                                fallbackEmail = 'Contact facility for client details';
+                            } else if (trip.user_id) {
+                                // For individual bookings
+                                fallbackName = `Individual Client (ID: ${trip.user_id.substring(0, 8)}...)`;
+                            }
                         }
                         
                         const fallbackProfile = {
