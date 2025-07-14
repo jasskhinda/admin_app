@@ -90,14 +90,21 @@ export async function POST(request) {
       facility_id: trip.facility_id
     });
     
-    // Assign the trip to the driver
+    // Assign the trip to the driver - use valid status values only
+    const updateData = {
+      driver_id: driverId,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Only change status if it makes sense - upcoming trips can become in_progress when assigned
+    if (trip.status === 'upcoming') {
+      updateData.status = 'in_progress';
+    }
+    // Keep other statuses as-is (pending stays pending until approved)
+    
     const { data: updatedTrip, error: updateError } = await supabase
       .from('trips')
-      .update({ 
-        driver_id: driverId,
-        status: 'confirmed', // Update status to confirmed when assigned
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', tripId)
       .select()
       .single();
