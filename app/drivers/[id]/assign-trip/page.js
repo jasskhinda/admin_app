@@ -209,12 +209,20 @@ export default async function AssignTripPage({ params }) {
                     }
                     
                     // ALWAYS create a fallback profile for display purposes
+                    console.log(`🚨 CHECKING FALLBACK for trip ${trip.id}:`, {
+                        hasProfiles: !!trip.profiles,
+                        profilesFullName: trip.profiles?.full_name,
+                        needsFallback: !trip.profiles || !trip.profiles.full_name
+                    });
+                    
                     if (!trip.profiles || !trip.profiles.full_name) {
-                        console.log(`Creating fallback profile for trip ${trip.id}`);
+                        console.log(`✅ Creating fallback profile for trip ${trip.id}`);
                         
                         // For facility trips, create a generic client name if we can't find the actual client
                         let fallbackName = trip.client_name || trip.passenger_name || 'Unknown Client';
                         let fallbackEmail = trip.client_email || 'No email available';
+                        
+                        console.log(`🎯 BEFORE fallback checks - fallbackName: "${fallbackName}"`);
                         
                         // Special handling for trips we know the client info for
                         if (trip.id === '5475de82-493a-450b-8e79-1d739e0c3426') {
@@ -229,6 +237,8 @@ export default async function AssignTripPage({ params }) {
                             fallbackEmail = 'Contact facility for email';
                             console.log('🔧 FALLBACK: Using known managed client ID mapping');
                         }
+                        
+                        console.log(`🎯 AFTER fallback checks - fallbackName: "${fallbackName}"`);
                         
                         if (!fallbackName || fallbackName === 'Unknown Client') {
                             if (trip.facility_id && trip.managed_client_id) {
