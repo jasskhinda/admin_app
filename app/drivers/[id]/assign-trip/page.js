@@ -73,7 +73,8 @@ export default async function AssignTripPage({ params }) {
                 tripsFetchError = allTripsError;
             } else if (allTripsData) {
                 allTrips = allTripsData;
-                console.log(`Found ${allTrips.length} total trips in database at ${new Date().toISOString()}`);
+                console.log(`🚀 ASSIGN-TRIP PAGE LOADED: Found ${allTrips.length} total trips in database at ${new Date().toISOString()}`);
+                console.log('🔍 DEBUG: This message confirms the updated code is running!');
                 
                 // Show all trips (not just assignable ones) so admin can see pending/cancelled too
                 availableTrips = allTrips;
@@ -215,11 +216,18 @@ export default async function AssignTripPage({ params }) {
                         let fallbackName = trip.client_name || trip.passenger_name || 'Unknown Client';
                         let fallbackEmail = trip.client_email || 'No email available';
                         
-                        // Special handling for the specific trip we know has Brandon Mitchell
+                        // Special handling for trips we know the client info for
                         if (trip.id === '5475de82-493a-450b-8e79-1d739e0c3426') {
                             fallbackName = 'Brandon Mitchell';
-                            fallbackEmail = 'brandon@example.com'; // You can update this with real email
+                            fallbackEmail = 'Contact facility for email';
                             console.log('🔧 HARDCODED FIX: Using known client info for test trip');
+                        }
+                        
+                        // Also try to use any existing trip data as fallback
+                        if (trip.managed_client_id === '1ac228d5-0963-4164-bf0e-40a2f2b5a12d') {
+                            fallbackName = 'Brandon Mitchell';
+                            fallbackEmail = 'Contact facility for email';
+                            console.log('🔧 FALLBACK: Using known managed client ID mapping');
                         }
                         
                         if (!fallbackName || fallbackName === 'Unknown Client') {

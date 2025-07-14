@@ -7,6 +7,16 @@ import DebugInfo from './DebugInfo';
 
 export default function AssignTripView({ user, userProfile, driver, availableTrips, allTrips, allDrivers, tripsFetchError }) {
   const router = useRouter();
+  
+  // Debug logging to verify data
+  console.log('🎯 AssignTripView loaded with data:', {
+    availableTripsCount: availableTrips?.length,
+    sampleTrip: availableTrips?.[0] ? {
+      id: availableTrips[0].id,
+      profiles: availableTrips[0].profiles,
+      facility: availableTrips[0].facility
+    } : null
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
