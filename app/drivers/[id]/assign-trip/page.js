@@ -107,56 +107,55 @@ export default async function AssignTripPage({ params }) {
                         bill_to: trip.bill_to
                     });
 
-                    // Method 1: For facility trips, try facility_managed_clients table first
-                    if (trip.facility_id && trip.managed_client_id) {
-                        try {
-                            const { data: facilityClient } = await supabase
-                                .from('facility_managed_clients')
-                                .select('id, first_name, last_name, email, phone_number')
-                                .eq('id', trip.managed_client_id)
-                                .single();
-                            
-                            if (facilityClient) {
-                                console.log(`✅ SUCCESS: Found facility managed client for trip ${trip.id}:`, facilityClient);
-                                // Convert facility client data to profiles format
-                                trip.profiles = {
-                                    id: facilityClient.id,
-                                    first_name: facilityClient.first_name,
-                                    last_name: facilityClient.last_name,
-                                    full_name: `${facilityClient.first_name} ${facilityClient.last_name}`,
-                                    email: facilityClient.email,
-                                    phone_number: facilityClient.phone_number,
-                                    role: 'facility_client'
-                                };
-                                console.log(`✅ Set trip.profiles to:`, trip.profiles);
-                            } else {
-                                console.log(`❌ No facility client found for managed_client_id ${trip.managed_client_id}`);
+                    // Method 1: COPY EXACT LOGIC FROM WORKING ADMIN TRIP DETAILS PAGE
+                    if (trip.managed_client_id) {
+                        // For facility trips, try facility_managed_clients table first
+                        if (trip.facility_id) {
+                            try {
+                                const { data: facilityClient } = await supabase
+                                    .from('facility_managed_clients')
+                                    .select('id, first_name, last_name, email, phone_number')
+                                    .eq('id', trip.managed_client_id)
+                                    .single();
+                                
+                                if (facilityClient) {
+                                    console.log(`✅ SUCCESS: Found facility managed client for trip ${trip.id}:`, facilityClient);
+                                    // Convert facility client data to profiles format (same as admin page but using .profiles)
+                                    trip.profiles = {
+                                        id: facilityClient.id,
+                                        first_name: facilityClient.first_name,
+                                        last_name: facilityClient.last_name,
+                                        full_name: `${facilityClient.first_name} ${facilityClient.last_name}`,
+                                        email: facilityClient.email,
+                                        phone_number: facilityClient.phone_number,
+                                        role: 'facility_client'
+                                    };
+                                    console.log(`✅ Set trip.profiles to:`, trip.profiles);
+                                }
+                            } catch (facilityClientError) {
+                                console.warn('Could not fetch facility managed client, trying profiles table');
                             }
-                        } catch (facilityClientError) {
-                            console.warn(`Could not fetch facility managed client for trip ${trip.id}:`, facilityClientError.message);
                         }
-                    }
-
-                    // Method 2: Try managed_client_id in profiles table (for non-facility trips)
-                    if (!trip.profiles && trip.managed_client_id) {
-                        try {
-                            const { data: clientProfile } = await supabase
-                                .from('profiles')
-                                .select('id, first_name, last_name, full_name, email, phone_number, role')
-                                .eq('id', trip.managed_client_id)
-                                .single();
-                            
-                            if (clientProfile) {
-                                console.log(`Found profile for managed_client_id ${trip.managed_client_id}:`, clientProfile);
-                                trip.profiles = clientProfile;
+                        
+                        // If not found in facility_managed_clients, try profiles table
+                        if (!trip.profiles) {
+                            try {
+                                const { data: clientProfile } = await supabase
+                                    .from('profiles')
+                                    .select('id, first_name, last_name, full_name, email, phone_number, role')
+                                    .eq('id', trip.managed_client_id)
+                                    .single();
+                                
+                                if (clientProfile) {
+                                    console.log(`Found client profile:`, clientProfile);
+                                    trip.profiles = clientProfile;
+                                }
+                            } catch (clientError) {
+                                console.warn('Could not fetch client from profiles table');
                             }
-                        } catch (clientError) {
-                            console.warn(`Could not fetch client for managed_client_id ${trip.managed_client_id}:`, clientError.message);
                         }
-                    }
-
-                    // Method 3: Try user_id (for individual bookings)
-                    if (!trip.profiles && trip.user_id) {
+                    } else if (trip.user_id) {
+                        // Method 2: Try user_id (for individual bookings)
                         try {
                             const { data: clientProfile } = await supabase
                                 .from('profiles')
@@ -172,6 +171,8 @@ export default async function AssignTripPage({ params }) {
                             console.warn(`Could not fetch client for trip ${trip.id}:`, clientError.message);
                         }
                     }
+
+                    // Client lookup complete
                     
                     // If trip has facility_id, fetch facility information
                     if (trip.facility_id) {
