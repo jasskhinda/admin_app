@@ -45,7 +45,7 @@ export async function POST(request) {
     }
     
     // Check if trip status allows assignment
-    if (!['pending', 'approved', 'confirmed'].includes(trip.status)) {
+    if (!['pending', 'approved', 'confirmed', 'upcoming'].includes(trip.status)) {
       return NextResponse.json({ 
         error: 'Trip status does not allow assignment' 
       }, { status: 400 });

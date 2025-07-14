@@ -152,15 +152,15 @@ export default async function AdminTripDetailsPage({ params }) {
                                     </p>
                                 </div>
                                 <div className="flex space-x-3">
-                                    <button
-                                        onClick={() => window.history.back()}
+                                    <a
+                                        href="javascript:history.back()"
                                         className="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg shadow-sm transition-colors"
                                     >
                                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                         </svg>
                                         Back
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -401,12 +401,12 @@ export default async function AdminTripDetailsPage({ params }) {
                                             ) : (
                                                 <div>
                                                     <p className="text-sm text-gray-500 mb-4">No driver assigned to this trip</p>
-                                                    <button
-                                                        onClick={() => window.location.href = '/drivers'}
+                                                    <a
+                                                        href="/drivers"
                                                         className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                                                     >
                                                         Assign Driver
-                                                    </button>
+                                                    </a>
                                                 </div>
                                             )}
                                         </div>

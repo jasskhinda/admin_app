@@ -109,6 +109,7 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
     const statusConfig = {
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
       approved: { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
+      upcoming: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Upcoming' },
       confirmed: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Confirmed' },
       scheduled: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Scheduled' },
       created: { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Created' },
@@ -213,8 +214,10 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="all">All Assignable</option>
+                <option value="all">All Trips</option>
                 <option value="upcoming">Upcoming</option>
+                <option value="pending">Pending</option>
+                <option value="cancelled">Cancelled</option>
               </select>
             </div>
             
@@ -269,8 +272,8 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                 </svg>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Available Trips</p>
-                <p className="text-2xl font-semibold text-gray-900">{availableTrips.length}</p>
+                <p className="text-sm font-medium text-gray-500">Assignable Trips</p>
+                <p className="text-2xl font-semibold text-gray-900">{availableTrips.filter(trip => (trip.status === 'approved' || trip.status === 'upcoming') && !trip.driver_id).length}</p>
               </div>
             </div>
           </div>
@@ -321,8 +324,8 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
         {/* Trips Table */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-lg font-medium text-gray-900">Upcoming Trips Available for Assignment</h3>
-            <p className="text-sm text-gray-600 mt-1">Select a trip to assign to {driver.full_name || `${driver.first_name} ${driver.last_name}`}</p>
+            <h3 className="text-lg font-medium text-gray-900">Trip Assignment for {driver.full_name || `${driver.first_name} ${driver.last_name}`}</h3>
+            <p className="text-sm text-gray-600 mt-1">View trips and assign approved/upcoming trips to this driver</p>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -383,16 +386,16 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                             <svg className="w-16 h-16 text-blue-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Upcoming Trips Available</h3>
-                            <p className="text-sm text-gray-500 mb-4">There are currently no upcoming trips available for driver assignment.</p>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Trips Available</h3>
+                            <p className="text-sm text-gray-500 mb-4">There are currently no trips available for this driver.</p>
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 w-full">
                               <p className="text-sm text-blue-700">
                                 <strong>Trip Status Summary:</strong><br/>
                                 • Total trips: {allTrips.length}<br/>
                                 • Upcoming trips: {allTrips.filter(trip => trip.status === 'upcoming').length}<br/>
-                                • Already assigned: {allTrips.filter(trip => trip.driver_id).length}<br/>
-                                • Pending approval: {allTrips.filter(trip => trip.status === 'pending').length}<br/>
-                                • Completed: {allTrips.filter(trip => trip.status === 'completed').length}
+                                • Pending trips: {allTrips.filter(trip => trip.status === 'pending').length}<br/>
+                                • Cancelled trips: {allTrips.filter(trip => trip.status === 'cancelled').length}<br/>
+                                • Already assigned: {allTrips.filter(trip => trip.driver_id).length}
                               </p>
                             </div>
                           </>
@@ -512,7 +515,7 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <div className="flex justify-center space-x-2">
-                          {/* Always show View Trip button for upcoming trips */}
+                          {/* Always show View Trip button */}
                           <Link
                             href={`/admin-trips/${trip.id}`}
                             className="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -525,8 +528,8 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                             View Trip
                           </Link>
                           
-                          {/* Show Assign Trip button for trips without driver */}
-                          {!trip.driver_id ? (
+                          {/* Show Assign Trip button ONLY for approved trips without driver */}
+                          {(trip.status === 'approved' || trip.status === 'upcoming') && !trip.driver_id ? (
                             <button
                               onClick={() => handleAssignTrip(trip)}
                               className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -537,12 +540,19 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                               </svg>
                               Assign Trip
                             </button>
-                          ) : (
+                          ) : trip.driver_id ? (
                             <span className="inline-flex items-center px-3 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg">
                               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               Assigned
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-3 py-2 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-lg">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              {trip.status === 'pending' ? 'Awaiting Approval' : trip.status === 'cancelled' ? 'Cancelled' : 'Not Assignable'}
                             </span>
                           )}
                         </div>
