@@ -163,7 +163,7 @@ export default async function AssignTripPage({ params }) {
                         try {
                             const { data: facilityData } = await supabase
                                 .from('facilities')
-                                .select('id, name, address, phone_number')
+                                .select('id, name, address, phone_number, contact_email')
                                 .eq('id', trip.facility_id)
                                 .single();
                             
