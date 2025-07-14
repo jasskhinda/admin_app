@@ -133,25 +133,27 @@ export default async function AssignTripPage({ params }) {
                         }
                     }
                     
-                    // Method 3: For facility trips, try to find client in facility_managed_clients table
+                    // Method 3: For facility trips, fetch client directly from facility_managed_clients table
                     if (!trip.profiles && trip.facility_id && trip.managed_client_id) {
                         try {
                             const { data: facilityClient } = await supabase
                                 .from('facility_managed_clients')
-                                .select(`
-                                    id,
-                                    client_id,
-                                    profiles:client_id (
-                                        id, first_name, last_name, full_name, email, phone_number, role
-                                    )
-                                `)
-                                .eq('facility_id', trip.facility_id)
-                                .eq('client_id', trip.managed_client_id)
+                                .select('id, first_name, last_name, email, phone_number')
+                                .eq('id', trip.managed_client_id)
                                 .single();
                             
-                            if (facilityClient?.profiles) {
-                                console.log(`Found facility managed client via managed_client_id for trip ${trip.id}:`, facilityClient.profiles);
-                                trip.profiles = facilityClient.profiles;
+                            if (facilityClient) {
+                                console.log(`Found facility managed client for trip ${trip.id}:`, facilityClient);
+                                // Convert facility client data to profiles format
+                                trip.profiles = {
+                                    id: facilityClient.id,
+                                    first_name: facilityClient.first_name,
+                                    last_name: facilityClient.last_name,
+                                    full_name: `${facilityClient.first_name} ${facilityClient.last_name}`,
+                                    email: facilityClient.email,
+                                    phone_number: facilityClient.phone_number,
+                                    role: 'facility_client'
+                                };
                             }
                         } catch (facilityClientError) {
                             console.warn(`Could not fetch facility managed client for trip ${trip.id}:`, facilityClientError.message);
