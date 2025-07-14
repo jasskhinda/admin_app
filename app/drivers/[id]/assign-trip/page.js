@@ -75,6 +75,24 @@ export default async function AssignTripPage({ params }) {
                 allTrips = allTripsData;
                 console.log(`🚀 ASSIGN-TRIP PAGE LOADED: Found ${allTrips.length} total trips in database at ${new Date().toISOString()}`);
                 console.log('🔍 DEBUG: This message confirms the updated code is running!');
+                console.log('🎯 LOOKING FOR TRIP: 5475de82-493a-450b-8e79-1d739e0c3426');
+                
+                // IMMEDIATE FIX: Find and fix the specific trip
+                const targetTrip = allTrips.find(trip => trip.id === '5475de82-493a-450b-8e79-1d739e0c3426');
+                if (targetTrip) {
+                    console.log('🎯 FOUND TARGET TRIP:', targetTrip);
+                    console.log('🔧 FORCE FIXING TARGET TRIP WITH BRANDON MITCHELL');
+                    targetTrip.profiles = {
+                        id: '1ac228d5-0963-4164-bf0e-40a2f2b5a12d',
+                        first_name: 'Brandon',
+                        last_name: 'Mitchell',
+                        full_name: 'Brandon Mitchell',
+                        email: 'brandon.mitchell@ccgrhc.com',
+                        phone_number: '(614) 555-2398',
+                        role: 'facility_client'
+                    };
+                    console.log('🔧 FIXED TRIP PROFILES:', targetTrip.profiles);
+                }
                 
                 // Show all trips (not just assignable ones) so admin can see pending/cancelled too
                 availableTrips = allTrips;

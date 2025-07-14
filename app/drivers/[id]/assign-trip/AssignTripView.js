@@ -24,7 +24,7 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
   const [assignModal, setAssignModal] = useState({ isOpen: false, trip: null, loading: false });
   const [assignError, setAssignError] = useState('');
 
-  // Filter and sort trips
+  // Filter and sort trips - separate recent and completed
   const filteredTrips = availableTrips.filter(trip => {
     const matchesSearch = 
       searchTerm === '' || 
@@ -40,6 +40,15 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
     
     return matchesSearch && matchesStatus;
   });
+
+  // Separate trips into recent and completed
+  const recentTrips = filteredTrips.filter(trip => 
+    ['pending', 'upcoming', 'in_progress', 'approved'].includes(trip.status)
+  );
+  
+  const completedTrips = filteredTrips.filter(trip => 
+    ['completed', 'cancelled'].includes(trip.status)
+  );
 
   const sortedTrips = [...filteredTrips].sort((a, b) => {
     if (sortBy === 'created_at') {
