@@ -202,16 +202,11 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
+                <option value="all">All Assignable</option>
                 <option value="approved">Approved</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="completed">Completed</option>
-                <option value="in_progress">In Progress</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="created">Created</option>
-                <option value="draft">Draft</option>
+                <option value="approved_pending_payment">Approved (Pending Payment)</option>
+                <option value="paid_in_progress">Paid (In Progress)</option>
+                <option value="upcoming">Upcoming</option>
               </select>
             </div>
             
@@ -376,16 +371,16 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                             <svg className="w-16 h-16 text-blue-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Approved Trips Available</h3>
-                            <p className="text-sm text-gray-500 mb-4">There are currently no approved trips that can be assigned to this driver.</p>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Trips Available for Assignment</h3>
+                            <p className="text-sm text-gray-500 mb-4">There are currently no approved/upcoming trips without a driver assigned.</p>
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 w-full">
                               <p className="text-sm text-blue-700">
                                 <strong>Trip Status Summary:</strong><br/>
                                 • Total trips: {allTrips.length}<br/>
-                                • Approved (assignable): {allTrips.filter(trip => trip.status === 'approved' && !trip.driver_id).length}<br/>
+                                • Approved/Upcoming (no driver): {allTrips.filter(trip => ['approved', 'approved_pending_payment', 'paid_in_progress', 'upcoming'].includes(trip.status) && !trip.driver_id).length}<br/>
                                 • Already assigned: {allTrips.filter(trip => trip.driver_id).length}<br/>
-                                • Completed: {allTrips.filter(trip => trip.status === 'completed').length}<br/>
-                                • Other statuses: {allTrips.filter(trip => !['approved', 'completed'].includes(trip.status) && !trip.driver_id).length}
+                                • Pending approval: {allTrips.filter(trip => trip.status === 'pending').length}<br/>
+                                • Completed: {allTrips.filter(trip => trip.status === 'completed').length}
                               </p>
                             </div>
                           </>

@@ -75,9 +75,13 @@ export default async function AssignTripPage({ params }) {
                 allTrips = allTripsData;
                 console.log(`Found ${allTrips.length} total trips in database`);
                 
-                // Show all trips, not just unassigned ones
-                availableTrips = allTrips;
-                console.log(`Showing ${availableTrips.length} total trips`);
+                // Filter for trips that need driver assignment
+                // Show: approved, upcoming, paid_in_progress trips without a driver
+                const assignableStatuses = ['approved_pending_payment', 'paid_in_progress', 'upcoming', 'approved'];
+                availableTrips = allTrips.filter(trip => 
+                    assignableStatuses.includes(trip.status) && !trip.driver_id
+                );
+                console.log(`Showing ${availableTrips.length} assignable trips (approved/upcoming without driver)`);
                 
                 // Log trip statuses for debugging
                 const statusCounts = allTrips.reduce((acc, trip) => {
@@ -85,6 +89,15 @@ export default async function AssignTripPage({ params }) {
                     return acc;
                 }, {});
                 console.log('Trip status breakdown:', statusCounts);
+                
+                // Log which trips were filtered out
+                const filteredOutTrips = allTrips.filter(trip => 
+                    !assignableStatuses.includes(trip.status) || trip.driver_id
+                );
+                console.log(`Filtered out ${filteredOutTrips.length} trips:`);
+                filteredOutTrips.forEach(trip => {
+                    console.log(`- Trip ${trip.id}: status=${trip.status}, driver_id=${trip.driver_id}`);
+                });
 
                 // Enhanced client information fetching
                 for (let trip of availableTrips) {
