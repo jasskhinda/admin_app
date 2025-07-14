@@ -164,19 +164,30 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
 
         {/* Driver Info Card */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0 h-12 w-12">
-              <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 h-12 w-12">
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Unnamed Driver'}
+                </h3>
+                <p className="text-sm text-gray-500">{driver.email}</p>
+                <p className="text-xs text-blue-600 font-medium mt-1">🚗 Available for Assignment</p>
               </div>
             </div>
-            <div className="ml-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                {driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Unnamed Driver'}
-              </h3>
-              <p className="text-sm text-gray-500">{driver.email}</p>
+            <div className="text-right">
+              <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 8 8">
+                  <circle cx={4} cy={4} r={3} />
+                </svg>
+                Active
+              </div>
             </div>
           </div>
         </div>
@@ -203,9 +214,6 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="all">All Assignable</option>
-                <option value="approved">Approved</option>
-                <option value="approved_pending_payment">Approved (Pending Payment)</option>
-                <option value="paid_in_progress">Paid (In Progress)</option>
                 <option value="upcoming">Upcoming</option>
               </select>
             </div>
@@ -275,8 +283,8 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                 </svg>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Assignable Trips</p>
-                <p className="text-2xl font-semibold text-gray-900">{availableTrips.filter(trip => trip.status === 'approved' && !trip.driver_id).length}</p>
+                <p className="text-sm font-medium text-gray-500">Upcoming Trips</p>
+                <p className="text-2xl font-semibold text-gray-900">{availableTrips.filter(trip => trip.status === 'upcoming').length}</p>
               </div>
             </div>
           </div>
@@ -312,6 +320,10 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
 
         {/* Trips Table */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 className="text-lg font-medium text-gray-900">Upcoming Trips Available for Assignment</h3>
+            <p className="text-sm text-gray-600 mt-1">Select a trip to assign to {driver.full_name || `${driver.first_name} ${driver.last_name}`}</p>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -366,18 +378,18 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                               </p>
                             </div>
                           </>
-                        ) : availableTrips.filter(trip => trip.status === 'approved' && !trip.driver_id).length === 0 ? (
+                        ) : availableTrips.length === 0 ? (
                           <>
                             <svg className="w-16 h-16 text-blue-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Trips Available for Assignment</h3>
-                            <p className="text-sm text-gray-500 mb-4">There are currently no approved/upcoming trips without a driver assigned.</p>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Upcoming Trips Available</h3>
+                            <p className="text-sm text-gray-500 mb-4">There are currently no upcoming trips available for driver assignment.</p>
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 w-full">
                               <p className="text-sm text-blue-700">
                                 <strong>Trip Status Summary:</strong><br/>
                                 • Total trips: {allTrips.length}<br/>
-                                • Approved/Upcoming (no driver): {allTrips.filter(trip => ['approved', 'approved_pending_payment', 'paid_in_progress', 'upcoming'].includes(trip.status) && !trip.driver_id).length}<br/>
+                                • Upcoming trips: {allTrips.filter(trip => trip.status === 'upcoming').length}<br/>
                                 • Already assigned: {allTrips.filter(trip => trip.driver_id).length}<br/>
                                 • Pending approval: {allTrips.filter(trip => trip.status === 'pending').length}<br/>
                                 • Completed: {allTrips.filter(trip => trip.status === 'completed').length}
@@ -500,7 +512,21 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <div className="flex justify-center space-x-2">
-                          {trip.status === 'approved' && !trip.driver_id ? (
+                          {/* Always show View Trip button for upcoming trips */}
+                          <Link
+                            href={`/admin-trips/${trip.id}`}
+                            className="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+                            title="View trip details"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View Trip
+                          </Link>
+                          
+                          {/* Show Assign Trip button for trips without driver */}
+                          {!trip.driver_id ? (
                             <button
                               onClick={() => handleAssignTrip(trip)}
                               className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -512,19 +538,6 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                               Assign Trip
                             </button>
                           ) : (
-                            <Link
-                              href={`/trips/${trip.id}`}
-                              className="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
-                              title="View trip details"
-                            >
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              View Trip
-                            </Link>
-                          )}
-                          {trip.driver_id && (
                             <span className="inline-flex items-center px-3 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg">
                               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
