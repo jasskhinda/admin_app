@@ -77,46 +77,59 @@ export default function AdminTripsView({ trips }) {
   });
   
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">All Trips</h1>
-        
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Search by client, address, or trip ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84CED3]"
-          />
-          
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84CED3]"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="upcoming">Upcoming</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          
-          <Link
-            href="/trips/new"
-            className="px-6 py-2 bg-[#84CED3] text-white rounded-lg hover:bg-[#70B8BD] transition-colors"
-          >
-            New Trip
-          </Link>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Trip Management</h1>
+              <p className="mt-2 text-sm text-gray-600">
+                Manage all trips across the system
+              </p>
+            </div>
+            <Link
+              href="/trips/new"
+              className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              New Trip
+            </Link>
+          </div>
         </div>
         
-        {/* Results count */}
-        <p className="text-gray-600">
-          Showing {filteredTrips.length} of {trips.length} trips
-        </p>
-      </div>
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <input
+              type="text"
+              placeholder="Search by client, address, or trip ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          
+          {/* Results count */}
+          <p className="text-gray-600">
+            Showing {filteredTrips.length} of {trips.length} trips
+          </p>
+        </div>
       
       {/* Trips Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -197,6 +210,7 @@ export default function AdminTripsView({ trips }) {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

@@ -36,13 +36,6 @@ export default async function TripsPage() {
         email,
         phone_number
       ),
-      managed_client:managed_client_id!facility_managed_clients (
-        id,
-        first_name,
-        last_name,
-        email,
-        phone_number
-      ),
       facility:facility_id (
         id,
         name,
@@ -56,5 +49,29 @@ export default async function TripsPage() {
     console.error('Error fetching trips:', tripsError);
   }
   
-  return <AdminTripsView trips={trips || []} />;
+  // Fetch facility client information for trips that have managed_client_id
+  const tripsWithClients = trips || [];
+  if (tripsWithClients.length > 0) {
+    const { supabaseAdmin } = await import('@/lib/admin-supabase');
+    
+    for (let trip of tripsWithClients) {
+      if (trip.managed_client_id && !trip.managed_client) {
+        try {
+          const { data: facilityClient } = await supabase
+            .from('facility_managed_clients')
+            .select('id, first_name, last_name, email, phone_number')
+            .eq('id', trip.managed_client_id)
+            .single();
+          
+          if (facilityClient) {
+            trip.managed_client = facilityClient;
+          }
+        } catch (error) {
+          console.warn(`Could not fetch facility client for trip ${trip.id}:`, error);
+        }
+      }
+    }
+  }
+  
+  return <AdminTripsView trips={tripsWithClients} />;
 }

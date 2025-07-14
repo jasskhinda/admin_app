@@ -39,8 +39,13 @@ export default function Header() {
     <header className="sticky top-0 z-10 bg-brand-background border-b border-brand-border">
       <div className="w-full px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link href="/dashboard" className="text-xl font-bold text-brand-accent">
-            Compassionate Care Transportation
+          <Link href="/dashboard" className="flex items-center">
+            <img 
+              src="/cctlogo.png" 
+              alt="Compassionate Care Transportation" 
+              style={{ height: '60px', width: 'auto' }}
+              className="object-contain"
+            />
           </Link>
         </div>
         
