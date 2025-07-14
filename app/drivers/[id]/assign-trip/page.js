@@ -125,8 +125,36 @@ export default async function AssignTripPage({ params }) {
                         bill_to: trip.bill_to
                     });
 
-                    // Method 1: COPY EXACT LOGIC FROM WORKING ADMIN TRIP DETAILS PAGE
-                    if (trip.managed_client_id) {
+                    // FIXED CLIENT LOOKUP LOGIC
+                    // Priority 1: Try user_id first since most trips have this (based on actual data)
+                    if (trip.user_id) {
+                        try {
+                            const { data: clientProfile } = await supabase
+                                .from('profiles')
+                                .select('id, first_name, last_name, full_name, email, phone_number, role')
+                                .eq('id', trip.user_id)
+                                .single();
+                            
+                            if (clientProfile) {
+                                console.log(`✅ SUCCESS: Found profile for user_id ${trip.user_id}:`, clientProfile);
+                                trip.profiles = {
+                                    id: clientProfile.id,
+                                    first_name: clientProfile.first_name,
+                                    last_name: clientProfile.last_name,
+                                    full_name: clientProfile.full_name || `${clientProfile.first_name || ''} ${clientProfile.last_name || ''}`.trim(),
+                                    email: clientProfile.email,
+                                    phone_number: clientProfile.phone_number,
+                                    role: clientProfile.role
+                                };
+                                console.log(`✅ Set trip.profiles to:`, trip.profiles);
+                            }
+                        } catch (clientError) {
+                            console.warn(`Could not fetch client for user_id ${trip.user_id}:`, clientError.message);
+                        }
+                    }
+                    
+                    // Priority 2: If user_id didn't work and we have managed_client_id, try that
+                    if (!trip.profiles && trip.managed_client_id) {
                         // For facility trips, try facility_managed_clients table first
                         if (trip.facility_id) {
                             try {
@@ -138,7 +166,6 @@ export default async function AssignTripPage({ params }) {
                                 
                                 if (facilityClient) {
                                     console.log(`✅ SUCCESS: Found facility managed client for trip ${trip.id}:`, facilityClient);
-                                    // Convert facility client data to profiles format (same as admin page but using .profiles)
                                     trip.profiles = {
                                         id: facilityClient.id,
                                         first_name: facilityClient.first_name,
@@ -155,7 +182,7 @@ export default async function AssignTripPage({ params }) {
                             }
                         }
                         
-                        // If not found in facility_managed_clients, try profiles table
+                        // If not found in facility_managed_clients, try profiles table with managed_client_id
                         if (!trip.profiles) {
                             try {
                                 const { data: clientProfile } = await supabase
@@ -171,22 +198,6 @@ export default async function AssignTripPage({ params }) {
                             } catch (clientError) {
                                 console.warn('Could not fetch client from profiles table');
                             }
-                        }
-                    } else if (trip.user_id) {
-                        // Method 2: Try user_id (for individual bookings)
-                        try {
-                            const { data: clientProfile } = await supabase
-                                .from('profiles')
-                                .select('id, first_name, last_name, full_name, email, phone_number, role')
-                                .eq('id', trip.user_id)
-                                .single();
-                            
-                            if (clientProfile) {
-                                console.log(`Found profile for user_id ${trip.user_id}:`, clientProfile);
-                                trip.profiles = clientProfile;
-                            }
-                        } catch (clientError) {
-                            console.warn(`Could not fetch client for trip ${trip.id}:`, clientError.message);
                         }
                     }
 
@@ -210,16 +221,15 @@ export default async function AssignTripPage({ params }) {
                         }
                     }
                     
-                    // Get email from auth if still no email found (try both managed_client_id and user_id)
-                    if (!trip.profiles?.email && supabaseAdmin) {
-                        const idToTry = trip.managed_client_id || trip.user_id;
+                    // Get email from auth if still no email found in profile
+                    if (trip.profiles && !trip.profiles.email && supabaseAdmin) {
+                        const idToTry = trip.user_id || trip.managed_client_id;
                         if (idToTry) {
                             try {
                                 const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(idToTry);
                                 if (authUser?.email) {
-                                    if (!trip.profiles) trip.profiles = {};
                                     trip.profiles.email = authUser.email;
-                                    console.log(`Found auth email for trip ${trip.id} using ${trip.managed_client_id ? 'managed_client_id' : 'user_id'}:`, authUser.email);
+                                    console.log(`✅ Found auth email for trip ${trip.id} user ${trip.profiles.full_name}:`, authUser.email);
                                 }
                             } catch (authError) {
                                 console.warn(`Could not fetch auth email for trip ${trip.id}`);
