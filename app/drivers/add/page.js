@@ -126,10 +126,40 @@ export default function AddDriver() {
   };
 
   // Show loading if not authenticated yet
-  if (authLoading || !user || !userProfile) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Show loading if profile is still loading
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading user profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if not admin
+  if (userProfile.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-red-600">Access Denied</h2>
+          <p className="text-gray-600 mt-2">You need admin privileges to access this page.</p>
+          <button
+            onClick={() => router.push('/drivers')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Go Back
+          </button>
+        </div>
       </div>
     );
   }
