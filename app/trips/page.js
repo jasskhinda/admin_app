@@ -52,31 +52,40 @@ export default async function TripsPage() {
     // Batch fetch all facilities
     const facilityMap = {};
     if (facilityIds.length > 0) {
+      console.log(`🏥 FETCHING FACILITIES: Found ${facilityIds.length} unique facility IDs:`, facilityIds);
+      
       const { data: facilities, error: facilitiesError } = await supabase
         .from('facilities')
         .select('id, name, contact_email, contact_phone')
         .in('id', facilityIds);
       
       if (facilitiesError) {
-        console.error('Error fetching facilities:', facilitiesError);
+        console.error('❌ Error fetching facilities:', facilitiesError);
         // Try with admin client if available
         if (supabaseAdmin) {
-          const { data: adminFacilities } = await supabaseAdmin
+          console.log('🔑 Trying with admin client...');
+          const { data: adminFacilities, error: adminError } = await supabaseAdmin
             .from('facilities')
             .select('id, name, contact_email, contact_phone')
             .in('id', facilityIds);
           
-          if (adminFacilities) {
+          if (adminError) {
+            console.error('❌ Admin client also failed:', adminError);
+          } else if (adminFacilities) {
+            console.log(`✅ Admin client success: Found ${adminFacilities.length} facilities`);
             adminFacilities.forEach(facility => {
               facilityMap[facility.id] = facility;
             });
           }
         }
       } else if (facilities) {
+        console.log(`✅ SUCCESS: Found ${facilities.length} facilities:`, facilities);
         facilities.forEach(facility => {
           facilityMap[facility.id] = facility;
         });
       }
+      
+      console.log('📋 Final facility map:', facilityMap);
     }
     
     for (let trip of tripsWithClients) {
