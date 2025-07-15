@@ -48,7 +48,14 @@ export default async function TripsPage() {
   // Enhanced client information fetching - same logic as assign-trip page
   const tripsWithClients = trips || [];
   if (tripsWithClients.length > 0) {
-    const { supabaseAdmin } = await import('@/lib/admin-supabase');
+    let supabaseAdmin = null;
+    try {
+      const adminModule = await import('@/lib/admin-supabase');
+      supabaseAdmin = adminModule.supabaseAdmin;
+      console.log(`🚀 ADMIN CLIENT: ${supabaseAdmin ? 'Available' : 'Not available'}`);
+    } catch (adminError) {
+      console.warn('Could not load admin client:', adminError);
+    }
     
     console.log(`🚀 TRIPS PAGE: Processing ${tripsWithClients.length} trips for client data`);
     
@@ -129,21 +136,46 @@ export default async function TripsPage() {
       // Fetch facility information if exists
       if (trip.facility_id) {
         try {
-          const { data: facilityData } = await supabase
-            .from('facilities')
-            .select('id, name, contact_email, contact_phone')
-            .eq('id', trip.facility_id)
-            .single();
+          console.log(`🔍 FETCHING FACILITY: trip ${trip.id} has facility_id ${trip.facility_id}`);
           
-          if (facilityData) {
-            trip.facility = facilityData;
-            console.log(`✅ Found facility for trip ${trip.id}:`, facilityData);
+          // Try with admin client first since there might be RLS policies
+          if (supabaseAdmin) {
+            const { data: facilityData, error: facilityError } = await supabaseAdmin
+              .from('facilities')
+              .select('id, name, contact_email, contact_phone')
+              .eq('id', trip.facility_id)
+              .single();
+            
+            if (facilityError) {
+              console.error(`❌ ADMIN FACILITY ERROR for trip ${trip.id}:`, facilityError);
+            } else if (facilityData) {
+              trip.facility = facilityData;
+              console.log(`✅ SUCCESS: Found facility via admin client for trip ${trip.id}:`, facilityData);
+            } else {
+              console.log(`❌ NO DATA: No facility data found via admin client for trip ${trip.id}`);
+            }
           } else {
-            console.log(`❌ No facility data found for trip ${trip.id} with facility_id ${trip.facility_id}`);
+            // Fallback to regular client
+            const { data: facilityData, error: facilityError } = await supabase
+              .from('facilities')
+              .select('id, name, contact_email, contact_phone')
+              .eq('id', trip.facility_id)
+              .single();
+            
+            if (facilityError) {
+              console.error(`❌ FACILITY ERROR for trip ${trip.id}:`, facilityError);
+            } else if (facilityData) {
+              trip.facility = facilityData;
+              console.log(`✅ SUCCESS: Found facility for trip ${trip.id}:`, facilityData);
+            } else {
+              console.log(`❌ NO DATA: No facility data found for trip ${trip.id} with facility_id ${trip.facility_id}`);
+            }
           }
         } catch (facilityError) {
-          console.warn(`Could not fetch facility for trip ${trip.id}`);
+          console.error(`❌ EXCEPTION: Could not fetch facility for trip ${trip.id}:`, facilityError);
         }
+      } else {
+        console.log(`ℹ️ Trip ${trip.id} has no facility_id`);
       }
       
       // Get email from auth if still no email found in profile
@@ -167,6 +199,19 @@ export default async function TripsPage() {
           }
         }
       }
+    }
+  }
+  
+  // Final debug log
+  console.log(`🚀 FINAL TRIPS DATA: Sending ${tripsWithClients.length} trips to AdminTripsView`);
+  if (tripsWithClients.length > 0) {
+    const sampleTrip = tripsWithClients.find(t => t.facility_id);
+    if (sampleTrip) {
+      console.log('Sample trip with facility_id:', {
+        id: sampleTrip.id,
+        facility_id: sampleTrip.facility_id,
+        facility: sampleTrip.facility
+      });
     }
   }
   
