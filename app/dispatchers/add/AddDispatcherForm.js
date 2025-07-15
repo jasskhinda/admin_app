@@ -10,6 +10,8 @@ export default function AddDispatcherForm({ user, userProfile }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,8 +23,14 @@ export default function AddDispatcherForm({ user, userProfile }) {
     setLoading(true);
 
     try {
-      // Generate a random password for the dispatcher's account
-      const password = Math.random().toString(36).slice(-10) + Math.random().toString(10).slice(-2);
+      // Validate password
+      if (!password || password.length < 8) {
+        throw new Error('Password must be at least 8 characters long');
+      }
+      
+      if (password !== confirmPassword) {
+        throw new Error('Passwords do not match');
+      }
       
       // Prepare dispatcher profile data
       const userProfile = {
@@ -68,6 +76,8 @@ export default function AddDispatcherForm({ user, userProfile }) {
       setFirstName('');
       setLastName('');
       setPhoneNumber('');
+      setPassword('');
+      setConfirmPassword('');
       
       // Redirect back to dispatchers page after a short delay
       setTimeout(() => {
@@ -163,6 +173,46 @@ export default function AddDispatcherForm({ user, userProfile }) {
                   required
                   className="w-full p-2 border border-gray-300 rounded-md bg-white"
                 />
+              </div>
+            </div>
+
+            {/* Account Information */}
+            <div className="bg-gray-50 p-4 rounded-md">
+              <h3 className="text-md font-medium mb-4">Account Information</h3>
+              
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength="8"
+                    placeholder="Minimum 8 characters"
+                    className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">Confirm Password</label>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength="8"
+                    placeholder="Re-enter password"
+                    className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-2 text-sm text-gray-600">
+                <p>• Password must be at least 8 characters long</p>
+                <p>• This will be used for the dispatcher to login to the dispatcher app</p>
               </div>
             </div>
 

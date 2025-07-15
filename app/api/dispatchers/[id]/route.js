@@ -24,11 +24,16 @@ export async function PUT(request, { params }) {
     }
     
     // Get request body
-    const { first_name, last_name, email, phone_number } = await request.json();
+    const { first_name, last_name, email, phone_number, password } = await request.json();
     
     // Validate required fields
     if (!first_name || !last_name || !email) {
       return NextResponse.json({ error: 'First name, last name, and email are required' }, { status: 400 });
+    }
+    
+    // Validate password if provided
+    if (password && password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters long' }, { status: 400 });
     }
     
     // Check if dispatcher exists
@@ -63,16 +68,26 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Failed to update dispatcher' }, { status: 500 });
     }
     
-    // If email changed, update Supabase Auth user
-    if (email !== existingDispatcher.email) {
+    // Update Supabase Auth user if email or password changed
+    if (email !== existingDispatcher.email || password) {
       try {
+        const authUpdateData = {};
+        
+        if (email !== existingDispatcher.email) {
+          authUpdateData.email = email;
+        }
+        
+        if (password) {
+          authUpdateData.password = password;
+        }
+        
         const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
           params.id,
-          { email }
+          authUpdateData
         );
         
         if (authUpdateError) {
-          console.error('Error updating auth user email:', authUpdateError);
+          console.error('Error updating auth user:', authUpdateError);
           // Don't fail the request for auth update errors, just log them
         }
       } catch (authError) {

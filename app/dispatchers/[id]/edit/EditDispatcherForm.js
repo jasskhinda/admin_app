@@ -10,6 +10,9 @@ export default function EditDispatcherForm({ user, userProfile, dispatcher }) {
   const [lastName, setLastName] = useState(dispatcher.last_name || '');
   const [email, setEmail] = useState(dispatcher.email || '');
   const [phoneNumber, setPhoneNumber] = useState(dispatcher.phone_number || '');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [updatePassword, setUpdatePassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,17 +25,35 @@ export default function EditDispatcherForm({ user, userProfile, dispatcher }) {
     setLoading(true);
 
     try {
+      // Validate password if updating
+      if (updatePassword) {
+        if (!newPassword || newPassword.length < 8) {
+          throw new Error('Password must be at least 8 characters long');
+        }
+        
+        if (newPassword !== confirmNewPassword) {
+          throw new Error('Passwords do not match');
+        }
+      }
+
+      const requestBody = {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        phone_number: phoneNumber,
+      };
+
+      // Include password if updating
+      if (updatePassword) {
+        requestBody.password = newPassword;
+      }
+
       const response = await fetch(`/api/dispatchers/${dispatcher.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone_number: phoneNumber,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
@@ -168,6 +189,65 @@ export default function EditDispatcherForm({ user, userProfile, dispatcher }) {
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md bg-white"
                 />
+              </div>
+            </div>
+
+            {/* Password Update Section */}
+            <div className="bg-gray-50 p-4 rounded-md">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-md font-medium">Password Update</h3>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={updatePassword}
+                    onChange={(e) => {
+                      setUpdatePassword(e.target.checked);
+                      if (!e.target.checked) {
+                        setNewPassword('');
+                        setConfirmNewPassword('');
+                      }
+                    }}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Update password</span>
+                </label>
+              </div>
+              
+              {updatePassword && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="newPassword" className="block text-sm font-medium mb-1">New Password</label>
+                    <input
+                      id="newPassword"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required={updatePassword}
+                      minLength="8"
+                      placeholder="Minimum 8 characters"
+                      className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="confirmNewPassword" className="block text-sm font-medium mb-1">Confirm New Password</label>
+                    <input
+                      id="confirmNewPassword"
+                      type="password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      required={updatePassword}
+                      minLength="8"
+                      placeholder="Re-enter new password"
+                      className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-2 text-sm text-gray-600">
+                <p>• Password must be at least 8 characters long</p>
+                <p>• This will update the dispatcher's login credentials for the dispatcher app</p>
               </div>
             </div>
 
