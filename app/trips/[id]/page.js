@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 
 export default function TripDetails({ params }) {
   const tripId = params.id;
-  const { user, isDispatcher, signOut } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const router = useRouter();
+  const supabase = createClient();
   
   // State variables
   const [trip, setTrip] = useState(null);
@@ -21,15 +22,15 @@ export default function TripDetails({ params }) {
       return;
     }
     
-    // Ensure user has dispatcher role
-    if (!isDispatcher()) {
+    // Ensure user has admin or dispatcher role
+    if (!userProfile || !['admin', 'dispatcher'].includes(userProfile.role)) {
       signOut();
-      router.push('/login?error=Access denied. This application is only for dispatchers.');
+      router.push('/login?error=Access denied. Admin or dispatcher access required.');
       return;
     }
     
     fetchTripDetails();
-  }, [user, router, isDispatcher, signOut, tripId]);
+  }, [user, userProfile, router, signOut, tripId]);
   
   // Fetch trip details
   const fetchTripDetails = async () => {
@@ -37,24 +38,73 @@ export default function TripDetails({ params }) {
     setError('');
     
     try {
-      const { data, error } = await supabase
+      // First, get basic trip data
+      const { data: tripData, error: tripError } = await supabase
         .from('trips')
-        .select(`
-          *,
-          client:client_id(id, first_name, last_name, email, phone_number),
-          driver:driver_id(id, first_name, last_name, phone_number, driver_details(vehicle_info))
-        `)
+        .select('*')
         .eq('id', tripId)
         .single();
         
-      if (error) throw error;
+      if (tripError) throw tripError;
       
-      if (!data) {
+      if (!tripData) {
         setError('Trip not found');
         return;
       }
       
-      setTrip(data);
+      // Enrich with client and driver information
+      let enrichedTrip = { ...tripData };
+      
+      // Get client information
+      if (tripData.user_id) {
+        const { data: clientProfile } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, full_name, email, phone_number')
+          .eq('id', tripData.user_id)
+          .single();
+        
+        if (clientProfile) {
+          enrichedTrip.client = clientProfile;
+        }
+      } else if (tripData.managed_client_id) {
+        const { data: managedClient } = await supabase
+          .from('facility_managed_clients')
+          .select('id, first_name, last_name, email, phone_number')
+          .eq('id', tripData.managed_client_id)
+          .single();
+        
+        if (managedClient) {
+          enrichedTrip.client = managedClient;
+        }
+      }
+      
+      // Get driver information
+      if (tripData.driver_id) {
+        const { data: driverProfile } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, phone_number')
+          .eq('id', tripData.driver_id)
+          .single();
+        
+        if (driverProfile) {
+          enrichedTrip.driver = driverProfile;
+        }
+      }
+      
+      // Get facility information
+      if (tripData.facility_id) {
+        const { data: facilityData } = await supabase
+          .from('facilities')
+          .select('id, name, contact_email, contact_phone')
+          .eq('id', tripData.facility_id)
+          .single();
+        
+        if (facilityData) {
+          enrichedTrip.facility = facilityData;
+        }
+      }
+      
+      setTrip(enrichedTrip);
     } catch (error) {
       console.error('Error fetching trip details:', error);
       setError('Failed to load trip details');
@@ -78,16 +128,16 @@ export default function TripDetails({ params }) {
           <h1 className="text-2xl font-bold text-gray-900">Trip Details</h1>
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => router.push('/calendar')}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => router.push('/trips')}
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
-              Calendar View
+              Back to Trips
             </button>
             <button
               onClick={() => router.push('/dashboard')}
               className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
-              Back to Dashboard
+              Dashboard
             </button>
           </div>
         </div>
@@ -132,8 +182,8 @@ export default function TripDetails({ params }) {
                 <div className="p-6">
                   <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
                     <div className="col-span-2">
-                      <dt className="text-sm font-medium text-gray-500">Scheduled Time</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{formatScheduledTime(trip.scheduled_time)}</dd>
+                      <dt className="text-sm font-medium text-gray-500">Pickup Time</dt>
+                      <dd className="mt-1 text-sm text-gray-900">{formatScheduledTime(trip.pickup_time)}</dd>
                     </div>
                     
                     <div className="col-span-2">
@@ -141,11 +191,11 @@ export default function TripDetails({ params }) {
                       <dd className="mt-1 text-sm">
                         <div className="flex items-center mb-2">
                           <span className="h-2 w-2 rounded-full bg-green-500 inline-block mr-2"></span>
-                          <span className="text-gray-900">{trip.pickup_location}</span>
+                          <span className="text-gray-900">{trip.pickup_address || 'Pickup location not specified'}</span>
                         </div>
                         <div className="flex items-center">
                           <span className="h-2 w-2 rounded-full bg-red-500 inline-block mr-2"></span>
-                          <span className="text-gray-900">{trip.dropoff_location}</span>
+                          <span className="text-gray-900">{trip.destination_address || 'Destination not specified'}</span>
                         </div>
                       </dd>
                     </div>

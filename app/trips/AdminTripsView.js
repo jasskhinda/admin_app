@@ -93,21 +93,29 @@ function getClientDetails(trip) {
   
   // Facility managed client
   if (trip.managed_client) {
+    const facilityInfo = trip.facility ? 
+      `${trip.facility.name} (${trip.facility.contact_email || trip.facility.contact_phone || 'No contact info'})` :
+      (trip.facility_id ? `Facility ID: ${trip.facility_id.substring(0, 8)}...` : 'Facility Trip');
+    
     return {
       type: 'Facility',
       email: trip.managed_client.email,
       phone: trip.managed_client.phone_number,
-      facility: trip.facility?.name || (trip.facility_id ? `Facility ID: ${trip.facility_id.substring(0, 8)}...` : 'Facility Trip')
+      facility: facilityInfo
     };
   }
   
   // Check if this is a facility trip but managed_client didn't populate
   if (trip.facility_id && !trip.user_profile) {
+    const facilityInfo = trip.facility ? 
+      `${trip.facility.name} (${trip.facility.contact_email || trip.facility.contact_phone || 'No contact info'})` :
+      `Facility ID: ${trip.facility_id.substring(0, 8)}...`;
+    
     return {
       type: 'Facility',
       email: trip.client_email || 'No email available',
       phone: trip.client_phone || 'No phone available',
-      facility: trip.facility?.name || `Facility ID: ${trip.facility_id.substring(0, 8)}...`
+      facility: facilityInfo
     };
   }
   
