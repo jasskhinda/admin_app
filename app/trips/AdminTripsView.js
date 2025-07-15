@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
@@ -111,6 +112,9 @@ export default function AdminTripsView({ trips = [] }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [actionLoading, setActionLoading] = useState({});
+  const [actionMessage, setActionMessage] = useState('');
+  const router = useRouter();
 
   // Compute statistics
   const stats = useMemo(() => {
@@ -188,6 +192,45 @@ export default function AdminTripsView({ trips = [] }) {
     }
   };
 
+  const handleCompleteTrip = async (tripId) => {
+    if (!confirm('Are you sure you want to mark this trip as completed? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setActionLoading(prev => ({ ...prev, [tripId]: true }));
+      setActionMessage('');
+
+      const response = await fetch('/api/admin/complete-trip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tripId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to complete trip');
+      }
+
+      setActionMessage('✅ Trip completed successfully!');
+      
+      // Refresh the page to show updated data
+      setTimeout(() => {
+        router.refresh();
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error completing trip:', error);
+      setActionMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [tripId]: false }));
+      setTimeout(() => setActionMessage(''), 5000);
+    }
+  };
+
   const SortIcon = ({ field }) => {
     if (sortBy !== field) {
       return (
@@ -210,6 +253,17 @@ export default function AdminTripsView({ trips = [] }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Action Message */}
+      {actionMessage && (
+        <div className={`mb-6 px-4 py-3 rounded-lg ${
+          actionMessage.includes('Error') 
+            ? 'bg-red-100 border border-red-400 text-red-700'
+            : 'bg-green-100 border border-green-400 text-green-700'
+        }`}>
+          <p className="font-semibold">{actionMessage}</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -398,12 +452,25 @@ export default function AdminTripsView({ trips = [] }) {
                       {getStatusBadge(trip.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <Link
-                        href={`/trips/${trip.id}`}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        View
-                      </Link>
+                      <div className="flex space-x-2">
+                        <Link
+                          href={`/trips/${trip.id}`}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          View
+                        </Link>
+                        
+                        {trip.status === 'in_progress' && (
+                          <button
+                            onClick={() => handleCompleteTrip(trip.id)}
+                            disabled={actionLoading[trip.id]}
+                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm"
+                            title="Mark trip as completed"
+                          >
+                            {actionLoading[trip.id] ? '...' : '✅ COMPLETE'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
