@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function AddDriver() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const { user, userProfile, loading: authLoading } = useAuth();
   
-  const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -22,32 +21,19 @@ export default function AddDriver() {
   
   // Check auth status when component mounts
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-      
-      setUser(session.user);
-      
-      // Check if user has admin role
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error || !profile || profile.role !== 'admin') {
-        // Not an admin, redirect to login
-        supabase.auth.signOut();
-        router.push('/login?error=Access%20denied');
-      }
-    };
+    if (authLoading) return; // Wait for auth to load
     
-    checkAuth();
-  }, [router, supabase]);
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
+    // Check if user has admin role
+    if (!userProfile || userProfile.role !== 'admin') {
+      router.push('/login?error=Access%20denied');
+      return;
+    }
+  }, [user, userProfile, authLoading, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -123,8 +109,12 @@ export default function AddDriver() {
   };
 
   // Show loading if not authenticated yet
-  if (!user) {
-    return null;
+  if (authLoading || !user || !userProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
   return (
