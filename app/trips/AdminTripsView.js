@@ -85,8 +85,8 @@ function getClientDetails(trip) {
   if (trip.user_profile) {
     return {
       type: 'Individual',
-      email: trip.user_profile.email,
-      phone: trip.user_profile.phone_number,
+      email: trip.user_profile.email || 'No email available',
+      phone: trip.user_profile.phone_number || 'No phone available',
       facility: null
     };
   }
@@ -99,8 +99,8 @@ function getClientDetails(trip) {
     
     return {
       type: 'Facility',
-      email: trip.managed_client.email,
-      phone: trip.managed_client.phone_number,
+      email: trip.managed_client.email || 'No email available',
+      phone: trip.managed_client.phone_number || 'No phone available',
       facility: facilityInfo
     };
   }
