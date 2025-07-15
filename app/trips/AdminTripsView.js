@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useRealtimeTripUpdates } from '@/hooks/useRealtimeTripUpdates';
 
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
@@ -127,7 +128,7 @@ function getClientDetails(trip) {
   };
 }
 
-export default function AdminTripsView({ trips = [] }) {
+export default function AdminTripsView({ trips: initialTrips = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
@@ -135,6 +136,9 @@ export default function AdminTripsView({ trips = [] }) {
   const [actionLoading, setActionLoading] = useState({});
   const [actionMessage, setActionMessage] = useState('');
   const router = useRouter();
+  
+  // Use real-time updates for trips
+  const { trips, lastUpdate, updateTripOptimistically } = useRealtimeTripUpdates(initialTrips);
 
   // Compute statistics
   const stats = useMemo(() => {
@@ -221,6 +225,9 @@ export default function AdminTripsView({ trips = [] }) {
       setActionLoading(prev => ({ ...prev, [tripId]: true }));
       setActionMessage('');
 
+      // Optimistic update - immediately update the UI
+      updateTripOptimistically(tripId, { status: 'completed' });
+
       const response = await fetch('/api/admin/complete-trip', {
         method: 'POST',
         headers: {
@@ -232,15 +239,15 @@ export default function AdminTripsView({ trips = [] }) {
       const result = await response.json();
 
       if (!response.ok) {
+        // Revert optimistic update on error
+        updateTripOptimistically(tripId, { status: 'in_progress' });
         throw new Error(result.error || 'Failed to complete trip');
       }
 
       setActionMessage('✅ Trip completed successfully!');
       
-      // Refresh the page to show updated data
-      setTimeout(() => {
-        router.refresh();
-      }, 1000);
+      // No need to refresh - real-time updates will handle it
+      setTimeout(() => setActionMessage(''), 3000);
 
     } catch (error) {
       console.error('Error completing trip:', error);
@@ -281,6 +288,15 @@ export default function AdminTripsView({ trips = [] }) {
             : 'bg-green-100 border border-green-400 text-green-700'
         }`}>
           <p className="font-semibold">{actionMessage}</p>
+        </div>
+      )}
+
+      {/* Real-time Status Indicator */}
+      {lastUpdate && (
+        <div className="mb-4 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-700">
+            🔄 Last updated: {lastUpdate.toLocaleTimeString()} (Real-time sync active)
+          </p>
         </div>
       )}
 
