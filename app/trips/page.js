@@ -31,18 +31,6 @@ export default async function TripsPage() {
   
   if (tripsError) {
     console.error('Error fetching trips:', tripsError);
-  } else {
-    console.log(`🚀 TRIPS PAGE: Fetched ${trips?.length || 0} trips from database`);
-    if (trips && trips.length > 0) {
-      console.log('First trip sample:', {
-        id: trips[0].id,
-        user_id: trips[0].user_id,
-        managed_client_id: trips[0].managed_client_id,
-        facility_id: trips[0].facility_id,
-        status: trips[0].status,
-        created_at: trips[0].created_at
-      });
-    }
   }
   
   // Enhanced client information fetching - same logic as assign-trip page
@@ -52,21 +40,46 @@ export default async function TripsPage() {
     try {
       const adminModule = await import('@/lib/admin-supabase');
       supabaseAdmin = adminModule.supabaseAdmin;
-      console.log(`🚀 ADMIN CLIENT: ${supabaseAdmin ? 'Available' : 'Not available'}`);
     } catch (adminError) {
       console.warn('Could not load admin client:', adminError);
     }
     
-    console.log(`🚀 TRIPS PAGE: Processing ${tripsWithClients.length} trips for client data`);
+    // Collect all unique facility IDs
+    const facilityIds = [...new Set(tripsWithClients
+      .filter(trip => trip.facility_id)
+      .map(trip => trip.facility_id))];
+    
+    // Batch fetch all facilities
+    const facilityMap = {};
+    if (facilityIds.length > 0) {
+      const { data: facilities, error: facilitiesError } = await supabase
+        .from('facilities')
+        .select('id, name, contact_email, contact_phone')
+        .in('id', facilityIds);
+      
+      if (facilitiesError) {
+        console.error('Error fetching facilities:', facilitiesError);
+        // Try with admin client if available
+        if (supabaseAdmin) {
+          const { data: adminFacilities } = await supabaseAdmin
+            .from('facilities')
+            .select('id, name, contact_email, contact_phone')
+            .in('id', facilityIds);
+          
+          if (adminFacilities) {
+            adminFacilities.forEach(facility => {
+              facilityMap[facility.id] = facility;
+            });
+          }
+        }
+      } else if (facilities) {
+        facilities.forEach(facility => {
+          facilityMap[facility.id] = facility;
+        });
+      }
+    }
     
     for (let trip of tripsWithClients) {
-      console.log(`\n=== Processing trip ${trip.id} ===`);
-      console.log('Trip fields:', {
-        user_id: trip.user_id,
-        managed_client_id: trip.managed_client_id,
-        facility_id: trip.facility_id,
-        status: trip.status
-      });
 
       // Priority 1: Try user_id first since most trips have this
       if (trip.user_id) {
@@ -78,7 +91,6 @@ export default async function TripsPage() {
             .single();
           
           if (clientProfile) {
-            console.log(`✅ SUCCESS: Found profile for user_id ${trip.user_id}:`, clientProfile);
             trip.user_profile = {
               id: clientProfile.id,
               first_name: clientProfile.first_name,
@@ -106,7 +118,6 @@ export default async function TripsPage() {
               .single();
             
             if (facilityClient) {
-              console.log(`✅ SUCCESS: Found facility managed client for trip ${trip.id}:`, facilityClient);
               trip.managed_client = facilityClient;
             }
           } catch (facilityClientError) {
@@ -124,7 +135,6 @@ export default async function TripsPage() {
               .single();
             
             if (clientProfile) {
-              console.log(`Found client profile:`, clientProfile);
               trip.managed_client = clientProfile;
             }
           } catch (clientError) {
@@ -133,49 +143,9 @@ export default async function TripsPage() {
         }
       }
       
-      // Fetch facility information if exists
-      if (trip.facility_id) {
-        try {
-          console.log(`🔍 FETCHING FACILITY: trip ${trip.id} has facility_id ${trip.facility_id}`);
-          
-          // Try with admin client first since there might be RLS policies
-          if (supabaseAdmin) {
-            const { data: facilityData, error: facilityError } = await supabaseAdmin
-              .from('facilities')
-              .select('id, name, contact_email, contact_phone')
-              .eq('id', trip.facility_id)
-              .single();
-            
-            if (facilityError) {
-              console.error(`❌ ADMIN FACILITY ERROR for trip ${trip.id}:`, facilityError);
-            } else if (facilityData) {
-              trip.facility = facilityData;
-              console.log(`✅ SUCCESS: Found facility via admin client for trip ${trip.id}:`, facilityData);
-            } else {
-              console.log(`❌ NO DATA: No facility data found via admin client for trip ${trip.id}`);
-            }
-          } else {
-            // Fallback to regular client
-            const { data: facilityData, error: facilityError } = await supabase
-              .from('facilities')
-              .select('id, name, contact_email, contact_phone')
-              .eq('id', trip.facility_id)
-              .single();
-            
-            if (facilityError) {
-              console.error(`❌ FACILITY ERROR for trip ${trip.id}:`, facilityError);
-            } else if (facilityData) {
-              trip.facility = facilityData;
-              console.log(`✅ SUCCESS: Found facility for trip ${trip.id}:`, facilityData);
-            } else {
-              console.log(`❌ NO DATA: No facility data found for trip ${trip.id} with facility_id ${trip.facility_id}`);
-            }
-          }
-        } catch (facilityError) {
-          console.error(`❌ EXCEPTION: Could not fetch facility for trip ${trip.id}:`, facilityError);
-        }
-      } else {
-        console.log(`ℹ️ Trip ${trip.id} has no facility_id`);
+      // Attach facility information from pre-fetched map
+      if (trip.facility_id && facilityMap[trip.facility_id]) {
+        trip.facility = facilityMap[trip.facility_id];
       }
       
       // Get email from auth if still no email found in profile
@@ -191,7 +161,6 @@ export default async function TripsPage() {
                 } else if (trip.managed_client) {
                   trip.managed_client.email = authUser.email;
                 }
-                console.log(`✅ Found auth email for trip ${trip.id}:`, authUser.email);
               }
             } catch (authError) {
               console.warn(`Could not fetch auth email for trip ${trip.id}`);
@@ -202,18 +171,6 @@ export default async function TripsPage() {
     }
   }
   
-  // Final debug log
-  console.log(`🚀 FINAL TRIPS DATA: Sending ${tripsWithClients.length} trips to AdminTripsView`);
-  if (tripsWithClients.length > 0) {
-    const sampleTrip = tripsWithClients.find(t => t.facility_id);
-    if (sampleTrip) {
-      console.log('Sample trip with facility_id:', {
-        id: sampleTrip.id,
-        facility_id: sampleTrip.facility_id,
-        facility: sampleTrip.facility
-      });
-    }
-  }
   
   return <AdminTripsView trips={tripsWithClients} />;
 }

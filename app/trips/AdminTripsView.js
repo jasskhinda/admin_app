@@ -414,15 +414,6 @@ export default function AdminTripsView({ trips = [] }) {
                 const clientName = getClientName(trip);
                 const clientDetails = getClientDetails(trip);
                 
-                // Debug log for facility display
-                if (trip.facility_id) {
-                  console.log(`🔍 DISPLAY DEBUG: Trip ${trip.id} facility data:`, {
-                    facility_id: trip.facility_id,
-                    facility: trip.facility,
-                    clientDetails: clientDetails
-                  });
-                }
-                
                 return (
                   <tr key={trip.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
