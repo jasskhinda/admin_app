@@ -21,18 +21,28 @@ export default function AddDriver() {
   
   // Check auth status when component mounts
   useEffect(() => {
+    console.log('Add Driver Page - Auth State:', { 
+      authLoading, 
+      user: user?.email, 
+      userProfile: userProfile?.role 
+    });
+    
     if (authLoading) return; // Wait for auth to load
     
     if (!user) {
+      console.log('No user found, redirecting to login');
       router.push('/login');
       return;
     }
     
     // Check if user has admin role
     if (!userProfile || userProfile.role !== 'admin') {
+      console.log('User is not admin, redirecting to login. Profile:', userProfile);
       router.push('/login?error=Access%20denied');
       return;
     }
+    
+    console.log('User is authenticated and authorized');
   }, [user, userProfile, authLoading, router]);
 
   const handleSubmit = async (e) => {
