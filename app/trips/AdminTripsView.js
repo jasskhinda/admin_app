@@ -81,6 +81,7 @@ function getClientName(trip) {
 }
 
 function getClientDetails(trip) {
+  // Individual booking (most trips from debug data)
   if (trip.user_profile) {
     return {
       type: 'Individual',
@@ -90,12 +91,23 @@ function getClientDetails(trip) {
     };
   }
   
+  // Facility managed client
   if (trip.managed_client) {
     return {
       type: 'Facility',
       email: trip.managed_client.email,
       phone: trip.managed_client.phone_number,
-      facility: trip.facility?.name || 'Unknown Facility'
+      facility: trip.facility?.name || (trip.facility_id ? `Facility ID: ${trip.facility_id.substring(0, 8)}...` : 'Facility Trip')
+    };
+  }
+  
+  // Check if this is a facility trip but managed_client didn't populate
+  if (trip.facility_id && !trip.user_profile) {
+    return {
+      type: 'Facility',
+      email: trip.client_email || 'No email available',
+      phone: trip.client_phone || 'No phone available',
+      facility: trip.facility?.name || `Facility ID: ${trip.facility_id.substring(0, 8)}...`
     };
   }
   
@@ -469,6 +481,16 @@ export default function AdminTripsView({ trips = [] }) {
                           >
                             {actionLoading[trip.id] ? '...' : '✅ COMPLETE'}
                           </button>
+                        )}
+                        
+                        {(['upcoming', 'approved', 'pending'].includes(trip.status) && !trip.driver_id) && (
+                          <Link
+                            href={`/drivers?assign_trip=${trip.id}`}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors duration-200 shadow-sm"
+                            title="Assign driver to this trip"
+                          >
+                            👤 ASSIGN DRIVER
+                          </Link>
                         )}
                       </div>
                     </td>

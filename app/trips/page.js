@@ -137,6 +137,9 @@ export default async function TripsPage() {
           
           if (facilityData) {
             trip.facility = facilityData;
+            console.log(`✅ Found facility for trip ${trip.id}:`, facilityData);
+          } else {
+            console.log(`❌ No facility data found for trip ${trip.id} with facility_id ${trip.facility_id}`);
           }
         } catch (facilityError) {
           console.warn(`Could not fetch facility for trip ${trip.id}`);
