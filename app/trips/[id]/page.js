@@ -95,7 +95,7 @@ export default function TripDetails({ params }) {
       if (tripData.facility_id) {
         const { data: facilityData } = await supabase
           .from('facilities')
-          .select('id, name, contact_email, contact_phone')
+          .select('id, name, contact_email, phone_number')
           .eq('id', tripData.facility_id)
           .single();
         
@@ -232,8 +232,8 @@ export default function TripDetails({ params }) {
                           {trip.facility.contact_email && (
                             <div className="text-gray-600 text-xs">Email: {trip.facility.contact_email}</div>
                           )}
-                          {trip.facility.contact_phone && (
-                            <div className="text-gray-600 text-xs">Phone: {trip.facility.contact_phone}</div>
+                          {trip.facility.phone_number && (
+                            <div className="text-gray-600 text-xs">Phone: {trip.facility.phone_number}</div>
                           )}
                         </dd>
                       </div>
