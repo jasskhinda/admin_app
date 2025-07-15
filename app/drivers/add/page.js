@@ -27,7 +27,8 @@ export default function AddDriver() {
       userProfile: userProfile?.role 
     });
     
-    if (authLoading) return; // Wait for auth to load
+    // Wait for auth to completely load
+    if (authLoading) return;
     
     if (!user) {
       console.log('No user found, redirecting to login');
@@ -35,8 +36,14 @@ export default function AddDriver() {
       return;
     }
     
+    // Wait for userProfile to be loaded - don't redirect if it's still loading
+    if (!userProfile) {
+      console.log('User profile still loading, waiting...');
+      return;
+    }
+    
     // Check if user has admin role
-    if (!userProfile || userProfile.role !== 'admin') {
+    if (userProfile.role !== 'admin') {
       console.log('User is not admin, redirecting to login. Profile:', userProfile);
       router.push('/login?error=Access%20denied');
       return;
