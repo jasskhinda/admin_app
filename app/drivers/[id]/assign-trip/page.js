@@ -74,25 +74,7 @@ export default async function AssignTripPage({ params }) {
             } else if (allTripsData) {
                 allTrips = allTripsData;
                 console.log(`🚀 ASSIGN-TRIP PAGE LOADED: Found ${allTrips.length} total trips in database at ${new Date().toISOString()}`);
-                console.log('🔍 DEBUG: This message confirms the updated code is running!');
-                console.log('🎯 LOOKING FOR TRIP: 5475de82-493a-450b-8e79-1d739e0c3426');
-                
-                // IMMEDIATE FIX: Find and fix the specific trip
-                const targetTrip = allTrips.find(trip => trip.id === '5475de82-493a-450b-8e79-1d739e0c3426');
-                if (targetTrip) {
-                    console.log('🎯 FOUND TARGET TRIP:', targetTrip);
-                    console.log('🔧 FORCE FIXING TARGET TRIP WITH BRANDON MITCHELL');
-                    targetTrip.profiles = {
-                        id: '1ac228d5-0963-4164-bf0e-40a2f2b5a12d',
-                        first_name: 'Brandon',
-                        last_name: 'Mitchell',
-                        full_name: 'Brandon Mitchell',
-                        email: 'brandon.mitchell@ccgrhc.com',
-                        phone_number: '(614) 555-2398',
-                        role: 'facility_client'
-                    };
-                    console.log('🔧 FIXED TRIP PROFILES:', targetTrip.profiles);
-                }
+                console.log('🔍 DEBUG: Client lookup code is running');
                 
                 // Show all trips (not just assignable ones) so admin can see pending/cancelled too
                 availableTrips = allTrips;
@@ -106,6 +88,7 @@ export default async function AssignTripPage({ params }) {
                 console.log('Trip status breakdown:', statusCounts);
                 
                 // Log which trips were filtered out
+                const assignableStatuses = ['pending', 'approved', 'upcoming', 'confirmed'];
                 const filteredOutTrips = allTrips.filter(trip => 
                     !assignableStatuses.includes(trip.status) || trip.driver_id
                 );
@@ -147,6 +130,8 @@ export default async function AssignTripPage({ params }) {
                                     role: clientProfile.role
                                 };
                                 console.log(`✅ Set trip.profiles to:`, trip.profiles);
+                            } else {
+                                console.log(`❌ FAILED: No profile found for user_id ${trip.user_id}`);
                             }
                         } catch (clientError) {
                             console.warn(`Could not fetch client for user_id ${trip.user_id}:`, clientError.message);
@@ -255,19 +240,6 @@ export default async function AssignTripPage({ params }) {
                         
                         console.log(`🎯 BEFORE fallback checks - fallbackName: "${fallbackName}"`);
                         
-                        // Special handling for trips we know the client info for
-                        if (trip.id === '5475de82-493a-450b-8e79-1d739e0c3426') {
-                            fallbackName = 'Brandon Mitchell';
-                            fallbackEmail = 'Contact facility for email';
-                            console.log('🔧 HARDCODED FIX: Using known client info for test trip');
-                        }
-                        
-                        // Also try to use any existing trip data as fallback
-                        if (trip.managed_client_id === '1ac228d5-0963-4164-bf0e-40a2f2b5a12d') {
-                            fallbackName = 'Brandon Mitchell';
-                            fallbackEmail = 'Contact facility for email';
-                            console.log('🔧 FALLBACK: Using known managed client ID mapping');
-                        }
                         
                         console.log(`🎯 AFTER fallback checks - fallbackName: "${fallbackName}"`);
                         
@@ -301,19 +273,6 @@ export default async function AssignTripPage({ params }) {
                         console.log(`Trip ${trip.id} already has complete profile:`, trip.profiles);
                     }
                     
-                    // FORCE FIX for the specific trip while we debug
-                    if (trip.id === '5475de82-493a-450b-8e79-1d739e0c3426' || trip.managed_client_id === '1ac228d5-0963-4164-bf0e-40a2f2b5a12d') {
-                        console.log('🔥 FORCE FIXING specific trip with Brandon Mitchell');
-                        trip.profiles = {
-                            id: trip.managed_client_id,
-                            first_name: 'Brandon',
-                            last_name: 'Mitchell',
-                            full_name: 'Brandon Mitchell',
-                            email: 'Contact facility for email',
-                            phone_number: null,
-                            role: 'facility_client'
-                        };
-                    }
                     
                     console.log(`Final profile for trip ${trip.id}:`, trip.profiles);
                 }
@@ -346,15 +305,21 @@ export default async function AssignTripPage({ params }) {
             }
         }
         
-        console.log(`Processed ${availableTrips.length} trips. Sample trip data:`);
+        console.log(`✨ FINAL RESULT: Processed ${availableTrips.length} trips`);
         if (availableTrips.length > 0) {
-            console.log('First trip:', {
-                id: availableTrips[0].id,
-                facility_id: availableTrips[0].facility_id,
-                client_name: availableTrips[0].client_name,
-                passenger_name: availableTrips[0].passenger_name,
-                profiles: availableTrips[0].profiles,
-                facility: availableTrips[0].facility
+            // Show first 3 trips with their client data
+            console.log('🔍 Sample trips with client info:');
+            availableTrips.slice(0, 3).forEach((trip, index) => {
+                console.log(`Trip ${index + 1}:`, {
+                    id: trip.id,
+                    user_id: trip.user_id,
+                    profiles: trip.profiles ? {
+                        full_name: trip.profiles.full_name,
+                        email: trip.profiles.email,
+                        hasData: true
+                    } : { hasData: false },
+                    status: trip.status
+                });
             });
         }
 
