@@ -223,6 +223,21 @@ export default function TripDetails({ params }) {
                         <dd className="mt-1 text-sm text-gray-900">{trip.notes}</dd>
                       </div>
                     )}
+                    
+                    {trip.facility && (
+                      <div className="col-span-2">
+                        <dt className="text-sm font-medium text-gray-500">Facility</dt>
+                        <dd className="mt-1 text-sm">
+                          <div className="text-gray-900 font-medium">{trip.facility.name}</div>
+                          {trip.facility.contact_email && (
+                            <div className="text-gray-600 text-xs">Email: {trip.facility.contact_email}</div>
+                          )}
+                          {trip.facility.contact_phone && (
+                            <div className="text-gray-600 text-xs">Phone: {trip.facility.contact_phone}</div>
+                          )}
+                        </dd>
+                      </div>
+                    )}
                   </dl>
                 </div>
               </div>
@@ -250,10 +265,12 @@ export default function TripDetails({ params }) {
                           <dd className="mt-1 text-sm text-gray-900">{trip.client.phone_number}</dd>
                         </div>
                       )}
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Email</dt>
-                        <dd className="mt-1 text-sm text-gray-900">{trip.client.email}</dd>
-                      </div>
+                      {trip.client.email && (
+                        <div>
+                          <dt className="text-sm font-medium text-gray-500">Email</dt>
+                          <dd className="mt-1 text-sm text-gray-900">{trip.client.email}</dd>
+                        </div>
+                      )}
                     </dl>
                   ) : (
                     <p className="text-sm text-gray-500">Client information not available</p>
@@ -292,10 +309,10 @@ export default function TripDetails({ params }) {
                     <div>
                       <p className="text-sm text-gray-500 mb-4">No driver assigned to this trip</p>
                       <button
-                        onClick={() => router.push('/optimize')}
+                        onClick={() => router.push(`/drivers?assign_trip=${tripId}`)}
                         className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                       >
-                        Optimize Assignments
+                        Assign Driver
                       </button>
                     </div>
                   )}
