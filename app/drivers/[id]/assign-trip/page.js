@@ -282,6 +282,124 @@ export default async function AssignTripPage({ params }) {
             tripsFetchError = error;
         }
 
+        // Fetch trips assigned to this specific driver
+        const { data: assignedTrips, error: assignedTripsError } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('driver_id', driverId)
+            .in('status', ['in_progress', 'upcoming'])
+            .order('created_at', { ascending: false });
+
+        // Process assigned trips with client information
+        let processedAssignedTrips = [];
+        if (assignedTrips && assignedTrips.length > 0) {
+            console.log(`Found ${assignedTrips.length} assigned trips for driver ${driverId}`);
+            
+            // Process each assigned trip to get client information
+            for (let trip of assignedTrips) {
+                console.log(`Processing assigned trip ${trip.id}`);
+                
+                // Same client lookup logic as above
+                if (trip.user_id) {
+                    try {
+                        const { data: clientProfile } = await supabase
+                            .from('profiles')
+                            .select('id, first_name, last_name, full_name, email, phone_number, role')
+                            .eq('id', trip.user_id)
+                            .single();
+                        
+                        if (clientProfile) {
+                            trip.profiles = {
+                                id: clientProfile.id,
+                                first_name: clientProfile.first_name,
+                                last_name: clientProfile.last_name,
+                                full_name: clientProfile.full_name || `${clientProfile.first_name || ''} ${clientProfile.last_name || ''}`.trim(),
+                                email: clientProfile.email,
+                                phone_number: clientProfile.phone_number,
+                                role: clientProfile.role
+                            };
+                        }
+                    } catch (clientError) {
+                        console.warn(`Could not fetch client for assigned trip ${trip.id}:`, clientError.message);
+                    }
+                }
+                
+                // Try managed_client_id if user_id didn't work
+                if (!trip.profiles && trip.managed_client_id) {
+                    if (trip.facility_id) {
+                        try {
+                            const { data: facilityClient } = await supabase
+                                .from('facility_managed_clients')
+                                .select('id, first_name, last_name, email, phone_number')
+                                .eq('id', trip.managed_client_id)
+                                .single();
+                            
+                            if (facilityClient) {
+                                trip.profiles = {
+                                    id: facilityClient.id,
+                                    first_name: facilityClient.first_name,
+                                    last_name: facilityClient.last_name,
+                                    full_name: `${facilityClient.first_name} ${facilityClient.last_name}`,
+                                    email: facilityClient.email,
+                                    phone_number: facilityClient.phone_number,
+                                    role: 'facility_client'
+                                };
+                            }
+                        } catch (facilityClientError) {
+                            console.warn('Could not fetch facility managed client for assigned trip');
+                        }
+                    }
+                }
+                
+                // Fetch facility information
+                if (trip.facility_id) {
+                    try {
+                        const { data: facilityData } = await supabase
+                            .from('facilities')
+                            .select('id, name, address, phone_number, contact_email')
+                            .eq('id', trip.facility_id)
+                            .single();
+                        
+                        if (facilityData) {
+                            trip.facility = facilityData;
+                        }
+                    } catch (facilityError) {
+                        console.warn(`Could not fetch facility for assigned trip ${trip.id}`);
+                    }
+                }
+                
+                // Create fallback profile if needed
+                if (!trip.profiles || !trip.profiles.full_name) {
+                    let fallbackName = trip.client_name || trip.passenger_name || 'Unknown Client';
+                    let fallbackEmail = trip.client_email || 'No email available';
+                    
+                    if (!fallbackName || fallbackName === 'Unknown Client') {
+                        if (trip.facility_id && trip.managed_client_id) {
+                            fallbackName = `Facility Client (ID: ${trip.managed_client_id.substring(0, 8)}...)`;
+                            fallbackEmail = 'Contact facility for client details';
+                        } else if (trip.user_id) {
+                            fallbackName = `Individual Client (ID: ${trip.user_id.substring(0, 8)}...)`;
+                        }
+                    }
+                    
+                    trip.profiles = {
+                        full_name: fallbackName,
+                        email: fallbackEmail,
+                        first_name: fallbackName.split(' ')[0],
+                        last_name: fallbackName.split(' ').slice(1).join(' ') || '',
+                        role: trip.facility_id ? 'facility_client' : 'client',
+                        ...(trip.profiles || {})
+                    };
+                }
+            }
+            
+            processedAssignedTrips = assignedTrips;
+        }
+
+        if (assignedTripsError) {
+            console.error('Error fetching assigned trips:', assignedTripsError);
+        }
+
         // Fetch all drivers for reference
         const { data: allDrivers } = await supabase
             .from('profiles')
@@ -330,6 +448,7 @@ export default async function AssignTripPage({ params }) {
                 driver={driver}
                 availableTrips={availableTrips}
                 allTrips={allTrips}
+                assignedTrips={processedAssignedTrips}
                 allDrivers={allDrivers || []}
                 tripsFetchError={tripsFetchError}
             />

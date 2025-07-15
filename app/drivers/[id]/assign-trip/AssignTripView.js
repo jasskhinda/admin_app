@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DebugInfo from './DebugInfo';
 
-export default function AssignTripView({ user, userProfile, driver, availableTrips, allTrips, allDrivers, tripsFetchError }) {
+export default function AssignTripView({ user, userProfile, driver, availableTrips, allTrips, assignedTrips, allDrivers, tripsFetchError }) {
   const router = useRouter();
   
   // Debug logging to verify data
@@ -23,6 +23,8 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
   const [sortOrder, setSortOrder] = useState('desc');
   const [assignModal, setAssignModal] = useState({ isOpen: false, trip: null, loading: false });
   const [assignError, setAssignError] = useState('');
+  const [actionLoading, setActionLoading] = useState({});
+  const [actionMessage, setActionMessage] = useState('');
 
   // Filter and sort trips - separate recent and completed
   const filteredTrips = availableTrips.filter(trip => {
@@ -119,10 +121,51 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
     setAssignError('');
   };
 
+  const handleCompleteTrip = async (tripId) => {
+    if (!confirm('Are you sure you want to mark this trip as completed? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setActionLoading(prev => ({ ...prev, [tripId]: true }));
+      setActionMessage('');
+
+      const response = await fetch('/api/admin/complete-trip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tripId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to complete trip');
+      }
+
+      setActionMessage('✅ Trip completed successfully!');
+      
+      // Refresh the page to show updated data
+      setTimeout(() => {
+        router.refresh();
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error completing trip:', error);
+      setActionMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [tripId]: false }));
+      setTimeout(() => setActionMessage(''), 5000);
+    }
+  };
+
   // Helper function to render trip table
-  const renderTripTable = (trips, sectionTitle, showAssignButton = false) => {
+  const renderTripTable = (trips, sectionTitle, showAssignButton = false, showCompleteButton = false) => {
     const sectionDescription = sectionTitle === "RECENT TRIPS" 
       ? "Upcoming trips approved by dispatcher that can be assigned to this driver"
+      : sectionTitle === "ASSIGNED TRIPS"
+      ? "Trips currently assigned to this driver that can be marked as completed"
       : "Past trips that this driver has completed or cancelled";
       
     return (
@@ -268,6 +311,17 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                           Assign Trip
                         </button>
                       )}
+                      
+                      {showCompleteButton && trip.status === 'in_progress' && (
+                        <button
+                          onClick={() => handleCompleteTrip(trip.id)}
+                          disabled={actionLoading[trip.id]}
+                          className="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Mark trip as completed"
+                        >
+                          {actionLoading[trip.id] ? '...' : '✅ COMPLETE'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -317,6 +371,17 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Action Message */}
+        {actionMessage && (
+          <div className={`mb-6 px-4 py-3 rounded-lg ${
+            actionMessage.includes('Error') 
+              ? 'bg-red-100 border border-red-400 text-red-700'
+              : 'bg-green-100 border border-green-400 text-green-700'
+          }`}>
+            <p className="font-semibold">{actionMessage}</p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -512,6 +577,14 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
           <h2 className="text-2xl font-bold text-gray-900">Trip Assignment for {driver.full_name || `${driver.first_name} ${driver.last_name}`}</h2>
           <p className="text-sm text-gray-600 mt-1">Manage trip assignments for this driver</p>
         </div>
+
+        {/* ASSIGNED TRIPS Section - Trips currently assigned to this driver */}
+        {renderTripTable(
+          assignedTrips || [], 
+          "ASSIGNED TRIPS", 
+          false,  // No assign button for assigned trips
+          true    // Show complete button for assigned trips
+        )}
 
         {/* RECENT TRIPS Section - Upcoming trips available for assignment */}
         {renderTripTable(
