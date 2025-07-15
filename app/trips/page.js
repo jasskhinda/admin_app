@@ -23,26 +23,10 @@ export default async function TripsPage() {
     redirect('/login?error=Admin%20or%20dispatcher%20access%20required');
   }
   
-  // Fetch all trips with client information
+  // Fetch all trips - use simple query first, then enrich with client data
   const { data: trips, error: tripsError } = await supabase
     .from('trips')
-    .select(`
-      *,
-      user_profile:user_id (
-        id,
-        first_name,
-        last_name,
-        full_name,
-        email,
-        phone_number
-      ),
-      facility:facility_id (
-        id,
-        name,
-        contact_email,
-        contact_phone
-      )
-    `)
+    .select('*')
     .order('created_at', { ascending: false });
   
   if (tripsError) {
@@ -139,6 +123,23 @@ export default async function TripsPage() {
           } catch (clientError) {
             console.warn('Could not fetch client from profiles table');
           }
+        }
+      }
+      
+      // Fetch facility information if exists
+      if (trip.facility_id) {
+        try {
+          const { data: facilityData } = await supabase
+            .from('facilities')
+            .select('id, name, contact_email, contact_phone')
+            .eq('id', trip.facility_id)
+            .single();
+          
+          if (facilityData) {
+            trip.facility = facilityData;
+          }
+        } catch (facilityError) {
+          console.warn(`Could not fetch facility for trip ${trip.id}`);
         }
       }
       

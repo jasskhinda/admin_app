@@ -68,26 +68,10 @@ export async function GET() {
       console.log('Admin client not available:', adminImportError.message);
     }
     
-    // 4. Try the exact query from the trips page
+    // 4. Try the new simplified query from the trips page
     const { data: pageTrips, error: pageError } = await supabase
       .from('trips')
-      .select(`
-        *,
-        user_profile:user_id (
-          id,
-          first_name,
-          last_name,
-          full_name,
-          email,
-          phone_number
-        ),
-        facility:facility_id (
-          id,
-          name,
-          contact_email,
-          contact_phone
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
     
     console.log('Page query trips:', { count: pageTrips?.length, error: pageError });
