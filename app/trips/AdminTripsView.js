@@ -491,7 +491,7 @@ export default function AdminTripsView({ trips = [] }) {
                           </button>
                         )}
                         
-                        {(['upcoming', 'approved', 'pending'].includes(trip.status) && !trip.driver_id) && (
+                        {(trip.status === 'upcoming' && !trip.driver_id) && (
                           <Link
                             href={`/drivers?assign_trip=${trip.id}`}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors duration-200 shadow-sm"
