@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import AdminHeader from '@/components/AdminHeader';
 
 export default function AdminDispatchersView({ user, userProfile, dispatchers }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,14 +12,28 @@ export default function AdminDispatchersView({ user, userProfile, dispatchers })
   const [sortOrder, setSortOrder] = useState('asc');
   const router = useRouter();
 
+  // Helper function to get full name
+  const getFullName = (dispatcher) => {
+    if (dispatcher.first_name && dispatcher.last_name) {
+      return `${dispatcher.first_name} ${dispatcher.last_name}`;
+    } else if (dispatcher.first_name) {
+      return dispatcher.first_name;
+    } else if (dispatcher.last_name) {
+      return dispatcher.last_name;
+    }
+    return 'Unnamed';
+  };
+
   // Filtering and sorting logic
   const filteredDispatchers = dispatchers.filter(dispatcher => {
+    const fullName = getFullName(dispatcher);
+    
     // Filter by search term
     const matchesSearch = 
       searchTerm === '' || 
-      dispatcher.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       dispatcher.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dispatcher.phone?.includes(searchTerm);
+      dispatcher.phone_number?.includes(searchTerm);
     
     // Filter by status if needed
     const matchesStatus = 
@@ -34,9 +49,11 @@ export default function AdminDispatchersView({ user, userProfile, dispatchers })
   // Sort the filtered dispatchers
   const sortedDispatchers = [...filteredDispatchers].sort((a, b) => {
     if (sortBy === 'name') {
+      const aName = getFullName(a);
+      const bName = getFullName(b);
       return sortOrder === 'asc' 
-        ? (a.full_name || '').localeCompare(b.full_name || '')
-        : (b.full_name || '').localeCompare(a.full_name || '');
+        ? aName.localeCompare(bName)
+        : bName.localeCompare(aName);
     } else if (sortBy === 'email') {
       return sortOrder === 'asc' 
         ? (a.email || '').localeCompare(b.email || '')
@@ -76,77 +93,80 @@ export default function AdminDispatchersView({ user, userProfile, dispatchers })
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Dispatcher Management</h1>
-        <Link
-          href="/dispatchers/add"
-          className="bg-primary text-onPrimary px-4 py-2 rounded hover:bg-opacity-90"
-        >
-          Add New Dispatcher
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <AdminHeader user={user} userProfile={userProfile} />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Dispatcher Management</h1>
+          <Link
+            href="/dispatchers/add"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Add New Dispatcher
+          </Link>
+        </div>
 
-      {/* Search and Filter Controls */}
-      <div className="bg-surface p-4 rounded-lg shadow-sm mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Search</label>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, email, phone..."
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-            >
-              <option value="all">All Dispatchers</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="new">New (No Trips)</option>
-              <option value="experienced">Experienced (50+ Trips)</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Sort By</label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-            >
-              <option value="name">Name</option>
-              <option value="email">Email</option>
-              <option value="trip_count">Trip Count</option>
-              <option value="client_count">Client Count</option>
-              <option value="date_joined">Date Joined</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Sort Order</label>
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-primary"
-            >
-              <option value="asc">Ascending</option>
-              <option value="desc">Descending</option>
-            </select>
+        {/* Search and Filter Controls */}
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Search</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name, email, phone..."
+                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Dispatchers</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="new">New (No Trips)</option>
+                <option value="experienced">Experienced (50+ Trips)</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="name">Name</option>
+                <option value="email">Email</option>
+                <option value="trip_count">Trip Count</option>
+                <option value="client_count">Client Count</option>
+                <option value="date_joined">Date Joined</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Sort Order</label>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Dispatchers Table */}
-      <div className="bg-surface rounded-lg shadow overflow-hidden">
+        {/* Dispatchers Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -179,12 +199,12 @@ export default function AdminDispatchersView({ user, userProfile, dispatchers })
                 sortedDispatchers.map((dispatcher) => (
                   <tr key={dispatcher.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{dispatcher.full_name || 'Unnamed'}</div>
+                      <div className="text-sm font-medium text-gray-900">{getFullName(dispatcher)}</div>
                       <div className="text-xs text-gray-500">ID: {dispatcher.id.substring(0, 8)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{dispatcher.email}</div>
-                      <div className="text-sm text-gray-500">{dispatcher.phone || 'No phone'}</div>
+                      <div className="text-sm text-gray-500">{dispatcher.phone_number || 'No phone'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(dispatcher.status || 'inactive')}
@@ -200,19 +220,19 @@ export default function AdminDispatchersView({ user, userProfile, dispatchers })
                       <div className="flex space-x-2">
                         <Link
                           href={`/dispatchers/${dispatcher.id}`}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-blue-600 hover:text-blue-900"
                         >
                           View
                         </Link>
                         <Link
                           href={`/dispatchers/${dispatcher.id}/edit`}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-blue-600 hover:text-blue-900"
                         >
                           Edit
                         </Link>
                         <Link
                           href={`/dispatchers/${dispatcher.id}/trips`}
-                          className="text-primary hover:text-primary-dark"
+                          className="text-blue-600 hover:text-blue-900"
                         >
                           View Trips
                         </Link>
@@ -225,14 +245,15 @@ export default function AdminDispatchersView({ user, userProfile, dispatchers })
           </table>
         </div>
       </div>
-      
-      {/* Stats Summary */}
-      <div className="mt-6 bg-surface p-4 rounded-lg shadow-sm">
-        <div className="text-sm text-gray-600">
-          Total Dispatchers: <span className="font-medium">{dispatchers.length}</span> |
-          Showing: <span className="font-medium">{sortedDispatchers.length}</span> |
-          Active: <span className="font-medium">{dispatchers.filter(d => d.status === 'active').length}</span> |
-          Total Trips Managed: <span className="font-medium">{dispatchers.reduce((sum, d) => sum + (d.trip_count || 0), 0)}</span>
+        
+        {/* Stats Summary */}
+        <div className="mt-6 bg-white p-4 rounded-lg shadow-sm">
+          <div className="text-sm text-gray-600">
+            Total Dispatchers: <span className="font-medium">{dispatchers.length}</span> |
+            Showing: <span className="font-medium">{sortedDispatchers.length}</span> |
+            Active: <span className="font-medium">{dispatchers.filter(d => d.status === 'active').length}</span> |
+            Total Trips Managed: <span className="font-medium">{dispatchers.reduce((sum, d) => sum + (d.trip_count || 0), 0)}</span>
+          </div>
         </div>
       </div>
     </div>
