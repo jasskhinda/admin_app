@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '@/app/components/AdminHeader';
 
 export default function AdminDispatchersView({ user, userProfile, dispatchers }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,10 +92,7 @@ export default function AdminDispatchersView({ user, userProfile, dispatchers })
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} userProfile={userProfile} />
-      
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Dispatcher Management</h1>
           <Link
@@ -255,7 +251,6 @@ export default function AdminDispatchersView({ user, userProfile, dispatchers })
             Total Trips Managed: <span className="font-medium">{dispatchers.reduce((sum, d) => sum + (d.trip_count || 0), 0)}</span>
           </div>
         </div>
-      </div>
     </div>
   );
 }

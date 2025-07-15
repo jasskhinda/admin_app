@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '@/app/components/AdminHeader';
 
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
@@ -221,10 +220,7 @@ export default function DispatcherTripsView({ user, userProfile, dispatcher, tri
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminHeader user={user} userProfile={userProfile} />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -440,7 +436,6 @@ export default function DispatcherTripsView({ user, userProfile, dispatcher, tri
             )}
           </div>
         </div>
-      </div>
     </div>
   );
 }
