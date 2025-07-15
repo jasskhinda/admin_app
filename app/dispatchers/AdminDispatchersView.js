@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '@/components/AdminHeader';
+import AdminHeader from '@/app/components/AdminHeader';
 
 export default function AdminDispatchersView({ user, userProfile, dispatchers }) {
   const [searchTerm, setSearchTerm] = useState('');

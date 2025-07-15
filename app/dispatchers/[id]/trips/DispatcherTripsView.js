@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '@/components/AdminHeader';
+import AdminHeader from '@/app/components/AdminHeader';
 
 function formatDate(dateString) {
   if (!dateString) return 'N/A';

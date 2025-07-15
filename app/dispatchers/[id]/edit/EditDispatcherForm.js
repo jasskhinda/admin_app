@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import AdminHeader from '@/components/AdminHeader';
+import AdminHeader from '@/app/components/AdminHeader';
 
 export default function EditDispatcherForm({ user, userProfile, dispatcher }) {
   const router = useRouter();
