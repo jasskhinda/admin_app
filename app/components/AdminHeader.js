@@ -43,6 +43,11 @@ export default function AdminHeader() {
                 </Link>
               </li>
               <li>
+                <Link href="/trips" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                  TRIPS
+                </Link>
+              </li>
+              <li>
                 <Link href="/facilities" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
                   FACILITIES
                 </Link>
