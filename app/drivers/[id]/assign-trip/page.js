@@ -326,6 +326,7 @@ export default async function AssignTripPage({ params }) {
                 
                 // Try managed_client_id if user_id didn't work
                 if (!trip.profiles && trip.managed_client_id) {
+                    // For facility trips, try facility_managed_clients table first
                     if (trip.facility_id) {
                         try {
                             const { data: facilityClient } = await supabase
@@ -346,7 +347,25 @@ export default async function AssignTripPage({ params }) {
                                 };
                             }
                         } catch (facilityClientError) {
-                            console.warn('Could not fetch facility managed client for assigned trip');
+                            console.warn('Could not fetch facility managed client for assigned trip, trying profiles table');
+                        }
+                    }
+                    
+                    // If not found in facility_managed_clients, try profiles table with managed_client_id
+                    if (!trip.profiles) {
+                        try {
+                            const { data: clientProfile } = await supabase
+                                .from('profiles')
+                                .select('id, first_name, last_name, full_name, email, phone_number, role')
+                                .eq('id', trip.managed_client_id)
+                                .single();
+                            
+                            if (clientProfile) {
+                                console.log(`Found client profile for assigned trip:`, clientProfile);
+                                trip.profiles = clientProfile;
+                            }
+                        } catch (clientError) {
+                            console.warn('Could not fetch client from profiles table for assigned trip');
                         }
                     }
                 }
@@ -365,6 +384,22 @@ export default async function AssignTripPage({ params }) {
                         }
                     } catch (facilityError) {
                         console.warn(`Could not fetch facility for assigned trip ${trip.id}`);
+                    }
+                }
+                
+                // Get email from auth if still no email found in profile
+                if (trip.profiles && !trip.profiles.email && supabaseAdmin) {
+                    const idToTry = trip.user_id || trip.managed_client_id;
+                    if (idToTry) {
+                        try {
+                            const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(idToTry);
+                            if (authUser?.email) {
+                                trip.profiles.email = authUser.email;
+                                console.log(`✅ Found auth email for assigned trip ${trip.id} user ${trip.profiles.full_name}:`, authUser.email);
+                            }
+                        } catch (authError) {
+                            console.warn(`Could not fetch auth email for assigned trip ${trip.id}`);
+                        }
                     }
                 }
                 
