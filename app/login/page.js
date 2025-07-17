@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { login, signup } from './actions';
+import { login } from './actions';
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
@@ -96,33 +96,18 @@ export default function Login() {
             />
           </div>
           
-          <div className="flex space-x-2">
-            <button
-              type="button"
-              onClick={async (e) => {
-                e.preventDefault();
-                const form = e.currentTarget.closest('form');
-                await handleFormAction(new FormData(form), login);
-              }}
-              disabled={loading}
-              className="flex-1 py-2 px-4 bg-[#84CED3] text-white rounded hover:bg-[#70B8BD] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#84CED3] disabled:opacity-50 transition-colors"
-            >
-              {loading ? 'Processing...' : 'Sign In'}
-            </button>
-            
-            <button
-              type="button"
-              onClick={async (e) => {
-                e.preventDefault();
-                const form = e.currentTarget.closest('form');
-                await handleFormAction(new FormData(form), signup);
-              }}
-              disabled={loading}
-              className="flex-1 py-2 px-4 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 transition-colors"
-            >
-              Sign Up
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              const form = e.currentTarget.closest('form');
+              await handleFormAction(new FormData(form), login);
+            }}
+            disabled={loading}
+            className="w-full py-2 px-4 bg-[#84CED3] text-white rounded hover:bg-[#70B8BD] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#84CED3] disabled:opacity-50 transition-colors"
+          >
+            {loading ? 'Processing...' : 'Sign In'}
+          </button>
         </form>
         
         <div className="mt-6 text-center text-sm text-gray-600">
