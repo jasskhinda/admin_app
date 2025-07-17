@@ -25,7 +25,7 @@ export async function PUT(request, { params }) {
     
     // Get request body
     const body = await request.json();
-    const { email, first_name, last_name, phone_number, vehicle_model, vehicle_license, status } = body;
+    const { email, first_name, last_name, phone_number, vehicle_model, vehicle_license, status, password } = body;
     
     // Update driver profile
     const { data: updatedDriver, error: updateError } = await supabase
@@ -50,16 +50,30 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Failed to update driver' }, { status: 500 });
     }
     
-    // Also update the auth user's email if it changed
-    if (email !== updatedDriver.email) {
-      try {
-        const { supabaseAdmin } = await import('@/lib/admin-supabase');
-        if (supabaseAdmin) {
-          await supabaseAdmin.auth.admin.updateUserById(params.id, { email });
+    // Also update the auth user's email and/or password if changed
+    try {
+      const { supabaseAdmin } = await import('@/lib/admin-supabase');
+      if (supabaseAdmin) {
+        const authUpdateData = {};
+        
+        // Update email if changed
+        if (email !== updatedDriver.email) {
+          authUpdateData.email = email;
         }
-      } catch (emailError) {
-        console.warn('Could not update auth email:', emailError);
+        
+        // Update password if provided
+        if (password) {
+          authUpdateData.password = password;
+        }
+        
+        // Only make the API call if there's something to update
+        if (Object.keys(authUpdateData).length > 0) {
+          await supabaseAdmin.auth.admin.updateUserById(params.id, authUpdateData);
+        }
       }
+    } catch (authError) {
+      console.warn('Could not update auth user:', authError);
+      // Don't fail the entire request if auth update fails
     }
     
     return NextResponse.json({ driver: updatedDriver });

@@ -13,6 +13,8 @@ export default function EditDriverForm({ driver, user, userProfile }) {
   const [vehicleModel, setVehicleModel] = useState(driver.vehicle_model || '');
   const [vehicleLicense, setVehicleLicense] = useState(driver.vehicle_license || '');
   const [status, setStatus] = useState(driver.status || 'available');
+  const [newPassword, setNewPassword] = useState('');
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,6 +40,7 @@ export default function EditDriverForm({ driver, user, userProfile }) {
           vehicle_model: vehicleModel,
           vehicle_license: vehicleLicense,
           status: status,
+          ...(newPassword && { password: newPassword }),
         }),
       });
       
@@ -47,7 +50,11 @@ export default function EditDriverForm({ driver, user, userProfile }) {
         throw new Error(result.error || 'Failed to update driver');
       }
 
-      setSuccess('Driver information updated successfully');
+      setSuccess(newPassword ? 'Driver information and password updated successfully' : 'Driver information updated successfully');
+      if (newPassword) {
+        setNewPassword('');
+        setShowPasswordSection(false);
+      }
       
       // Redirect back to drivers page after a short delay
       setTimeout(() => {
@@ -227,6 +234,41 @@ export default function EditDriverForm({ driver, user, userProfile }) {
               </div>
             </div>
 
+            {/* Password Update Section */}
+            <div className="bg-gray-50 p-4 rounded-md">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-md font-medium">Password Management</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordSection(!showPasswordSection)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {showPasswordSection ? 'Hide' : 'Change Password'}
+                </button>
+              </div>
+              
+              {showPasswordSection && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="newPassword" className="block text-sm font-medium mb-1">New Password</label>
+                    <input
+                      id="newPassword"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password (leave blank to keep current)"
+                      className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                    />
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                    <p className="text-sm text-yellow-800">
+                      <strong>⚠️ Important:</strong> If you change the password, make sure to securely share the new password with the driver.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
             {/* Driver Details */}
             <div className="bg-gray-50 p-4 rounded-md">
               <h3 className="text-md font-medium mb-4">Driver Details</h3>

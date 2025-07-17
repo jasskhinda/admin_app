@@ -1,6 +1,87 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import Link from 'next/link';
+import { revalidatePath } from 'next/cache';
+
+// Server action for completing trips
+async function completeTrip(formData) {
+    'use server';
+    
+    const tripId = formData.get('trip_id');
+    
+    if (!tripId) {
+        redirect('/drivers?error=Trip ID is required');
+    }
+    
+    try {
+        const supabase = await createClient();
+        
+        // Verify admin access
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            redirect('/login');
+        }
+        
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+            
+        if (!profile || !['admin', 'dispatcher'].includes(profile.role)) {
+            redirect('/drivers?error=Access denied');
+        }
+        
+        // Verify trip exists and is in progress
+        const { data: trip, error: tripError } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('id', tripId)
+            .single();
+            
+        if (tripError || !trip) {
+            redirect('/drivers?error=Trip not found');
+        }
+        
+        // Check if trip can be completed
+        if (!['in_progress', 'upcoming', 'approved'].includes(trip.status)) {
+            redirect(`/drivers/${trip.driver_id}?error=Trip cannot be completed from current status`);
+        }
+        
+        // Update trip status to completed
+        const { error: updateError } = await supabase
+            .from('trips')
+            .update({
+                status: 'completed',
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', tripId);
+            
+        if (updateError) {
+            redirect(`/drivers/${trip.driver_id}?error=Error completing trip`);
+        }
+        
+        // Update driver status to available if they were on this trip
+        if (trip.driver_id) {
+            try {
+                await supabase
+                    .from('profiles')
+                    .update({ status: 'available' })
+                    .eq('id', trip.driver_id);
+            } catch (error) {
+                console.warn('Could not update driver status:', error.message);
+            }
+        }
+        
+        // Revalidate and redirect
+        revalidatePath(`/drivers/${trip.driver_id}`);
+        redirect(`/drivers/${trip.driver_id}?success=Trip completed successfully`);
+        
+    } catch (error) {
+        console.error('Error in trip completion:', error);
+        redirect('/drivers?error=Internal server error');
+    }
+}
 
 // This is a Server Component
 export default async function DriverDetailPage({ params }) {
@@ -76,7 +157,10 @@ export default async function DriverDetailPage({ params }) {
             console.warn('Could not fetch vehicle data:', error.message);
         }
 
-        // Get trip statistics
+        // Get trip statistics and current trips
+        let inProgressTrips = [];
+        let completedTrips = [];
+        
         try {
             const { data: trips } = await supabase
                 .from('trips')
@@ -95,6 +179,14 @@ export default async function DriverDetailPage({ params }) {
                 tripStats.this_month_trips = trips.filter(trip => 
                     new Date(trip.created_at) >= startOfMonth
                 ).length;
+                
+                // Separate trips by status
+                inProgressTrips = trips.filter(trip => 
+                    trip.status === 'in_progress' || trip.status === 'upcoming'
+                );
+                completedTrips = trips.filter(trip => 
+                    trip.status === 'completed'
+                ).slice(0, 10); // Show only recent 10 completed trips
             }
         } catch (error) {
             console.warn('Could not fetch trip stats:', error.message);
@@ -239,6 +331,103 @@ export default async function DriverDetailPage({ params }) {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                         </svg>
                                         <p>No vehicle assigned</p>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* In Progress Trips */}
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">In Progress Trips</h3>
+                                {inProgressTrips.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {inProgressTrips.map((trip) => (
+                                            <div key={trip.id} className="border border-gray-200 rounded-lg p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                        trip.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
+                                                    }`}>
+                                                        {trip.status === 'in_progress' ? 'In Progress' : 'Upcoming'}
+                                                    </span>
+                                                    <form action={completeTrip} className="inline">
+                                                        <input type="hidden" name="trip_id" value={trip.id} />
+                                                        <button 
+                                                            type="submit"
+                                                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                                                        >
+                                                            Mark Complete
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                <div className="text-sm text-gray-900 mb-1">
+                                                    <strong>From:</strong> {trip.pickup_address}
+                                                </div>
+                                                <div className="text-sm text-gray-900 mb-1">
+                                                    <strong>To:</strong> {trip.destination_address}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    <strong>Pickup:</strong> {new Date(trip.pickup_time).toLocaleString()}
+                                                </div>
+                                                {trip.price && (
+                                                    <div className="text-sm text-gray-500">
+                                                        <strong>Price:</strong> ${trip.price}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 text-gray-500">
+                                        <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                        </svg>
+                                        <p>No active trips</p>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Completed Trips */}
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Completed Trips</h3>
+                                {completedTrips.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {completedTrips.map((trip) => (
+                                            <div key={trip.id} className="border border-gray-200 rounded-lg p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        Completed
+                                                    </span>
+                                                    {trip.rating && (
+                                                        <div className="flex items-center text-sm text-gray-500">
+                                                            <svg className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                            </svg>
+                                                            {trip.rating}/5
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="text-sm text-gray-900 mb-1">
+                                                    <strong>From:</strong> {trip.pickup_address}
+                                                </div>
+                                                <div className="text-sm text-gray-900 mb-1">
+                                                    <strong>To:</strong> {trip.destination_address}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    <strong>Completed:</strong> {new Date(trip.updated_at).toLocaleString()}
+                                                </div>
+                                                {trip.price && (
+                                                    <div className="text-sm text-gray-500">
+                                                        <strong>Price:</strong> ${trip.price}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 text-gray-500">
+                                        <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <p>No completed trips</p>
                                     </div>
                                 )}
                             </div>
