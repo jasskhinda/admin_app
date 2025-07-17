@@ -15,6 +15,7 @@ export default function AddDriverForm({ user, userProfile }) {
   const [status, setStatus] = useState('available');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [generatedPassword, setGeneratedPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -68,6 +69,7 @@ export default function AddDriverForm({ user, userProfile }) {
 
       // Success!
       setSuccess('Driver account successfully created');
+      setGeneratedPassword(password);
       
       // Reset the form
       setEmail('');
@@ -78,9 +80,12 @@ export default function AddDriverForm({ user, userProfile }) {
       setVehicleLicense('');
       setStatus('available');
       
+      // Don't reset password immediately - let admin copy it first
+      
     } catch (err) {
       console.error('Error creating driver:', err);
       setError(err.message || 'An error occurred while creating the driver');
+      setGeneratedPassword(''); // Clear password on error
     } finally {
       setLoading(false);
     }
@@ -111,6 +116,21 @@ export default function AddDriverForm({ user, userProfile }) {
           {success && (
             <div className="mb-6 p-4 border-l-4 border-green-500 bg-green-50 text-green-700 rounded">
               <p>{success}</p>
+              {generatedPassword && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-sm font-medium text-yellow-800 mb-2">Generated Password (share with driver):</p>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">{generatedPassword}</code>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(generatedPassword)}
+                      className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <p className="text-xs text-yellow-700 mt-2">⚠️ Save this password securely - it won't be shown again</p>
+                </div>
+              )}
             </div>
           )}
 
