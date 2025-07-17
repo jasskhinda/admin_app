@@ -98,7 +98,24 @@ export default function AdminInvoicesView({ user, userProfile, invoices, invoice
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 bg-background text-primary min-h-screen">
+    <div className="container mx-auto px-4 py-8 bg-background text-primary min-h-screen relative">
+      {/* COMING SOON Overlay */}
+      <div className="absolute inset-0 bg-white bg-opacity-95 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl font-bold text-gray-800 mb-4">
+            🚧 COMING SOON 🚧
+          </div>
+          <div className="text-xl text-gray-600 mb-8">
+            We're working on improving this page for you!
+          </div>
+          <div className="text-lg text-gray-500 mb-4">
+            Invoice management features will be available soon.
+          </div>
+          <div className="text-sm text-gray-400">
+            Stay tuned for updates...
+          </div>
+        </div>
+      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Invoice Management</h1>
         <Link
