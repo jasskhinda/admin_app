@@ -41,23 +41,14 @@ export default async function TripsPage() {
     redirect('/login?error=Admin%20access%20required');
   }
   
-  // Optimized trips fetching with basic client info in one query
+  // Fetch trips with basic data first to debug
   const { data: trips, error: tripsError } = await supabase
     .from('trips')
-    .select(`
-      *,
-      user_profile:profiles!trips_user_id_fkey(
-        id, first_name, last_name, full_name, email, phone_number, role
-      ),
-      managed_client:facility_managed_clients!trips_managed_client_id_fkey(
-        id, first_name, last_name, email, phone_number
-      ),
-      facility:facilities!trips_facility_id_fkey(
-        id, name, contact_email, phone_number
-      )
-    `)
+    .select('*')
     .order('created_at', { ascending: false })
-    .limit(100); // Limit to recent 100 trips for performance
+    .limit(100);
+  
+  console.log('Trips query result:', { trips: trips?.length || 0, error: tripsError });
   
   if (tripsError) {
     console.error('Error fetching trips:', tripsError);
