@@ -102,14 +102,14 @@ export async function middleware(request) {
         return NextResponse.redirect(new URL('/login?error=User%20profile%20not%20found', request.url));
       }
       
-      // Check if user is an admin
-      if (profile.role !== 'admin') {
-        console.log("MIDDLEWARE: Not an admin, redirecting to login");
+      // Check if user is an admin or dispatcher
+      if (!['admin', 'dispatcher'].includes(profile.role)) {
+        console.log("MIDDLEWARE: Not an admin or dispatcher, redirecting to login");
         await supabase.auth.signOut();
-        return NextResponse.redirect(new URL('/login?error=Access%20denied.%20Admin%20only', request.url));
+        return NextResponse.redirect(new URL('/login?error=Access%20denied.%20Admin%20or%20dispatcher%20access%20required', request.url));
       }
       
-      console.log('MIDDLEWARE: Admin verification successful');
+      console.log('MIDDLEWARE: Admin/Dispatcher verification successful');
     } catch (err) {
       console.log('MIDDLEWARE: Profile check error:', err.message);
       
@@ -124,8 +124,8 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL('/login?error=Authentication%20error', request.url));
     }
     
-    // User is authenticated and is an admin, proceed
-    console.log("MIDDLEWARE: Admin access granted for", path);
+    // User is authenticated and has required role, proceed
+    console.log("MIDDLEWARE: Access granted for", path);
     return response;
     
   } catch (error) {
