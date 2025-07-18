@@ -25,8 +25,8 @@ export default async function NewTripPage({ searchParams }) {
             .eq('id', user.id)
             .single();
 
-        if (profileError || !profile || !['admin', 'dispatcher', 'facility'].includes(profile.role)) {
-            redirect('/login?error=Access%20denied.%20Insufficient%20privileges.');
+        if (profileError || !profile || profile.role !== 'admin') {
+            redirect('/login?error=Access%20denied.%20Admin%20access%20required.');
         }
 
         // Fetch individual clients

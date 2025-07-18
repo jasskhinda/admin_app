@@ -216,8 +216,14 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
     }
   };
 
-  const handleCompleteTrip = async (tripId) => {
-    if (!confirm('Are you sure you want to mark this trip as completed? This action cannot be undone.')) {
+  const handleTripAction = async (tripId, action, reason = null) => {
+    const actionMessages = {
+      approve: 'approve this trip',
+      reject: 'reject this trip',
+      complete: 'mark this trip as completed'
+    };
+
+    if (!confirm(`Are you sure you want to ${actionMessages[action]}? This action cannot be undone.`)) {
       return;
     }
 
@@ -225,37 +231,60 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
       setActionLoading(prev => ({ ...prev, [tripId]: true }));
       setActionMessage('');
 
-      // Optimistic update - immediately update the UI
-      updateTripOptimistically(tripId, { status: 'completed' });
+      // Optimistic update based on action
+      const optimisticStatus = {
+        approve: 'upcoming',
+        reject: 'cancelled',
+        complete: 'completed'
+      };
+      updateTripOptimistically(tripId, { status: optimisticStatus[action] });
 
-      const response = await fetch('/api/admin/complete-trip', {
+      const response = await fetch('/api/admin/trip-actions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ tripId }),
+        body: JSON.stringify({ tripId, action, reason }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
         // Revert optimistic update on error
-        updateTripOptimistically(tripId, { status: 'in_progress' });
-        throw new Error(result.error || 'Failed to complete trip');
+        updateTripOptimistically(tripId, { status: trips.find(t => t.id === tripId)?.status });
+        throw new Error(result.error || `Failed to ${action} trip`);
       }
 
-      setActionMessage('✅ Trip completed successfully!');
+      const successMessages = {
+        approve: '✅ Trip approved successfully!',
+        reject: '✅ Trip rejected successfully!',
+        complete: '✅ Trip completed successfully!'
+      };
+      setActionMessage(successMessages[action]);
       
-      // No need to refresh - real-time updates will handle it
       setTimeout(() => setActionMessage(''), 3000);
 
     } catch (error) {
-      console.error('Error completing trip:', error);
+      console.error(`Error ${action}ing trip:`, error);
       setActionMessage(`❌ Error: ${error.message}`);
     } finally {
       setActionLoading(prev => ({ ...prev, [tripId]: false }));
       setTimeout(() => setActionMessage(''), 5000);
     }
+  };
+
+  const handleAssignDriver = async (tripId) => {
+    // For now, redirect to driver assignment page
+    // In the future, this could be a modal with driver selection
+    router.push(`/drivers?assign_trip=${tripId}`);
+  };
+
+  const handleRejectTrip = async (tripId) => {
+    const reason = prompt('Please provide a reason for rejecting this trip:');
+    if (reason === null) return; // User cancelled
+    
+    const rejectionReason = reason.trim() || 'Rejected by admin';
+    await handleTripAction(tripId, 'reject', rejectionReason);
   };
 
   const SortIcon = ({ field }) => {
@@ -420,7 +449,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                     <SortIcon field="status" />
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-56">
                   Actions
                 </th>
               </tr>
@@ -499,14 +528,49 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                       <div className="flex flex-col space-y-1">
                         <Link
                           href={`/trips/${trip.id}`}
-                          className="text-blue-600 hover:text-blue-900 font-medium"
+                          className="text-blue-600 hover:text-blue-900 font-medium text-xs"
                         >
                           View Details
                         </Link>
                         
+                        {/* Pending trips - show approve/reject buttons */}
+                        {trip.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleTripAction(trip.id, 'approve')}
+                              disabled={actionLoading[trip.id]}
+                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm"
+                              title="Approve trip"
+                            >
+                              {actionLoading[trip.id] ? '...' : '✅ APPROVE'}
+                            </button>
+                            <button
+                              onClick={() => handleRejectTrip(trip.id)}
+                              disabled={actionLoading[trip.id]}
+                              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm"
+                              title="Reject trip"
+                            >
+                              {actionLoading[trip.id] ? '...' : '❌ REJECT'}
+                            </button>
+                          </>
+                        )}
+                        
+                        {/* Upcoming trips - show assign driver button */}
+                        {trip.status === 'upcoming' && !trip.driver_id && (
+                          <button
+                            onClick={() => handleAssignDriver(trip.id)}
+                            disabled={actionLoading[trip.id]}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm"
+                            title="Assign driver to this trip"
+                          >
+                            👤 ASSIGN DRIVER
+                          </button>
+                        )}
+                        
+                        {/* In progress trips - show complete button */}
                         {trip.status === 'in_progress' && (
                           <button
-                            onClick={() => handleCompleteTrip(trip.id)}
+                            onClick={() => handleTripAction(trip.id, 'complete')}
                             disabled={actionLoading[trip.id]}
                             className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm"
                             title="Mark trip as completed"
@@ -515,14 +579,11 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                           </button>
                         )}
                         
-                        {(trip.status === 'upcoming' && !trip.driver_id) && (
-                          <Link
-                            href={`/drivers?assign_trip=${trip.id}`}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors duration-200 shadow-sm"
-                            title="Assign driver to this trip"
-                          >
-                            👤 ASSIGN DRIVER
-                          </Link>
+                        {/* Show driver info if assigned */}
+                        {trip.driver_id && trip.status === 'upcoming' && (
+                          <div className="text-xs text-gray-500">
+                            Driver assigned
+                          </div>
                         )}
                       </div>
                     </td>

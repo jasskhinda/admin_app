@@ -22,10 +22,10 @@ export default function TripDetails({ params }) {
       return;
     }
     
-    // Ensure user has admin or dispatcher role
-    if (!userProfile || !['admin', 'dispatcher'].includes(userProfile.role)) {
+    // Ensure user has admin role (admin app is admin-only)
+    if (!userProfile || userProfile.role !== 'admin') {
       signOut();
-      router.push('/login?error=Access denied. Admin or dispatcher access required.');
+      router.push('/login?error=Access denied. Admin access required.');
       return;
     }
     

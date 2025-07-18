@@ -19,8 +19,8 @@ export default async function TripsPage() {
     .eq('id', user.id)
     .single();
   
-  if (profileError || !profile || !['admin', 'dispatcher'].includes(profile.role)) {
-    redirect('/login?error=Admin%20or%20dispatcher%20access%20required');
+  if (profileError || !profile || profile.role !== 'admin') {
+    redirect('/login?error=Admin%20access%20required');
   }
   
   // Fetch all trips - use simple query first, then enrich with client data
