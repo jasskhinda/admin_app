@@ -384,14 +384,14 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
       {/* Trips Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                   Trip ID
                 </th>
                 <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 min-w-[250px]"
                   onClick={() => handleSort('client')}
                 >
                   <div className="flex items-center">
@@ -399,11 +399,11 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                     <SortIcon field="client" />
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[300px]">
                   Route
                 </th>
                 <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-40"
                   onClick={() => handleSort('pickup_time')}
                 >
                   <div className="flex items-center">
@@ -412,7 +412,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                   </div>
                 </th>
                 <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-32"
                   onClick={() => handleSort('status')}
                 >
                   <div className="flex items-center">
@@ -420,7 +420,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                     <SortIcon field="status" />
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                   Actions
                 </th>
               </tr>
@@ -432,14 +432,14 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                 
                 return (
                   <tr key={trip.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {trip.id?.substring(0, 8)}...
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-xs font-medium text-gray-900 font-mono">
+                        {trip.id?.substring(0, 10)}...
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
+                    <td className="px-4 py-4">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0 h-8 w-8 mt-0.5">
                           <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
                             clientDetails.type === 'Facility' 
                               ? 'bg-blue-100 text-blue-600' 
@@ -456,44 +456,52 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                             )}
                           </div>
                         </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">
+                        <div className="ml-3 min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">
                             {clientName}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-xs text-gray-500 truncate">
                             {clientDetails.email}
                           </div>
                           {clientDetails.facility && (
-                            <div className="text-xs text-blue-600 font-medium">
+                            <div className="text-xs text-blue-600 font-medium truncate">
                               {clientDetails.facility}
                             </div>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        <div className="font-medium">From:</div>
-                        <div className="text-gray-600 max-w-xs truncate">{trip.pickup_address || 'Not specified'}</div>
-                        <div className="font-medium mt-1">To:</div>
-                        <div className="text-gray-600 max-w-xs truncate">{trip.destination_address || 'Not specified'}</div>
+                    <td className="px-4 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-start">
+                          <span className="inline-block w-2 h-2 bg-green-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                          <div className="text-sm text-gray-700 line-clamp-2">
+                            {trip.pickup_address || 'Pickup location not specified'}
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <span className="inline-block w-2 h-2 bg-red-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                          <div className="text-sm text-gray-700 line-clamp-2">
+                            {trip.destination_address || 'Destination not specified'}
+                          </div>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {formatDate(trip.pickup_time || trip.created_at)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       {getStatusBadge(trip.status)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex flex-col space-y-1">
                         <Link
                           href={`/trips/${trip.id}`}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="text-blue-600 hover:text-blue-900 font-medium"
                         >
-                          View
+                          View Details
                         </Link>
                         
                         {trip.status === 'in_progress' && (

@@ -29,8 +29,8 @@ export default async function NewTripPage({ searchParams }) {
             redirect('/login?error=Access%20denied.%20Insufficient%20privileges.');
         }
 
-        // Fetch clients for trip creation
-        const { data: clients, error: clientsError } = await supabase
+        // Fetch individual clients
+        const { data: individualClients, error: clientsError } = await supabase
             .from('profiles')
             .select('*')
             .eq('role', 'client')
@@ -38,6 +38,34 @@ export default async function NewTripPage({ searchParams }) {
 
         if (clientsError) {
             console.error('Error fetching clients:', clientsError);
+        }
+        
+        // Fetch managed clients from facility_managed_clients
+        const { data: managedClients, error: managedClientsError } = await supabase
+            .from('facility_managed_clients')
+            .select(`
+                *,
+                facility:facilities!facility_managed_clients_facility_id_fkey(
+                    id,
+                    name,
+                    contact_email,
+                    phone_number
+                )
+            `)
+            .order('created_at', { ascending: false });
+            
+        if (managedClientsError) {
+            console.error('Error fetching managed clients:', managedClientsError);
+        }
+        
+        // Fetch facilities
+        const { data: facilities, error: facilitiesError } = await supabase
+            .from('facilities')
+            .select('*')
+            .order('name', { ascending: true });
+            
+        if (facilitiesError) {
+            console.error('Error fetching facilities:', facilitiesError);
         }
 
         // Get drivers for assignment
@@ -51,12 +79,14 @@ export default async function NewTripPage({ searchParams }) {
         const preselectedDriverId = searchParams?.driver;
         
         // Import the NewTripForm component
-        const { NewTripForm } = require('../../components/NewTripForm');
+        const { default: NewTripForm } = await import('./NewTripForm');
         
         return <NewTripForm 
             user={user} 
             userProfile={profile} 
-            clients={clients || []} 
+            individualClients={individualClients || []} 
+            managedClients={managedClients || []}
+            facilities={facilities || []}
             drivers={drivers || []}
             preselectedDriverId={preselectedDriverId}
         />;
