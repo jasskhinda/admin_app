@@ -298,11 +298,13 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
     setShowDriverAssignModal(true);
     
     // Fetch available drivers
+    console.log('Fetching drivers for trip assignment...');
     await fetchAvailableDrivers();
   };
   
   const fetchAvailableDrivers = async () => {
     try {
+      console.log('Starting driver fetch...');
       const supabase = createClient();
       const { data: drivers, error: driversError } = await supabase
         .from('profiles')
@@ -310,10 +312,19 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
         .eq('role', 'driver')
         .order('first_name');
 
-      if (driversError) throw driversError;
+      if (driversError) {
+        console.error('Driver fetch error:', driversError);
+        throw driversError;
+      }
       
       console.log('Fetched drivers:', drivers);
+      console.log('Driver count:', drivers?.length || 0);
       setAvailableDrivers(drivers || []);
+      
+      if (!drivers || drivers.length === 0) {
+        console.warn('No drivers found in database');
+        setActionMessage('No drivers available');
+      }
     } catch (error) {
       console.error('Error fetching drivers:', error);
       setActionMessage('Error fetching drivers: ' + error.message);
