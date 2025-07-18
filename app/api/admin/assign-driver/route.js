@@ -156,19 +156,35 @@ export async function POST(request) {
 
     // Assign driver to trip using the new function
     try {
+      console.log(`🔧 Calling assign_trip_to_driver RPC [${requestId}] with params:`, {
+        trip_id: tripId?.substring(0, 8) + '...',
+        driver_id: driverId?.substring(0, 8) + '...'
+      });
+
       const { data: functionResult, error: functionError } = await supabase
         .rpc('assign_trip_to_driver', {
           trip_id: tripId,
           driver_id: driverId
         });
 
+      console.log(`🔍 RPC function result [${requestId}]:`, { 
+        result: functionResult, 
+        hasError: !!functionError 
+      });
+
       if (functionError) {
-        console.error(`❌ Trip assignment function failed [${requestId}]:`, functionError);
+        console.error(`❌ Trip assignment function failed [${requestId}]:`, {
+          message: functionError.message,
+          details: functionError.details,
+          hint: functionError.hint,
+          code: functionError.code
+        });
         throw new Error(`Failed to assign driver: ${functionError.message}`);
       }
 
       if (!functionResult) {
-        throw new Error('Failed to assign driver - no trip was updated');
+        console.error(`❌ RPC function returned false [${requestId}] - no trip was updated`);
+        throw new Error('Failed to assign driver - no trip was updated (function returned false)');
       }
 
       // Get the updated trip
