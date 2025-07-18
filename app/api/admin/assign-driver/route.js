@@ -154,39 +154,37 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    // Assign driver to trip
+    // Assign driver to trip using the new function
     try {
-      const { data: updatedTrip, error: updateError } = await supabase
+      const { data: functionResult, error: functionError } = await supabase
+        .rpc('assign_trip_to_driver', {
+          trip_id: tripId,
+          driver_id: driverId
+        });
+
+      if (functionError) {
+        console.error(`❌ Trip assignment function failed [${requestId}]:`, functionError);
+        throw new Error(`Failed to assign driver: ${functionError.message}`);
+      }
+
+      if (!functionResult) {
+        throw new Error('Failed to assign driver - no trip was updated');
+      }
+
+      // Get the updated trip
+      const { data: updatedTrip, error: tripFetchError } = await supabase
         .from('trips')
-        .update({
-          driver_id: driverId,
-          status: 'in_progress',
-          updated_at: new Date().toISOString()
-        })
+        .select('*')
         .eq('id', tripId)
-        .select()
         .single();
 
-      if (updateError) {
-        console.error(`❌ Trip assignment failed [${requestId}]:`, updateError);
-        throw new Error(`Failed to assign driver: ${updateError.message}`);
+      if (tripFetchError) {
+        console.error(`❌ Failed to fetch updated trip [${requestId}]:`, tripFetchError);
+        throw new Error(`Failed to fetch updated trip: ${tripFetchError.message}`);
       }
 
-      // Update driver status to on_trip
-      const { error: driverUpdateError } = await supabase
-        .from('profiles')
-        .update({ 
-          status: 'on_trip',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', driverId);
-
-      if (driverUpdateError) {
-        console.warn(`⚠️ Driver status update failed [${requestId}]:`, driverUpdateError);
-        // Don't fail the assignment if driver status update fails
-      } else {
-        console.log(`✅ Driver status updated to on_trip [${requestId}]: ${driverId}`);
-      }
+      // Note: Driver status can be managed separately if needed
+      // For now, we'll let the driver acceptance workflow handle status updates
 
       console.log(`✅ Driver assigned successfully [${requestId}]: ${updatedTrip.id}`);
       

@@ -32,6 +32,12 @@ function getStatusBadge(status) {
       border: 'border-blue-200',
       dot: 'bg-blue-400'
     },
+    'awaiting_driver_acceptance': {
+      bg: 'bg-orange-100',
+      text: 'text-orange-800',
+      border: 'border-orange-200',
+      dot: 'bg-orange-400'
+    },
     'in_progress': {
       bg: 'bg-purple-100',
       text: 'text-purple-800',
@@ -57,7 +63,8 @@ function getStatusBadge(status) {
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.bg} ${config.text} ${config.border}`}>
       <span className={`w-1.5 h-1.5 mr-1.5 rounded-full ${config.dot}`}></span>
-      {status?.charAt(0).toUpperCase() + status?.slice(1) || 'Unknown'}
+      {status === 'awaiting_driver_acceptance' ? 'Waiting Driver Acceptance' : 
+       status?.charAt(0).toUpperCase() + status?.slice(1) || 'Unknown'}
     </span>
   );
 }
@@ -171,6 +178,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
       total,
       pending: byStatus.pending || 0,
       upcoming: byStatus.upcoming || 0,
+      awaiting_driver_acceptance: byStatus.awaiting_driver_acceptance || 0,
       in_progress: byStatus.in_progress || 0,
       completed: byStatus.completed || 0,
       cancelled: byStatus.cancelled || 0
@@ -308,7 +316,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
       const supabase = createClient();
       const { data: drivers, error: driversError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, phone_number, email, vehicle_model, vehicle_license, status')
+        .select('id, first_name, last_name, phone_number, email, vehicle_model, vehicle_license, full_name')
         .eq('role', 'driver')
         .order('first_name');
 
@@ -356,7 +364,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
       // Optimistically update the trip
       updateTripOptimistically(assigningTripId, { 
         driver_id: selectedDriverId,
-        status: 'in_progress'
+        status: 'awaiting_driver_acceptance'
       });
 
       setActionMessage('✅ Driver assigned successfully!');
@@ -432,19 +440,15 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                 >
                   <option value="">Choose a driver...</option>
                   {availableDrivers.map((driver) => {
-                    const isAvailable = driver.status !== 'on_trip' && driver.status !== 'offline';
+                    const displayName = driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || driver.email || 'Unknown Driver';
                     return (
                       <option 
                         key={driver.id} 
                         value={driver.id}
-                        disabled={!isAvailable}
                       >
-                        {driver.first_name} {driver.last_name}
+                        {displayName}
                         {driver.vehicle_model && ` - ${driver.vehicle_model}`}
                         {driver.phone_number && ` • ${driver.phone_number}`}
-                        {driver.status === 'on_trip' && ' 🚗 (Currently on Trip - Unavailable)'}
-                        {driver.status === 'offline' && ' 🔴 (Offline - Unavailable)'}
-                        {driver.status === 'available' && ' ✅ (Available)'}
                       </option>
                     );
                   })}
@@ -530,6 +534,10 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
           <div className="text-sm text-gray-500">Upcoming</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+          <div className="text-2xl font-bold text-orange-600">{stats.awaiting_driver_acceptance}</div>
+          <div className="text-sm text-gray-500">Waiting Driver</div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
           <div className="text-2xl font-bold text-purple-600">{stats.in_progress}</div>
           <div className="text-sm text-gray-500">In Progress</div>
         </div>
@@ -563,6 +571,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
             <option value="upcoming">Upcoming</option>
+            <option value="awaiting_driver_acceptance">Waiting Driver Acceptance</option>
             <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
