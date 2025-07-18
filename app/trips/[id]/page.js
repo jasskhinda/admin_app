@@ -47,17 +47,53 @@ export default async function TripDetails({ params }) {
   
   if (tripError) {
     console.error('Error fetching trip details:', tripError);
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <header className="bg-white shadow">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-900">Trip Details</h1>
+            <Link
+              href="/trips"
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Back to Trips
+            </Link>
+          </div>
+        </header>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+              <p className="text-sm text-red-700">Error loading trip details: {tripError.message}</p>
+            </div>
+            <div className="flex justify-center">
+              <Link
+                href="/trips"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Return to Trips
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
   
   // Format scheduled time for display
   const formatScheduledTime = (timeStr) => {
     if (!timeStr) return 'N/A';
-    const date = new Date(timeStr);
-    return date.toLocaleString();
+    try {
+      const date = new Date(timeStr);
+      return date.toLocaleString();
+    } catch (error) {
+      return 'Invalid date';
+    }
   };
 
   // Get client information from the trip data
   const getClientInfo = (trip) => {
+    if (!trip) return null;
+    
     if (trip.user_profile) {
       return {
         name: trip.user_profile.full_name || `${trip.user_profile.first_name || ''} ${trip.user_profile.last_name || ''}`.trim(),
@@ -77,7 +113,7 @@ export default async function TripDetails({ params }) {
     return null;
   };
 
-  const clientInfo = getClientInfo(trip);
+  const clientInfo = trip ? getClientInfo(trip) : null;
 
   if (!trip) {
     return (
