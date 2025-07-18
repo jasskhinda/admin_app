@@ -24,29 +24,15 @@ export default async function TripDetails({ params }) {
     redirect('/login?error=Admin%20access%20required');
   }
   
-  // Fetch trip details with all related data in one optimized query
-  const { data: trip, error: tripError } = await supabase
+  // Fetch trip details with basic data first
+  const { data: rawTrip, error: tripError } = await supabase
     .from('trips')
-    .select(`
-      *,
-      user_profile:profiles!trips_user_id_fkey(
-        id, first_name, last_name, full_name, email, phone_number, role
-      ),
-      managed_client:facility_managed_clients!trips_managed_client_id_fkey(
-        id, first_name, last_name, email, phone_number
-      ),
-      facility:facilities!trips_facility_id_fkey(
-        id, name, contact_email, phone_number
-      ),
-      driver:profiles!trips_driver_id_fkey(
-        id, first_name, last_name, phone_number, vehicle_model, vehicle_license
-      )
-    `)
+    .select('*')
     .eq('id', tripId)
     .single();
   
-  if (tripError) {
-    console.error('Error fetching trip details:', tripError);
+  if (tripError || !rawTrip) {
+    console.error('Error fetching trip:', tripError);
     return (
       <div className="min-h-screen bg-gray-100">
         <header className="bg-white shadow">
@@ -63,7 +49,7 @@ export default async function TripDetails({ params }) {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white shadow rounded-lg p-6">
             <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-              <p className="text-sm text-red-700">Error loading trip details: {tripError.message}</p>
+              <p className="text-sm text-red-700">Trip not found</p>
             </div>
             <div className="flex justify-center">
               <Link
@@ -77,6 +63,49 @@ export default async function TripDetails({ params }) {
         </main>
       </div>
     );
+  }
+
+  // Enrich trip with related data
+  const trip = { ...rawTrip };
+  
+  // Get user profile if user_id exists
+  if (rawTrip.user_id) {
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, full_name, email, phone_number, role')
+      .eq('id', rawTrip.user_id)
+      .single();
+    if (userProfile) trip.user_profile = userProfile;
+  }
+  
+  // Get managed client if managed_client_id exists
+  if (rawTrip.managed_client_id) {
+    const { data: managedClient } = await supabase
+      .from('facility_managed_clients')
+      .select('id, first_name, last_name, email, phone_number')
+      .eq('id', rawTrip.managed_client_id)
+      .single();
+    if (managedClient) trip.managed_client = managedClient;
+  }
+  
+  // Get facility if facility_id exists
+  if (rawTrip.facility_id) {
+    const { data: facility } = await supabase
+      .from('facilities')
+      .select('id, name, contact_email, phone_number')
+      .eq('id', rawTrip.facility_id)
+      .single();
+    if (facility) trip.facility = facility;
+  }
+  
+  // Get driver if driver_id exists
+  if (rawTrip.driver_id) {
+    const { data: driver } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, phone_number, vehicle_model, vehicle_license')
+      .eq('id', rawTrip.driver_id)
+      .single();
+    if (driver) trip.driver = driver;
   }
   
   // Format scheduled time for display
