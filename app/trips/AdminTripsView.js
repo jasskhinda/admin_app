@@ -313,48 +313,82 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
   const fetchAvailableDrivers = async () => {
     try {
       console.log('🔍 Starting driver fetch...');
-      const supabase = createClient();
       
-      // First, let's test a simple query to see if the connection works
-      const { data: testData, error: testError } = await supabase
-        .from('profiles')
-        .select('count(*)')
-        .single();
+      // Create supabase client
+      let supabase;
+      try {
+        supabase = createClient();
+        console.log('✅ Supabase client created');
+      } catch (clientError) {
+        console.error('❌ Failed to create Supabase client:', clientError);
+        setActionMessage('Failed to connect to database');
+        return;
+      }
       
-      console.log('📊 Total profiles count:', testData, testError);
+      // Test basic connection
+      try {
+        console.log('🔗 Testing database connection...');
+        const { data: testData, error: testError } = await supabase
+          .from('profiles')
+          .select('count')
+          .limit(1);
+        
+        console.log('📊 Connection test result:', { testData, testError });
+        
+        if (testError) {
+          console.error('❌ Database connection failed:', testError);
+          setActionMessage(`Database connection failed: ${testError.message}`);
+          return;
+        }
+      } catch (connectionError) {
+        console.error('❌ Connection test failed:', connectionError);
+        setActionMessage('Database connection test failed');
+        return;
+      }
       
       // Now fetch drivers
-      const { data: drivers, error: driversError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, phone_number, email, vehicle_model, vehicle_license, full_name, role')
-        .eq('role', 'driver')
-        .order('first_name');
+      try {
+        console.log('🚗 Fetching drivers...');
+        const { data: drivers, error: driversError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, phone_number, email, vehicle_model, vehicle_license, full_name, role')
+          .eq('role', 'driver')
+          .order('first_name');
 
-      console.log('🔎 Driver query result:', { drivers, driversError });
-      console.log('📦 Raw drivers data:', JSON.stringify(drivers, null, 2));
+        console.log('🔎 Driver query result:', { drivers, driversError });
+        console.log('📦 Raw drivers data:', JSON.stringify(drivers, null, 2));
 
-      if (driversError) {
-        console.error('❌ Driver fetch error:', driversError);
-        setActionMessage(`Error fetching drivers: ${driversError.message}`);
-        throw driversError;
+        if (driversError) {
+          console.error('❌ Driver fetch error:', driversError);
+          setActionMessage(`Error fetching drivers: ${driversError.message}`);
+          return;
+        }
+        
+        console.log('✅ Fetched drivers successfully');
+        console.log('📈 Driver count:', drivers?.length || 0);
+        console.log('👥 Drivers:', drivers?.map(d => ({ id: d.id, name: d.full_name || `${d.first_name} ${d.last_name}`, email: d.email })));
+        
+        // Set the drivers in state
+        console.log('🔄 Setting drivers in state...');
+        setAvailableDrivers(drivers || []);
+        console.log('✅ Drivers set in state');
+        
+        if (!drivers || drivers.length === 0) {
+          console.warn('⚠️ No drivers found in database');
+          setActionMessage('❌ No drivers available. Please create a driver account first.');
+        } else {
+          console.log(`✅ ${drivers.length} drivers loaded successfully`);
+          setActionMessage('');
+        }
+        
+      } catch (queryError) {
+        console.error('❌ Driver query failed:', queryError);
+        setActionMessage(`Driver query failed: ${queryError.message}`);
       }
       
-      console.log('✅ Fetched drivers successfully');
-      console.log('📈 Driver count:', drivers?.length || 0);
-      console.log('👥 Drivers:', drivers?.map(d => ({ id: d.id, name: d.full_name || `${d.first_name} ${d.last_name}`, email: d.email })));
-      
-      setAvailableDrivers(drivers || []);
-      
-      if (!drivers || drivers.length === 0) {
-        console.warn('⚠️ No drivers found in database');
-        setActionMessage('❌ No drivers available. Please create a driver account first.');
-      } else {
-        console.log(`✅ ${drivers.length} drivers loaded successfully`);
-        setActionMessage('');
-      }
     } catch (error) {
-      console.error('🚨 Error fetching drivers:', error);
-      setActionMessage('Error fetching drivers: ' + error.message);
+      console.error('🚨 Unexpected error in fetchAvailableDrivers:', error);
+      setActionMessage('Unexpected error: ' + error.message);
     }
   };
   
