@@ -451,6 +451,13 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                 <label className="block text-sm font-bold text-gray-900 mb-2">
                   Select Driver:
                 </label>
+                {/* Debug info */}
+                <div className="text-xs text-gray-500 mb-1">
+                  Available drivers: {availableDrivers.length} loaded
+                  {availableDrivers.length > 0 && (
+                    <span> - {availableDrivers.map(d => d.full_name || `${d.first_name} ${d.last_name}`).join(', ')}</span>
+                  )}
+                </div>
                 <select
                   value={selectedDriverId}
                   onChange={(e) => setSelectedDriverId(e.target.value)}
@@ -458,8 +465,12 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                   disabled={assignmentLoading}
                 >
                   <option value="">Choose a driver...</option>
+                  {availableDrivers.length === 0 && (
+                    <option value="" disabled>No drivers available</option>
+                  )}
                   {availableDrivers.map((driver) => {
                     const displayName = driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || driver.email || 'Unknown Driver';
+                    console.log('🚗 Rendering driver option:', { id: driver.id, displayName, driver });
                     return (
                       <option 
                         key={driver.id} 
