@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRealtimeTripUpdates } from '@/hooks/useRealtimeTripUpdates';
+import { createClient } from '@/utils/supabase/client';
 
 function formatDate(dateString) {
   if (!dateString) return 'N/A';
@@ -135,6 +136,14 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
   const [sortOrder, setSortOrder] = useState('desc');
   const [actionLoading, setActionLoading] = useState({});
   const [actionMessage, setActionMessage] = useState('');
+  
+  // Driver assignment modal state
+  const [showDriverAssignModal, setShowDriverAssignModal] = useState(false);
+  const [assigningTripId, setAssigningTripId] = useState(null);
+  const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [availableDrivers, setAvailableDrivers] = useState([]);
+  const [assignmentLoading, setAssignmentLoading] = useState(false);
+  
   const router = useRouter();
   
   // Use real-time updates for trips
@@ -274,9 +283,79 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
   };
 
   const handleAssignDriver = async (tripId) => {
-    // For now, redirect to driver assignment page
-    // In the future, this could be a modal with driver selection
-    router.push(`/drivers?assign_trip=${tripId}`);
+    setAssigningTripId(tripId);
+    setSelectedDriverId('');
+    setShowDriverAssignModal(true);
+    
+    // Fetch available drivers
+    await fetchAvailableDrivers();
+  };
+  
+  const fetchAvailableDrivers = async () => {
+    try {
+      const supabase = createClient();
+      const { data: drivers, error: driversError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, phone_number, email, vehicle_model, vehicle_license, status')
+        .eq('role', 'driver')
+        .order('first_name');
+
+      if (driversError) throw driversError;
+      setAvailableDrivers(drivers || []);
+    } catch (error) {
+      console.error('Error fetching drivers:', error);
+      setActionMessage('Error fetching drivers: ' + error.message);
+    }
+  };
+  
+  const handleDriverAssignment = async () => {
+    if (!selectedDriverId || !assigningTripId) {
+      setActionMessage('Please select a driver');
+      return;
+    }
+
+    setAssignmentLoading(true);
+    try {
+      const response = await fetch('/api/admin/assign-driver', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tripId: assigningTripId, driverId: selectedDriverId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to assign driver');
+      }
+
+      // Optimistically update the trip
+      updateTripOptimistically(assigningTripId, { 
+        driver_id: selectedDriverId,
+        status: 'in_progress'
+      });
+
+      setActionMessage('✅ Driver assigned successfully!');
+      setShowDriverAssignModal(false);
+      setAssigningTripId(null);
+      setSelectedDriverId('');
+      
+      setTimeout(() => setActionMessage(''), 3000);
+    } catch (error) {
+      console.error('Error assigning driver:', error);
+      setActionMessage(`❌ Failed to assign driver: ${error.message}`);
+    } finally {
+      setAssignmentLoading(false);
+      setTimeout(() => setActionMessage(''), 5000);
+    }
+  };
+  
+  const closeDriverAssignModal = () => {
+    setShowDriverAssignModal(false);
+    setAssigningTripId(null);
+    setSelectedDriverId('');
+    setAvailableDrivers([]);
   };
 
   const handleRejectTrip = async (tripId) => {
@@ -309,6 +388,67 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Driver Assignment Modal */}
+      {showDriverAssignModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Assign Driver to Trip
+              </h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-900 mb-2">
+                  Select Driver:
+                </label>
+                <select
+                  value={selectedDriverId}
+                  onChange={(e) => setSelectedDriverId(e.target.value)}
+                  className="w-full border-2 border-gray-400 rounded-md px-3 py-2 text-gray-900 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  disabled={assignmentLoading}
+                >
+                  <option value="">Choose a driver...</option>
+                  {availableDrivers.map((driver) => {
+                    const isAvailable = driver.status !== 'on_trip' && driver.status !== 'offline';
+                    return (
+                      <option 
+                        key={driver.id} 
+                        value={driver.id}
+                        disabled={!isAvailable}
+                      >
+                        {driver.first_name} {driver.last_name}
+                        {driver.vehicle_model && ` - ${driver.vehicle_model}`}
+                        {driver.phone_number && ` • ${driver.phone_number}`}
+                        {driver.status === 'on_trip' && ' 🚗 (Currently on Trip - Unavailable)'}
+                        {driver.status === 'offline' && ' 🔴 (Offline - Unavailable)'}
+                        {driver.status === 'available' && ' ✅ (Available)'}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={closeDriverAssignModal}
+                  disabled={assignmentLoading}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDriverAssignment}
+                  disabled={assignmentLoading || !selectedDriverId}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {assignmentLoading ? 'Assigning...' : 'Assign Driver'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Action Message */}
       {actionMessage && (
         <div className={`mb-6 px-4 py-3 rounded-lg ${
@@ -413,14 +553,14 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
       {/* Trips Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                   Trip ID
                 </th>
                 <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 min-w-[250px]"
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 min-w-[200px]"
                   onClick={() => handleSort('client')}
                 >
                   <div className="flex items-center">
@@ -428,11 +568,11 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                     <SortIcon field="client" />
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[300px]">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[280px]">
                   Route
                 </th>
                 <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-40"
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-32"
                   onClick={() => handleSort('pickup_time')}
                 >
                   <div className="flex items-center">
@@ -441,7 +581,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                   </div>
                 </th>
                 <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-32"
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-28"
                   onClick={() => handleSort('status')}
                 >
                   <div className="flex items-center">
@@ -449,7 +589,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                     <SortIcon field="status" />
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-56">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                   Actions
                 </th>
               </tr>
@@ -461,31 +601,31 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                 
                 return (
                   <tr key={trip.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td className="px-3 py-4 whitespace-nowrap">
                       <div className="text-xs font-medium text-gray-900 font-mono">
-                        {trip.id?.substring(0, 10)}...
+                        {trip.id?.substring(0, 8)}...
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-4">
                       <div className="flex items-start">
-                        <div className="flex-shrink-0 h-8 w-8 mt-0.5">
-                          <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                        <div className="flex-shrink-0 h-6 w-6 mt-0.5">
+                          <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
                             clientDetails.type === 'Facility' 
                               ? 'bg-blue-100 text-blue-600' 
                               : 'bg-gray-100 text-gray-600'
                           }`}>
                             {clientDetails.type === 'Facility' ? (
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                               </svg>
                             ) : (
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
                             )}
                           </div>
                         </div>
-                        <div className="ml-3 min-w-0">
+                        <div className="ml-2 min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">
                             {clientName}
                           </div>
@@ -500,31 +640,31 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-4">
                       <div className="space-y-1">
                         <div className="flex items-start">
                           <span className="inline-block w-2 h-2 bg-green-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                          <div className="text-sm text-gray-700 line-clamp-2">
+                          <div className="text-xs text-gray-700 line-clamp-2">
                             {trip.pickup_address || 'Pickup location not specified'}
                           </div>
                         </div>
                         <div className="flex items-start">
                           <span className="inline-block w-2 h-2 bg-red-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                          <div className="text-sm text-gray-700 line-clamp-2">
+                          <div className="text-xs text-gray-700 line-clamp-2">
                             {trip.destination_address || 'Destination not specified'}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                    <td className="px-3 py-4 whitespace-nowrap">
+                      <div className="text-xs text-gray-900">
                         {formatDate(trip.pickup_time || trip.created_at)}
                       </div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td className="px-3 py-4 whitespace-nowrap">
                       {getStatusBadge(trip.status)}
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-2 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex flex-col space-y-1">
                         <Link
                           href={`/trips/${trip.id}`}
