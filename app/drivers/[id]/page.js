@@ -1,90 +1,10 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import Link from 'next/link';
-import { revalidatePath } from 'next/cache';
-
-// Server action for completing trips
-async function completeTrip(formData) {
-    'use server';
-    
-    const tripId = formData.get('trip_id');
-    
-    if (!tripId) {
-        redirect('/drivers?error=Trip ID is required');
-    }
-    
-    try {
-        const supabase = await createClient();
-        
-        // Verify admin access
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-            redirect('/login');
-        }
-        
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-            
-        if (!profile || !['admin', 'dispatcher'].includes(profile.role)) {
-            redirect('/drivers?error=Access denied');
-        }
-        
-        // Verify trip exists and is in progress
-        const { data: trip, error: tripError } = await supabase
-            .from('trips')
-            .select('*')
-            .eq('id', tripId)
-            .single();
-            
-        if (tripError || !trip) {
-            redirect('/drivers?error=Trip not found');
-        }
-        
-        // Check if trip can be completed
-        if (!['in_progress', 'upcoming', 'approved'].includes(trip.status)) {
-            redirect(`/drivers/${trip.driver_id}?error=Trip cannot be completed from current status`);
-        }
-        
-        // Update trip status to completed
-        const { error: updateError } = await supabase
-            .from('trips')
-            .update({
-                status: 'completed',
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', tripId);
-            
-        if (updateError) {
-            redirect(`/drivers/${trip.driver_id}?error=Error completing trip`);
-        }
-        
-        // Update driver status to available if they were on this trip
-        if (trip.driver_id) {
-            try {
-                await supabase
-                    .from('profiles')
-                    .update({ status: 'available' })
-                    .eq('id', trip.driver_id);
-            } catch (error) {
-                console.warn('Could not update driver status:', error.message);
-            }
-        }
-        
-        // Revalidate and redirect
-        revalidatePath(`/drivers/${trip.driver_id}`);
-        redirect(`/drivers/${trip.driver_id}?success=Trip completed successfully`);
-        
-    } catch (error) {
-        console.error('Error in trip completion:', error);
-        redirect('/drivers?error=Internal server error');
-    }
-}
+import TripCompleteButton from './TripCompleteButton';
 
 // This is a Server Component
-export default async function DriverDetailPage({ params }) {
+export default async function DriverDetailPage({ params, searchParams }) {
     const { id: driverId } = params;
     
     try {
@@ -223,6 +143,18 @@ export default async function DriverDetailPage({ params }) {
         return (
             <div className="min-h-screen bg-gray-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {/* Success/Error Messages */}
+                    {searchParams?.success && (
+                        <div className="mb-4 p-4 border-l-4 border-green-500 bg-green-50 text-green-700 rounded">
+                            <p>{decodeURIComponent(searchParams.success)}</p>
+                        </div>
+                    )}
+                    {searchParams?.error && (
+                        <div className="mb-4 p-4 border-l-4 border-red-500 bg-red-50 text-red-700 rounded">
+                            <p>{decodeURIComponent(searchParams.error)}</p>
+                        </div>
+                    )}
+                    
                     {/* Header */}
                     <div className="mb-8">
                         <div className="flex items-center justify-between">
@@ -348,15 +280,7 @@ export default async function DriverDetailPage({ params }) {
                                                     }`}>
                                                         {trip.status === 'in_progress' ? 'In Progress' : 'Upcoming'}
                                                     </span>
-                                                    <form action={completeTrip} className="inline">
-                                                        <input type="hidden" name="trip_id" value={trip.id} />
-                                                        <button 
-                                                            type="submit"
-                                                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
-                                                        >
-                                                            Mark Complete
-                                                        </button>
-                                                    </form>
+                                                    <TripCompleteButton tripId={trip.id} />
                                                 </div>
                                                 <div className="text-sm text-gray-900 mb-1">
                                                     <strong>From:</strong> {trip.pickup_address}
