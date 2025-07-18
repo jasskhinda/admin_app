@@ -41,33 +41,71 @@ export default async function TripsPage() {
     redirect('/login?error=Admin%20access%20required');
   }
   
-  // Fetch trips with all related data using left joins
-  const { data: trips, error: tripsError } = await supabase
+  // Fetch trips with basic data first, then enrich with related data
+  const { data: rawTrips, error: tripsError } = await supabase
     .from('trips')
-    .select(`
-      *,
-      user_profile:profiles!trips_user_id_fkey(
-        id, first_name, last_name, full_name, email, phone_number, role
-      ),
-      managed_client:facility_managed_clients!trips_managed_client_id_fkey(
-        id, first_name, last_name, email, phone_number
-      ),
-      facility:facilities!trips_facility_id_fkey(
-        id, name, contact_email, phone_number
-      ),
-      driver:profiles!trips_driver_id_fkey(
-        id, first_name, last_name, phone_number, vehicle_model, vehicle_license
-      )
-    `)
+    .select('*')
     .order('created_at', { ascending: false })
     .limit(100);
-  
-  console.log('Trips query result:', { trips: trips?.length || 0, error: tripsError });
   
   if (tripsError) {
     console.error('Error fetching trips:', tripsError);
   }
   
-  const tripsWithClients = trips || [];
-  return <AdminTripsView trips={tripsWithClients} />;
+  // Enrich trips with related data
+  const trips = rawTrips ? await Promise.all(
+    rawTrips.map(async (trip) => {
+      const enrichedTrip = { ...trip };
+      
+      // Get user profile if user_id exists
+      if (trip.user_id) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, full_name, email, phone_number, role')
+          .eq('id', trip.user_id)
+          .single();
+        if (userProfile) enrichedTrip.user_profile = userProfile;
+      }
+      
+      // Get managed client if managed_client_id exists
+      if (trip.managed_client_id) {
+        const { data: managedClient } = await supabase
+          .from('facility_managed_clients')
+          .select('id, first_name, last_name, email, phone_number')
+          .eq('id', trip.managed_client_id)
+          .single();
+        if (managedClient) enrichedTrip.managed_client = managedClient;
+      }
+      
+      // Get facility if facility_id exists
+      if (trip.facility_id) {
+        const { data: facility } = await supabase
+          .from('facilities')
+          .select('id, name, contact_email, phone_number')
+          .eq('id', trip.facility_id)
+          .single();
+        if (facility) enrichedTrip.facility = facility;
+      }
+      
+      // Get driver if driver_id exists
+      if (trip.driver_id) {
+        const { data: driver } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, phone_number, vehicle_model, vehicle_license')
+          .eq('id', trip.driver_id)
+          .single();
+        if (driver) enrichedTrip.driver = driver;
+      }
+      
+      return enrichedTrip;
+    })
+  ) : [];
+  
+  console.log('Enriched trips:', { trips: trips?.length || 0, error: tripsError });
+  
+  if (tripsError) {
+    console.error('Error fetching trips:', tripsError);
+  }
+  
+  return <AdminTripsView trips={trips} />;
 }
