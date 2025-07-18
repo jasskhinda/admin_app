@@ -78,8 +78,18 @@ function getClientName(trip) {
            'Facility Client';
   }
   
-  // Fallback
-  return trip.client_name || trip.passenger_name || 'Unknown Client';
+  // Fallback - try to get name from basic trip data
+  if (trip.client_name) return trip.client_name;
+  if (trip.passenger_name) return trip.passenger_name;
+  
+  // If we have user_id but no user_profile data, show partial ID
+  if (trip.user_id) return `User ${trip.user_id.substring(0, 8)}...`;
+  
+  // If we have facility info but no managed_client, show facility name
+  if (trip.facility_id && trip.facility) return `Facility: ${trip.facility.name}`;
+  if (trip.facility_id) return `Facility ${trip.facility_id.substring(0, 8)}...`;
+  
+  return 'Unknown Client';
 }
 
 function getClientDetails(trip) {
@@ -301,6 +311,8 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
         .order('first_name');
 
       if (driversError) throw driversError;
+      
+      console.log('Fetched drivers:', drivers);
       setAvailableDrivers(drivers || []);
     } catch (error) {
       console.error('Error fetching drivers:', error);
