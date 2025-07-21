@@ -179,25 +179,25 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
           <p className="text-sm text-gray-600 mt-1">{sectionDescription} • {trips.length} trip(s)</p>
         </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                 Trip ID
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Client Information
+              <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
+                Client
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Trip Route
+              <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
+                Route
               </th>
-              <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                 Status
               </th>
-              <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Pickup Date & Time
+              <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                Pickup Date
               </th>
-              <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                 Actions
               </th>
             </tr>
@@ -218,112 +218,98 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
             ) : (
               trips.map((trip) => (
                 <tr key={trip.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-mono text-gray-900">
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="text-xs font-mono text-gray-900" title={trip.id}>
                       {trip.id.substring(0, 8)}...
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {trip.id}
-                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 max-w-sm">
                     <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                      <div className="flex-shrink-0 h-8 w-8">
+                        <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
                           {trip.facility ? (
-                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                           ) : (
-                            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                           )}
                         </div>
                       </div>
-                      <div className="ml-4">
+                      <div className="ml-3 min-w-0 flex-1">
                         {trip.facility ? (
                           <>
-                            <div className="text-sm font-bold text-gray-900">
+                            <div className="text-xs font-medium text-blue-600 truncate">
                               {trip.facility.name}
                             </div>
-                            <div className="text-sm font-bold text-gray-900">
-                              {trip.facility.contact_email || 'No facility email'}
-                            </div>
-                            <div className="text-sm text-gray-700 mt-1">
+                            <div className="text-xs font-medium text-gray-900 truncate">
                               {trip.profiles?.full_name || 
                                `${trip.profiles?.first_name || ''} ${trip.profiles?.last_name || ''}`.trim() || 
                                trip.client_name ||
-                               trip.passenger_name ||
                                'Unknown Client'}
                             </div>
-                            <div className="text-sm text-gray-600">
-                              {trip.profiles?.email || trip.client_email || trip.passenger_email || 'No client email'}
+                            <div className="text-xs text-gray-500 truncate">
+                              {trip.profiles?.email || trip.client_email || 'No email'}
                             </div>
-                            {trip.profiles?.phone_number && (
-                              <div className="text-sm text-gray-600">
-                                {trip.profiles.phone_number}
-                              </div>
-                            )}
                           </>
                         ) : (
                           <>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-xs font-medium text-gray-900 truncate">
                               {trip.profiles?.full_name || 
                                `${trip.profiles?.first_name || ''} ${trip.profiles?.last_name || ''}`.trim() || 
                                trip.client_name ||
-                               trip.passenger_name ||
                                'Unknown Client'}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {trip.profiles?.email || trip.client_email || trip.passenger_email || 'No email available'}
+                            <div className="text-xs text-gray-500 truncate">
+                              {trip.profiles?.email || trip.client_email || 'No email'}
                             </div>
-                            {trip.profiles?.phone_number && (
-                              <div className="text-sm text-gray-500">
-                                {trip.profiles.phone_number}
-                              </div>
-                            )}
                           </>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      <div className="font-medium">From: {trip.pickup_address || 'Not specified'}</div>
-                      <div className="text-gray-500">To: {trip.destination_address || 'Not specified'}</div>
+                  <td className="px-4 py-3 max-w-xs">
+                    <div className="text-xs text-gray-900">
+                      <div className="font-medium truncate" title={trip.pickup_address}>
+                        From: {trip.pickup_address?.substring(0, 30) || 'Not specified'}{trip.pickup_address?.length > 30 ? '...' : ''}
+                      </div>
+                      <div className="text-gray-500 truncate" title={trip.destination_address}>
+                        To: {trip.destination_address?.substring(0, 30) || 'Not specified'}{trip.destination_address?.length > 30 ? '...' : ''}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                  <td className="px-3 py-3 whitespace-nowrap text-center">
                     {getStatusBadge(trip.status)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                  <td className="px-3 py-3 whitespace-nowrap text-center text-xs text-gray-500">
                     <div>{formatDate(trip.pickup_time || trip.created_at)}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                    <div className="flex justify-center space-x-2">
+                  <td className="px-3 py-3 whitespace-nowrap text-center text-sm font-medium">
+                    <div className="flex justify-center space-x-1">
                       <Link
                         href={`/admin-trips/${trip.id}`}
-                        className="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="inline-flex items-center px-2 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded border transition-colors"
                         title="View trip details"
                       >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        View Trip
+                        View
                       </Link>
                       
                       {showAssignButton && !trip.driver_id && (
                         <button
                           onClick={() => handleAssignTrip(trip)}
-                          className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                          className="inline-flex items-center px-2 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-medium rounded border transition-colors"
                           title="Assign this trip to driver"
                         >
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>
-                          Assign Trip
+                          Assign
                         </button>
                       )}
                       
@@ -331,10 +317,10 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
                         <button
                           onClick={() => handleCompleteTrip(trip.id)}
                           disabled={actionLoading[trip.id]}
-                          className="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex items-center px-2 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-medium rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Mark trip as completed"
                         >
-                          {actionLoading[trip.id] ? '...' : '✅ COMPLETE'}
+                          {actionLoading[trip.id] ? '...' : '✓ Complete'}
                         </button>
                       )}
                     </div>
@@ -379,7 +365,7 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
     const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status || 'Unknown' };
     
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
         {config.label}
       </span>
     );
