@@ -176,61 +176,81 @@ export default async function DriverDetailPage({ params, searchParams }) {
                         </div>
                     </div>
 
+                    {/* Driver Info Card - Match assign-trip page style */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <div className="flex-shrink-0 h-12 w-12">
+                                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div className="ml-4">
+                                    <h3 className="text-lg font-medium text-gray-900">
+                                        {driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Unnamed Driver'}
+                                    </h3>
+                                    <p className="text-sm text-gray-500">{driver.email}</p>
+                                    <p className="text-xs text-blue-600 font-medium mt-1">🚗 Available for Assignment</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 8 8">
+                                        <circle cx={4} cy={4} r={3} />
+                                    </svg>
+                                    {driver.status === 'active' ? 'Active' : driver.status || 'Active'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Main Driver Information */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* Personal Information Card */}
                             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                                <div className="flex items-center mb-6">
-                                    <div className="flex-shrink-0 h-16 w-16">
-                                        <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
-                                            <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                        </div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Complete Driver Information</h3>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500">Full Name</p>
+                                        <p className="text-sm text-gray-900 font-medium">{driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Not provided'}</p>
                                     </div>
-                                    <div className="ml-6">
-                                        <h2 className="text-2xl font-bold text-gray-900">
-                                            {driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Unnamed Driver'}
-                                        </h2>
-                                        <p className="text-sm text-gray-500">Driver ID: {driver.id}</p>
-                                        <div className="mt-2">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500">Email</p>
+                                        <p className="text-sm text-gray-900">{driver.email || 'Not provided'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500">Phone Number</p>
+                                        <p className="text-sm text-gray-900">{driver.phone_number || 'Not provided'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500">First Name</p>
+                                        <p className="text-sm text-gray-900">{driver.first_name || 'Not provided'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500">Last Name</p>
+                                        <p className="text-sm text-gray-900">{driver.last_name || 'Not provided'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500">Driver ID</p>
+                                        <p className="text-xs font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded">{driver.id}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500">Status</p>
+                                        <div className="mt-1">
                                             {getStatusBadge(driver.status)}
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
-                                        <div className="space-y-3">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-500">Email</p>
-                                                <p className="text-sm text-gray-900">{driver.email || 'Not provided'}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-500">Phone</p>
-                                                <p className="text-sm text-gray-900">{driver.phone_number || 'Not provided'}</p>
-                                            </div>
-                                        </div>
+                                        <p className="text-sm font-medium text-gray-500">Join Date</p>
+                                        <p className="text-sm text-gray-900">{formatDate(driver.created_at)}</p>
                                     </div>
-
                                     <div>
-                                        <h3 className="text-lg font-medium text-gray-900 mb-4">Driver Information</h3>
-                                        <div className="space-y-3">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-500">First Name</p>
-                                                <p className="text-sm text-gray-900">{driver.first_name || 'Not provided'}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-500">Last Name</p>
-                                                <p className="text-sm text-gray-900">{driver.last_name || 'Not provided'}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-500">Join Date</p>
-                                                <p className="text-sm text-gray-900">{formatDate(driver.created_at)}</p>
-                                            </div>
-                                        </div>
+                                        <p className="text-sm font-medium text-gray-500">Role</p>
+                                        <p className="text-sm text-gray-900 capitalize">{driver.role || 'driver'}</p>
                                     </div>
                                 </div>
                             </div>

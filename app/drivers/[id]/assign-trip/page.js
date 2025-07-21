@@ -434,7 +434,7 @@ export default async function AssignTripPage({ params }) {
             .from('trips')
             .select('*')
             .eq('status', 'rejected')
-            .or(`driver_id.eq.${driverId},rejected_by_driver_id.eq.${driverId}`)
+            .eq('rejected_by_driver_id', driverId)
             .order('created_at', { ascending: false })
             .limit(10);
 
