@@ -96,11 +96,11 @@ export async function POST(request) {
       updated_at: new Date().toISOString()
     };
     
-    // Only change status if it makes sense - upcoming trips can become in_progress when assigned
-    if (trip.status === 'upcoming') {
-      updateData.status = 'in_progress';
+    // Set status to awaiting_driver_acceptance when assigning a driver
+    // This ensures the driver has to accept the trip before it becomes active
+    if (['pending', 'upcoming'].includes(trip.status)) {
+      updateData.status = 'awaiting_driver_acceptance';
     }
-    // Keep other statuses as-is (pending stays pending until approved)
     
     const { data: updatedTrip, error: updateError } = await supabase
       .from('trips')
