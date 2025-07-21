@@ -268,6 +268,15 @@ export default async function AdminTripDetailsPage({ params }) {
                                         </div>
                                         <div className="p-6">
                                             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                                                <div className="col-span-2">
+                                                    <dt className="text-sm font-medium text-gray-500">Trip ID</dt>
+                                                    <dd className="mt-1">
+                                                        <div className="text-sm font-mono text-gray-900 bg-gray-50 px-3 py-2 rounded border">
+                                                            {trip.id}
+                                                        </div>
+                                                    </dd>
+                                                </div>
+                                                
                                                 <div>
                                                     <dt className="text-sm font-medium text-gray-500">Pickup Time</dt>
                                                     <dd className="mt-1 text-sm text-gray-900">

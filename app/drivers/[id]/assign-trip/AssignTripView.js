@@ -183,6 +183,9 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
           <thead className="bg-gray-50">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Trip ID
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Client Information
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -202,7 +205,7 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
           <tbody className="bg-white divide-y divide-gray-200">
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-12 text-center">
+                <td colSpan="6" className="px-6 py-12 text-center">
                   <div className="flex flex-col items-center max-w-md mx-auto">
                     <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -215,6 +218,14 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
             ) : (
               trips.map((trip) => (
                 <tr key={trip.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-mono text-gray-900">
+                      {trip.id.substring(0, 8)}...
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {trip.id}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
