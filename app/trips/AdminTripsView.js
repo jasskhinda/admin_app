@@ -154,12 +154,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
   const [actionLoading, setActionLoading] = useState({});
   const [actionMessage, setActionMessage] = useState('');
   
-  // Driver assignment modal state
-  const [showDriverAssignModal, setShowDriverAssignModal] = useState(false);
-  const [assigningTripId, setAssigningTripId] = useState(null);
-  const [selectedDriverId, setSelectedDriverId] = useState('');
-  const [availableDrivers, setAvailableDrivers] = useState([]);
-  const [assignmentLoading, setAssignmentLoading] = useState(false);
+  // Removed driver assignment modal state - now redirects to drivers page
   
   const router = useRouter();
   
@@ -300,147 +295,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
     }
   };
 
-  const handleAssignDriver = async (tripId) => {
-    setAssigningTripId(tripId);
-    setSelectedDriverId('');
-    setShowDriverAssignModal(true);
-    
-    // Fetch available drivers
-    console.log('Fetching drivers for trip assignment...');
-    await fetchAvailableDrivers();
-  };
-  
-  const fetchAvailableDrivers = async () => {
-    try {
-      console.log('🔍 Starting driver fetch...');
-      
-      // Create supabase client
-      let supabase;
-      try {
-        supabase = createClient();
-        console.log('✅ Supabase client created');
-      } catch (clientError) {
-        console.error('❌ Failed to create Supabase client:', clientError);
-        setActionMessage('Failed to connect to database');
-        return;
-      }
-      
-      // Test basic connection
-      try {
-        console.log('🔗 Testing database connection...');
-        const { data: testData, error: testError } = await supabase
-          .from('profiles')
-          .select('count')
-          .limit(1);
-        
-        console.log('📊 Connection test result:', { testData, testError });
-        
-        if (testError) {
-          console.error('❌ Database connection failed:', testError);
-          setActionMessage(`Database connection failed: ${testError.message}`);
-          return;
-        }
-      } catch (connectionError) {
-        console.error('❌ Connection test failed:', connectionError);
-        setActionMessage('Database connection test failed');
-        return;
-      }
-      
-      // Now fetch drivers
-      try {
-        console.log('🚗 Fetching drivers...');
-        const { data: drivers, error: driversError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, phone_number, email, vehicle_model, vehicle_license, full_name, role')
-          .eq('role', 'driver')
-          .order('first_name');
-
-        console.log('🔎 Driver query result:', { drivers, driversError });
-        console.log('📦 Raw drivers data:', JSON.stringify(drivers, null, 2));
-
-        if (driversError) {
-          console.error('❌ Driver fetch error:', driversError);
-          setActionMessage(`Error fetching drivers: ${driversError.message}`);
-          return;
-        }
-        
-        console.log('✅ Fetched drivers successfully');
-        console.log('📈 Driver count:', drivers?.length || 0);
-        console.log('👥 Drivers:', drivers?.map(d => ({ id: d.id, name: d.full_name || `${d.first_name} ${d.last_name}`, email: d.email })));
-        
-        // Set the drivers in state
-        console.log('🔄 Setting drivers in state...');
-        setAvailableDrivers(drivers || []);
-        console.log('✅ Drivers set in state');
-        
-        if (!drivers || drivers.length === 0) {
-          console.warn('⚠️ No drivers found in database');
-          setActionMessage('❌ No drivers available. Please create a driver account first.');
-        } else {
-          console.log(`✅ ${drivers.length} drivers loaded successfully`);
-          setActionMessage('');
-        }
-        
-      } catch (queryError) {
-        console.error('❌ Driver query failed:', queryError);
-        setActionMessage(`Driver query failed: ${queryError.message}`);
-      }
-      
-    } catch (error) {
-      console.error('🚨 Unexpected error in fetchAvailableDrivers:', error);
-      setActionMessage('Unexpected error: ' + error.message);
-    }
-  };
-  
-  const handleDriverAssignment = async () => {
-    if (!selectedDriverId || !assigningTripId) {
-      setActionMessage('Please select a driver');
-      return;
-    }
-
-    setAssignmentLoading(true);
-    try {
-      const response = await fetch('/api/admin/assign-driver', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ tripId: assigningTripId, driverId: selectedDriverId }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to assign driver');
-      }
-
-      // Optimistically update the trip
-      updateTripOptimistically(assigningTripId, { 
-        driver_id: selectedDriverId,
-        status: 'awaiting_driver_acceptance'
-      });
-
-      setActionMessage('✅ Driver assigned successfully!');
-      setShowDriverAssignModal(false);
-      setAssigningTripId(null);
-      setSelectedDriverId('');
-      
-      setTimeout(() => setActionMessage(''), 3000);
-    } catch (error) {
-      console.error('Error assigning driver:', error);
-      setActionMessage(`❌ Failed to assign driver: ${error.message}`);
-    } finally {
-      setAssignmentLoading(false);
-      setTimeout(() => setActionMessage(''), 5000);
-    }
-  };
-  
-  const closeDriverAssignModal = () => {
-    setShowDriverAssignModal(false);
-    setAssigningTripId(null);
-    setSelectedDriverId('');
-    setAvailableDrivers([]);
-  };
+  // Removed driver assignment functions - now redirects to drivers page
 
   const handleRejectTrip = async (tripId) => {
     const reason = prompt('Please provide a reason for rejecting this trip:');
@@ -472,73 +327,6 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Driver Assignment Modal */}
-      {showDriverAssignModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Assign Driver to Trip
-              </h3>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-bold text-gray-900 mb-2">
-                  Select Driver:
-                </label>
-                {/* Debug info */}
-                <div className="text-xs text-gray-500 mb-1">
-                  Available drivers: {availableDrivers.length} loaded
-                  {availableDrivers.length > 0 && (
-                    <span> - {availableDrivers.map(d => d.full_name || `${d.first_name} ${d.last_name}`).join(', ')}</span>
-                  )}
-                </div>
-                <select
-                  value={selectedDriverId}
-                  onChange={(e) => setSelectedDriverId(e.target.value)}
-                  className="w-full border-2 border-gray-400 rounded-md px-3 py-2 text-gray-900 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={assignmentLoading}
-                >
-                  <option value="">Choose a driver...</option>
-                  {availableDrivers.length === 0 && (
-                    <option value="" disabled>No drivers available</option>
-                  )}
-                  {availableDrivers.map((driver) => {
-                    const displayName = driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || driver.email || 'Unknown Driver';
-                    console.log('🚗 Rendering driver option:', { id: driver.id, displayName, driver });
-                    return (
-                      <option 
-                        key={driver.id} 
-                        value={driver.id}
-                      >
-                        {displayName}
-                        {driver.vehicle_model && ` - ${driver.vehicle_model}`}
-                        {driver.phone_number && ` • ${driver.phone_number}`}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={closeDriverAssignModal}
-                  disabled={assignmentLoading}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDriverAssignment}
-                  disabled={assignmentLoading || !selectedDriverId}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {assignmentLoading ? 'Assigning...' : 'Assign Driver'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Action Message */}
       {actionMessage && (
@@ -793,14 +581,13 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                         
                         {/* Upcoming trips - show assign driver button */}
                         {trip.status === 'upcoming' && !trip.driver_id && (
-                          <button
-                            onClick={() => handleAssignDriver(trip.id)}
-                            disabled={actionLoading[trip.id]}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm"
-                            title="Assign driver to this trip"
+                          <Link
+                            href="/drivers"
+                            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors duration-200 shadow-sm text-center"
+                            title="Go to drivers page to assign a driver"
                           >
-                            👤 ASSIGN DRIVER
-                          </button>
+                            Assign A Driver
+                          </Link>
                         )}
                         
                         {/* In progress trips - show complete button */}
