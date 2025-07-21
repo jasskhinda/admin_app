@@ -125,7 +125,7 @@ export default function ClientDetailView({ client, stats }) {
                       <div key={trip.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            {trip.pickup_location} → {trip.dropoff_location}
+                            {trip.pickup_address} → {trip.destination_address}
                           </p>
                           <p className="text-xs text-gray-500">
                             {formatDate(trip.pickup_datetime)} at {formatTime(trip.pickup_datetime)}
