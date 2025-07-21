@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DebugInfo from './DebugInfo';
 
-export default function AssignTripView({ user, userProfile, driver, availableTrips, allTrips, assignedTrips, allDrivers, tripsFetchError }) {
+export default function AssignTripView({ user, userProfile, driver, availableTrips, allTrips, assignedTrips, waitingTrips = [], rejectedTrips = [], allDrivers, tripsFetchError }) {
   const router = useRouter();
   
   // Debug logging to verify data
@@ -166,6 +166,10 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
       ? "Upcoming trips approved by dispatcher that can be assigned to this driver"
       : sectionTitle === "ASSIGNED TRIPS"
       ? "Trips currently assigned to this driver that can be marked as completed"
+      : sectionTitle === "WAITING ACCEPTANCE"
+      ? "Trips assigned to this driver that are awaiting driver acceptance"
+      : sectionTitle === "REJECTED TRIPS"
+      ? "Trips that have been rejected by this driver"
       : "Past trips that this driver has completed or cancelled";
       
     return (
@@ -354,9 +358,11 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
       scheduled: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Scheduled' },
       created: { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Created' },
       draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' },
+      awaiting_driver_acceptance: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Awaiting Acceptance' },
       in_progress: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'In Progress' },
       completed: { bg: 'bg-green-100', text: 'text-green-800', label: 'Completed' },
       cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
+      rejected: { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
     };
     
     const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status || 'Unknown' };
@@ -584,6 +590,22 @@ export default function AssignTripView({ user, userProfile, driver, availableTri
           "ASSIGNED TRIPS", 
           false,  // No assign button for assigned trips
           true    // Show complete button for assigned trips
+        )}
+
+        {/* WAITING ACCEPTANCE Section - Trips assigned to this driver awaiting acceptance */}
+        {renderTripTable(
+          waitingTrips || [], 
+          "WAITING ACCEPTANCE", 
+          false,  // No assign button for waiting trips
+          false   // No complete button for waiting trips
+        )}
+
+        {/* REJECTED TRIPS Section - Trips rejected by this driver */}
+        {renderTripTable(
+          rejectedTrips || [], 
+          "REJECTED TRIPS", 
+          false,  // No assign button for rejected trips
+          false   // No complete button for rejected trips
         )}
 
         {/* RECENT TRIPS Section - Upcoming trips available for assignment */}
