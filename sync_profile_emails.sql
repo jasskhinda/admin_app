@@ -18,7 +18,7 @@ GRANT EXECUTE ON FUNCTION sync_profile_emails() TO authenticated;
 SELECT sync_profile_emails();
 
 -- Create a trigger to automatically sync email when a profile is created
-CREATE OR REPLACE FUNCTION sync_email_on_profile_create()
+CREATE OR REPLACE FUNCTION syncZxq_email_on_profile_create()
 RETURNS TRIGGER AS $$
 BEGIN
   -- If email is not provided, get it from auth.users
