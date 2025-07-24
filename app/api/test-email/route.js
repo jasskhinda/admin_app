@@ -29,7 +29,8 @@ export async function POST(request) {
       is_emergency: false
     };
 
-    const testTripId = 'test-trip-id-12345';
+    // Use a more realistic UUID format for testing
+    const testTripId = '2d2a978c-3abc-45b3-95b8-345ad5e254fa';
 
     const result = await sendDriverAssignmentEmail(driverInfo, tripInfo, testTripId);
 
