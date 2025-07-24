@@ -223,10 +223,7 @@ export async function POST(request) {
 
         if (driverWithEmail?.email) {
           console.log(`📧 Preparing to send email [${requestId}]`);
-          const { sendDriverAssignmentEmail, generateAssignmentToken } = await import('@/lib/emailService');
-          
-          // Generate secure token for accept/reject links
-          const assignmentToken = generateAssignmentToken(tripId, driverId);
+          const { sendDriverAssignmentEmail } = await import('@/lib/emailService');
           
           // Prepare driver info with email
           const driverInfoWithEmail = {
@@ -252,8 +249,8 @@ export async function POST(request) {
             hasLocations: !!(tripInfo.pickup_location && tripInfo.dropoff_location)
           });
           
-          // Send the email
-          const emailResult = await sendDriverAssignmentEmail(driverInfoWithEmail, tripInfo, assignmentToken);
+          // Send the email with trip ID for driver app link
+          const emailResult = await sendDriverAssignmentEmail(driverInfoWithEmail, tripInfo, tripId);
           console.log(`✅ Email sent successfully [${requestId}]:`, {
             messageId: emailResult.messageId,
             recipient: emailResult.recipient?.substring(0, 3) + '***'

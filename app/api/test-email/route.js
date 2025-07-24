@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sendDriverAssignmentEmail, generateAssignmentToken } from '@/lib/emailService';
+import { sendDriverAssignmentEmail } from '@/lib/emailService';
 
 export async function POST(request) {
   try {
@@ -29,9 +29,9 @@ export async function POST(request) {
       is_emergency: false
     };
 
-    const assignmentToken = generateAssignmentToken('test-trip-id', 'test-driver-id');
+    const testTripId = 'test-trip-id-12345';
 
-    const result = await sendDriverAssignmentEmail(driverInfo, tripInfo, assignmentToken);
+    const result = await sendDriverAssignmentEmail(driverInfo, tripInfo, testTripId);
 
     return NextResponse.json({
       success: true,
