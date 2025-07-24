@@ -207,6 +207,11 @@ export async function POST(request) {
       // Send email notification to driver
       try {
         console.log(`🔍 Attempting to send email notification [${requestId}]`);
+        console.log(`🔍 Driver details [${requestId}]:`, {
+          driverId: driverId?.substring(0, 8) + '...',
+          driverName: `${driver.first_name} ${driver.last_name}`,
+          driverRole: driver.role
+        });
         
         // Get driver email from profiles
         const { data: driverWithEmail, error: emailError } = await supabase
@@ -223,6 +228,7 @@ export async function POST(request) {
 
         if (driverWithEmail?.email) {
           console.log(`📧 Preparing to send email [${requestId}]`);
+          console.log(`🔍 Trip ID being used for email link [${requestId}]: ${tripId}`);
           const { sendDriverAssignmentEmail } = await import('@/lib/emailService');
           
           // Prepare driver info with email
