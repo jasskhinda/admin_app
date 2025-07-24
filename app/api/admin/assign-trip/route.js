@@ -171,12 +171,12 @@ export async function POST(request) {
           // Facility client from facility_app
           const { data: managedClient } = await supabase
             .from('facility_managed_clients')
-            .select('full_name, phone_number')
+            .select('first_name, last_name, phone_number')
             .eq('id', updatedTrip.managed_client_id)
             .single();
           
           if (managedClient) {
-            clientName = managedClient.full_name || 'Name not provided';
+            clientName = `${managedClient.first_name || ''} ${managedClient.last_name || ''}`.trim() || 'Name not provided';
             clientPhone = managedClient.phone_number || 'Phone not provided';
           }
         }

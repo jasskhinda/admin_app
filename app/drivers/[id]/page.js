@@ -4,7 +4,7 @@ import DriverDetailView from './DriverDetailView';
 
 // Helper function to process client information for a trip
 async function processClientInfo(trip, supabase, supabaseAdmin) {
-    // Same client lookup logic as assign-trip page
+    // Handle individual clients from BookingCCT app
     if (trip.user_id) {
         try {
             const { data: clientProfile } = await supabase
@@ -25,7 +25,31 @@ async function processClientInfo(trip, supabase, supabaseAdmin) {
                 };
             }
         } catch (clientError) {
-            console.warn(`Could not fetch client for trip ${trip.id}:`, clientError.message);
+            console.warn(`Could not fetch individual client for trip ${trip.id}:`, clientError.message);
+        }
+    }
+    // Handle facility managed clients from facility_app
+    else if (trip.managed_client_id) {
+        try {
+            const { data: managedClient } = await supabase
+                .from('facility_managed_clients')
+                .select('id, first_name, last_name, email, phone_number')
+                .eq('id', trip.managed_client_id)
+                .single();
+            
+            if (managedClient) {
+                trip.profiles = {
+                    id: managedClient.id,
+                    first_name: managedClient.first_name,
+                    last_name: managedClient.last_name,
+                    full_name: `${managedClient.first_name || ''} ${managedClient.last_name || ''}`.trim(),
+                    email: managedClient.email,
+                    phone_number: managedClient.phone_number,
+                    role: 'facility_client'
+                };
+            }
+        } catch (clientError) {
+            console.warn(`Could not fetch managed client for trip ${trip.id}:`, clientError.message);
         }
     }
     
