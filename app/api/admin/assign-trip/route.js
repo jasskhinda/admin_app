@@ -106,11 +106,7 @@ export async function POST(request) {
       .from('trips')
       .update(updateData)
       .eq('id', tripId)
-      .select(`
-        *,
-        user_profile:profiles!trips_user_id_fkey(full_name, phone_number),
-        managed_client:facility_managed_clients(full_name, phone_number)
-      `)
+      .select('*')
       .single();
       
     if (updateError) {
@@ -154,6 +150,36 @@ export async function POST(request) {
 
       if (driverWithEmail?.email) {
         console.log(`📧 Preparing to send email`);
+        
+        // Fetch client information based on trip type
+        let clientName = 'Name not provided';
+        let clientPhone = 'Phone not provided';
+        
+        if (updatedTrip.user_id) {
+          // Individual client from BookingCCT
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('full_name, phone_number')
+            .eq('id', updatedTrip.user_id)
+            .single();
+          
+          if (userProfile) {
+            clientName = userProfile.full_name || 'Name not provided';
+            clientPhone = userProfile.phone_number || 'Phone not provided';
+          }
+        } else if (updatedTrip.managed_client_id) {
+          // Facility client from facility_app
+          const { data: managedClient } = await supabase
+            .from('facility_managed_clients')
+            .select('full_name, phone_number')
+            .eq('id', updatedTrip.managed_client_id)
+            .single();
+          
+          if (managedClient) {
+            clientName = managedClient.full_name || 'Name not provided';
+            clientPhone = managedClient.phone_number || 'Phone not provided';
+          }
+        }
         const { sendDriverAssignmentEmail } = await import('@/lib/emailService');
         
         // Prepare driver info with email
@@ -167,8 +193,8 @@ export async function POST(request) {
           pickup_time: updatedTrip.pickup_time,
           pickup_location: updatedTrip.pickup_address,
           dropoff_location: updatedTrip.destination_address,
-          client_name: updatedTrip.user_profile?.full_name || updatedTrip.managed_client?.full_name || 'Name not provided',
-          client_phone: updatedTrip.user_profile?.phone_number || updatedTrip.managed_client?.phone_number || 'Phone not provided',
+          client_name: clientName,
+          client_phone: clientPhone,
           special_instructions: updatedTrip.special_requirements,
           total_cost: updatedTrip.price,
           is_emergency: updatedTrip.is_emergency
@@ -181,12 +207,11 @@ export async function POST(request) {
           tripData: {
             pickup_address: updatedTrip.pickup_address,
             destination_address: updatedTrip.destination_address,
-            client_name: tripInfo.client_name,
-            client_phone: tripInfo.client_phone,
-            user_profile: updatedTrip.user_profile,
-            managed_client: updatedTrip.managed_client,
+            client_name: clientName,
+            client_phone: clientPhone,
             user_id: updatedTrip.user_id,
-            managed_client_id: updatedTrip.managed_client_id
+            managed_client_id: updatedTrip.managed_client_id,
+            price: updatedTrip.price
           }
         });
         
