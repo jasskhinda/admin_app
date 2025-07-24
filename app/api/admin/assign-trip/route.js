@@ -173,7 +173,13 @@ export async function POST(request) {
         console.log(`📬 Sending email to driver:`, {
           to: driverInfoWithEmail.email.substring(0, 3) + '***',
           hasPickupTime: !!tripInfo.pickup_time,
-          hasLocations: !!(tripInfo.pickup_location && tripInfo.dropoff_location)
+          hasLocations: !!(tripInfo.pickup_location && tripInfo.dropoff_location),
+          tripData: {
+            pickup_location: updatedTrip.pickup_location,
+            dropoff_location: updatedTrip.dropoff_location,
+            client_name: updatedTrip.client_name,
+            client_phone: updatedTrip.client_phone
+          }
         });
         
         // Send the email with trip ID for driver app link
