@@ -106,7 +106,11 @@ export async function POST(request) {
       .from('trips')
       .update(updateData)
       .eq('id', tripId)
-      .select()
+      .select(`
+        *,
+        user_profile:profiles!trips_user_id_fkey(full_name, phone_number),
+        managed_client:facility_managed_clients(full_name, phone_number)
+      `)
       .single();
       
     if (updateError) {
@@ -158,15 +162,15 @@ export async function POST(request) {
           email: driverWithEmail.email
         };
         
-        // Prepare trip info for email
+        // Prepare trip info for email - map correct database field names
         const tripInfo = {
           pickup_time: updatedTrip.pickup_time,
-          pickup_location: updatedTrip.pickup_location,
-          dropoff_location: updatedTrip.dropoff_location,
-          client_name: updatedTrip.client_name,
-          client_phone: updatedTrip.client_phone,
-          special_instructions: updatedTrip.special_instructions,
-          total_cost: updatedTrip.total_cost,
+          pickup_location: updatedTrip.pickup_address,
+          dropoff_location: updatedTrip.destination_address,
+          client_name: updatedTrip.user_profile?.full_name || updatedTrip.managed_client?.full_name || 'Name not provided',
+          client_phone: updatedTrip.user_profile?.phone_number || updatedTrip.managed_client?.phone_number || 'Phone not provided',
+          special_instructions: updatedTrip.special_requirements,
+          total_cost: updatedTrip.price,
           is_emergency: updatedTrip.is_emergency
         };
         
@@ -175,10 +179,14 @@ export async function POST(request) {
           hasPickupTime: !!tripInfo.pickup_time,
           hasLocations: !!(tripInfo.pickup_location && tripInfo.dropoff_location),
           tripData: {
-            pickup_location: updatedTrip.pickup_location,
-            dropoff_location: updatedTrip.dropoff_location,
-            client_name: updatedTrip.client_name,
-            client_phone: updatedTrip.client_phone
+            pickup_address: updatedTrip.pickup_address,
+            destination_address: updatedTrip.destination_address,
+            client_name: tripInfo.client_name,
+            client_phone: tripInfo.client_phone,
+            user_profile: updatedTrip.user_profile,
+            managed_client: updatedTrip.managed_client,
+            user_id: updatedTrip.user_id,
+            managed_client_id: updatedTrip.managed_client_id
           }
         });
         
