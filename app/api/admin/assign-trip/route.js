@@ -131,9 +131,72 @@ export async function POST(request) {
     
     console.log(`Successfully assigned trip ${tripId} to driver ${driverId}`);
     
+    // Send email notification to driver
+    try {
+      console.log(`🔍 Attempting to send email notification for trip ${tripId}`);
+      
+      // Get driver email from profiles
+      const { data: driverWithEmail, error: emailError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', driverId)
+        .single();
+
+      console.log(`📋 Driver email query result:`, {
+        hasData: !!driverWithEmail,
+        email: driverWithEmail?.email ? `${driverWithEmail.email.substring(0, 3)}***` : 'none',
+        error: emailError?.message
+      });
+
+      if (driverWithEmail?.email) {
+        console.log(`📧 Preparing to send email`);
+        const { sendDriverAssignmentEmail } = await import('@/lib/emailService');
+        
+        // Prepare driver info with email
+        const driverInfoWithEmail = {
+          ...driver,
+          email: driverWithEmail.email
+        };
+        
+        // Prepare trip info for email
+        const tripInfo = {
+          pickup_time: updatedTrip.pickup_time,
+          pickup_location: updatedTrip.pickup_location,
+          dropoff_location: updatedTrip.dropoff_location,
+          client_name: updatedTrip.client_name,
+          client_phone: updatedTrip.client_phone,
+          special_instructions: updatedTrip.special_instructions,
+          total_cost: updatedTrip.total_cost,
+          is_emergency: updatedTrip.is_emergency
+        };
+        
+        console.log(`📬 Sending email to driver:`, {
+          to: driverInfoWithEmail.email.substring(0, 3) + '***',
+          hasPickupTime: !!tripInfo.pickup_time,
+          hasLocations: !!(tripInfo.pickup_location && tripInfo.dropoff_location)
+        });
+        
+        // Send the email with trip ID for driver app link
+        const emailResult = await sendDriverAssignmentEmail(driverInfoWithEmail, tripInfo, tripId);
+        console.log(`✅ Email sent successfully:`, {
+          messageId: emailResult.messageId,
+          recipient: emailResult.recipient?.substring(0, 3) + '***'
+        });
+      } else {
+        console.warn(`⚠️ No email found for driver - driverWithEmail:`, driverWithEmail);
+      }
+    } catch (emailError) {
+      console.error(`❌ Failed to send email notification:`, {
+        message: emailError.message,
+        stack: emailError.stack,
+        name: emailError.name
+      });
+      // Don't fail the assignment if email fails - just log the error
+    }
+    
     return NextResponse.json({ 
       success: true,
-      message: 'Trip successfully assigned',
+      message: 'Trip successfully assigned. Email notification sent.',
       data: {
         tripId,
         driverId,
