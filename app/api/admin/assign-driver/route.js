@@ -204,11 +204,55 @@ export async function POST(request) {
 
       console.log(`✅ Driver assigned successfully [${requestId}]: ${updatedTrip.id}`);
       
+      // Send email notification to driver
+      try {
+        // Get driver email from profiles
+        const { data: driverWithEmail, error: emailError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', driverId)
+          .single();
+
+        if (driverWithEmail?.email) {
+          const { sendDriverAssignmentEmail, generateAssignmentToken } = await import('@/lib/emailService');
+          
+          // Generate secure token for accept/reject links
+          const assignmentToken = generateAssignmentToken(tripId, driverId);
+          
+          // Prepare driver info with email
+          const driverInfoWithEmail = {
+            ...driver,
+            email: driverWithEmail.email
+          };
+          
+          // Prepare trip info for email
+          const tripInfo = {
+            pickup_time: updatedTrip.pickup_time,
+            pickup_location: updatedTrip.pickup_location,
+            dropoff_location: updatedTrip.dropoff_location,
+            client_name: updatedTrip.client_name,
+            client_phone: updatedTrip.client_phone,
+            special_instructions: updatedTrip.special_instructions,
+            total_cost: updatedTrip.total_cost,
+            is_emergency: updatedTrip.is_emergency
+          };
+          
+          // Send the email
+          const emailResult = await sendDriverAssignmentEmail(driverInfoWithEmail, tripInfo, assignmentToken);
+          console.log(`📧 Email sent successfully [${requestId}]:`, emailResult.messageId);
+        } else {
+          console.warn(`⚠️ No email found for driver [${requestId}]`);
+        }
+      } catch (emailError) {
+        console.error(`⚠️ Failed to send email notification [${requestId}]:`, emailError);
+        // Don't fail the assignment if email fails - just log the error
+      }
+      
       return NextResponse.json({
         success: true,
         trip: updatedTrip,
         driver: driver,
-        message: 'Driver assigned successfully',
+        message: 'Driver assigned successfully. Email notification sent.',
         details: {
           previousStatus: trip.status,
           newStatus: updatedTrip.status,
