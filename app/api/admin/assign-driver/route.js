@@ -206,6 +206,8 @@ export async function POST(request) {
       
       // Send email notification to driver
       try {
+        console.log(`🔍 Attempting to send email notification [${requestId}]`);
+        
         // Get driver email from profiles
         const { data: driverWithEmail, error: emailError } = await supabase
           .from('profiles')
@@ -213,7 +215,14 @@ export async function POST(request) {
           .eq('id', driverId)
           .single();
 
+        console.log(`📋 Driver email query result [${requestId}]:`, {
+          hasData: !!driverWithEmail,
+          email: driverWithEmail?.email ? `${driverWithEmail.email.substring(0, 3)}***` : 'none',
+          error: emailError?.message
+        });
+
         if (driverWithEmail?.email) {
+          console.log(`📧 Preparing to send email [${requestId}]`);
           const { sendDriverAssignmentEmail, generateAssignmentToken } = await import('@/lib/emailService');
           
           // Generate secure token for accept/reject links
@@ -237,14 +246,27 @@ export async function POST(request) {
             is_emergency: updatedTrip.is_emergency
           };
           
+          console.log(`📬 Sending email to driver [${requestId}]:`, {
+            to: driverInfoWithEmail.email.substring(0, 3) + '***',
+            hasPickupTime: !!tripInfo.pickup_time,
+            hasLocations: !!(tripInfo.pickup_location && tripInfo.dropoff_location)
+          });
+          
           // Send the email
           const emailResult = await sendDriverAssignmentEmail(driverInfoWithEmail, tripInfo, assignmentToken);
-          console.log(`📧 Email sent successfully [${requestId}]:`, emailResult.messageId);
+          console.log(`✅ Email sent successfully [${requestId}]:`, {
+            messageId: emailResult.messageId,
+            recipient: emailResult.recipient?.substring(0, 3) + '***'
+          });
         } else {
-          console.warn(`⚠️ No email found for driver [${requestId}]`);
+          console.warn(`⚠️ No email found for driver [${requestId}] - driverWithEmail:`, driverWithEmail);
         }
       } catch (emailError) {
-        console.error(`⚠️ Failed to send email notification [${requestId}]:`, emailError);
+        console.error(`❌ Failed to send email notification [${requestId}]:`, {
+          message: emailError.message,
+          stack: emailError.stack,
+          name: emailError.name
+        });
         // Don't fail the assignment if email fails - just log the error
       }
       
