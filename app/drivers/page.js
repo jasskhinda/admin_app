@@ -52,58 +52,75 @@ export default async function AdminDriversPage() {
         
         console.log(`Successfully fetched ${drivers.length} drivers`);
 
-        // For each driver, get their trips
-        const driversWithTrips = await Promise.all((drivers || []).map(async (driver) => {
-            // Get trips assigned to this driver
-            let trips = [];
-            let tripCount = 0;
-            let completedTrips = 0;
-            let lastTrip = null;
-            
+        // Optimize: Get trip statistics for all drivers in fewer queries
+        let driversWithTrips = drivers.map(driver => ({
+            ...driver,
+            trips: [],
+            trip_count: 0,
+            completed_trips: 0,
+            last_trip: null,
+            vehicle: null
+        }));
+
+        // Only fetch trip data if we have drivers to avoid unnecessary queries
+        if (drivers.length > 0) {
             try {
-                const { data: tripsData, error: tripsError } = await supabase
+                // Get all trips for all drivers in one query
+                const driverIds = drivers.map(d => d.id);
+                const { data: allTrips, error: tripsError } = await supabase
                     .from('trips')
-                    .select('*')
-                    .eq('driver_id', driver.id)
+                    .select('id, driver_id, status, created_at, pickup_time')
+                    .in('driver_id', driverIds)
                     .order('created_at', { ascending: false });
 
-                if (tripsError && tripsError.code !== '42P01') {
-                    console.error(`Error fetching trips for driver ${driver.id}:`, tripsError);
-                } else if (tripsData) {
-                    trips = tripsData;
-                    tripCount = trips.length;
-                    completedTrips = trips.filter(trip => trip.status === 'completed').length;
-                    lastTrip = trips.length > 0 ? trips[0] : null;
+                if (!tripsError && allTrips) {
+                    // Group trips by driver
+                    const tripsByDriver = {};
+                    allTrips.forEach(trip => {
+                        if (!tripsByDriver[trip.driver_id]) {
+                            tripsByDriver[trip.driver_id] = [];
+                        }
+                        tripsByDriver[trip.driver_id].push(trip);
+                    });
+
+                    // Update drivers with trip stats
+                    driversWithTrips = driversWithTrips.map(driver => {
+                        const driverTrips = tripsByDriver[driver.id] || [];
+                        return {
+                            ...driver,
+                            trips: driverTrips,
+                            trip_count: driverTrips.length,
+                            completed_trips: driverTrips.filter(trip => trip.status === 'completed').length,
+                            last_trip: driverTrips.length > 0 ? driverTrips[0] : null
+                        };
+                    });
                 }
             } catch (error) {
-                console.warn(`Could not fetch trips for driver ${driver.id}:`, error.message);
+                console.warn('Could not fetch trip statistics:', error.message);
             }
 
-            // Try to fetch vehicle information
-            let vehicle = null;
+            // Optionally fetch vehicle data in a single query too
             try {
-                const { data: vehicleData, error: vehicleError } = await supabase
+                const { data: vehicles, error: vehicleError } = await supabase
                     .from('vehicles')
                     .select('*')
-                    .eq('driver_id', driver.id)
-                    .single();
-                
-                if (!vehicleError) {
-                    vehicle = vehicleData;
-                }
-            } catch (vehicleError) {
-                console.warn(`Could not fetch vehicle for driver ${driver.id}:`, vehicleError.message);
-            }
+                    .in('driver_id', driverIds);
 
-            return {
-                ...driver,
-                trips: trips || [],
-                trip_count: tripCount,
-                completed_trips: completedTrips,
-                last_trip: lastTrip,
-                vehicle
-            };
-        }));
+                if (!vehicleError && vehicles) {
+                    const vehiclesByDriver = {};
+                    vehicles.forEach(vehicle => {
+                        vehiclesByDriver[vehicle.driver_id] = vehicle;
+                    });
+
+                    driversWithTrips = driversWithTrips.map(driver => ({
+                        ...driver,
+                        vehicle: vehiclesByDriver[driver.id] || null
+                    }));
+                }
+            } catch (error) {
+                console.warn('Could not fetch vehicle data:', error.message);
+            }
+        }
 
         // Get email addresses from auth.users for drivers
         const { supabaseAdmin } = await import('@/lib/admin-supabase');
