@@ -10,6 +10,7 @@ export default function AddClientSimple() {
   
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -90,14 +91,14 @@ export default function AddClientSimple() {
         }
         setSuccess('Facility client successfully created');
       } else {
-        const password = Math.random().toString(36).slice(-10) + Math.random().toString(10).slice(-2);
+        const clientPassword = password || Math.random().toString(36).slice(-10) + Math.random().toString(10).slice(-2);
         
         const response = await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
-            password,
+            password: clientPassword,
             userProfile: {
               first_name: firstName,
               last_name: lastName,
@@ -119,11 +120,12 @@ export default function AddClientSimple() {
             throw new Error(result.error || 'Failed to create client');
           }
         }
-        setSuccess('Individual client account successfully created');
+        setSuccess(`Individual client account successfully created. ${password ? 'Login credentials: ' + email + ' / ' + password : 'Login credentials will be sent separately.'}`);
       }
       
       // Reset form
       setEmail('');
+      setPassword('');
       setFirstName('');
       setLastName('');
       setPhoneNumber('');
@@ -269,18 +271,35 @@ export default function AddClientSimple() {
               </div>
 
               {clientType === 'individual' && (
-                <div className="mt-4">
-                  <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required={clientType === 'individual'}
-                    className="w-full p-2 border border-gray-300 rounded-md bg-white"
-                  />
-                  <p className="text-xs text-gray-600 mt-1">Used for login access and notifications</p>
-                </div>
+                <>
+                  <div className="mt-4">
+                    <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required={clientType === 'individual'}
+                      className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">Used for login access and notifications</p>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
+                    <input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Leave empty to auto-generate"
+                      className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Client will use this to login to the booking app. Leave empty to auto-generate a secure password.
+                    </p>
+                  </div>
+                </>
               )}
 
               <div className="mt-4">

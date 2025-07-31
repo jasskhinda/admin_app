@@ -10,6 +10,7 @@ export default function AddClient() {
   
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -164,8 +165,8 @@ export default function AddClient() {
         setSuccess('Facility client successfully created');
       } else {
         // For individual clients, create user account
-        // Generate a random password for the client's account
-        const password = Math.random().toString(36).slice(-10) + Math.random().toString(10).slice(-2);
+        // Use the provided password or generate one if empty
+        const clientPassword = password || Math.random().toString(36).slice(-10) + Math.random().toString(10).slice(-2);
         
         // Prepare client profile data - email is stored in auth.users, not in profiles
         // Don't set full_name as it's calculated automatically by the database
@@ -186,7 +187,7 @@ export default function AddClient() {
           },
           body: JSON.stringify({
             email,
-            password,
+            password: clientPassword,
             userProfile,
             role: 'client'
           }),
@@ -216,11 +217,12 @@ export default function AddClient() {
         }
 
         // Success!
-        setSuccess('Individual client account successfully created');
+        setSuccess(`Individual client account successfully created. ${password ? 'Login credentials: ' + email + ' / ' + password : 'Login credentials will be sent separately.'}`);
       }
       
       // Reset the form
       setEmail('');
+      setPassword('');
       setFirstName('');
       setLastName('');
       setPhoneNumber('');
@@ -378,18 +380,35 @@ export default function AddClient() {
               </div>
 
               {clientType === 'individual' && (
-                <div className="mt-4">
-                  <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required={clientType === 'individual'}
-                    className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
-                  />
-                  <p className="text-xs text-gray-600 mt-1">Used for login access and notifications</p>
-                </div>
+                <>
+                  <div className="mt-4">
+                    <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required={clientType === 'individual'}
+                      className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">Used for login access and notifications</p>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
+                    <input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Leave empty to auto-generate"
+                      className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Client will use this to login to the booking app. Leave empty to auto-generate a secure password.
+                    </p>
+                  </div>
+                </>
               )}
 
               <div className="mt-4">
