@@ -16,6 +16,9 @@ export default function AddClient() {
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [isVeteran, setIsVeteran] = useState(false);
+  const [clientType, setClientType] = useState('individual'); // 'individual' or 'facility'
+  const [facilityId, setFacilityId] = useState('');
+  const [facilities, setFacilities] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,6 +46,27 @@ export default function AddClient() {
         // Not an admin, redirect to login
         supabase.auth.signOut();
         router.push('/login?error=Access%20denied');
+        return;
+      }
+
+      // Load facilities for facility client creation
+      loadFacilities();
+    };
+    
+    const loadFacilities = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('facilities')
+          .select('id, name')
+          .order('name');
+        
+        if (error) {
+          console.error('Error loading facilities:', error);
+        } else {
+          setFacilities(data || []);
+        }
+      } catch (err) {
+        console.error('Error loading facilities:', err);
       }
     };
     
@@ -56,59 +80,91 @@ export default function AddClient() {
     setLoading(true);
 
     try {
-      // Generate a random password for the client's account
-      const password = Math.random().toString(36).slice(-10) + Math.random().toString(10).slice(-2);
-      
-      // Prepare client profile data - email is stored in auth.users, not in profiles
-      // Don't set full_name as it's calculated automatically by the database
-      const userProfile = {
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: phoneNumber,
-        address,
-        notes,
-        metadata: { veteran: isVeteran }
-      };
-      
-      // Call the serverless function to create the user and profile
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          userProfile,
-          role: 'client'
-        }),
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        // Check for server configuration errors
-        if (result.error && result.error.includes('Server configuration error')) {
-          throw new Error('The server is not properly configured to create new users. Please ensure the SUPABASE_SERVICE_ROLE_KEY environment variable is set on the server.');
+      if (clientType === 'facility') {
+        // For facility clients, create directly in facility_managed_clients table
+        if (!facilityId) {
+          throw new Error('Please select a facility for facility clients');
         }
-        
-        // If there's already a profile but with a different role, this is a real error
-        if (result.error && result.error.includes('already has a') && !result.error.includes('client profile')) {
-          throw new Error(result.error || 'Failed to create client');
-        }
-        
-        // Otherwise, the API might be handling auto-created profiles, so check the error message
-        if (result.error && !result.error.includes('already has a')) {
-          throw new Error(result.error || 'Failed to create client');
-        }
-        
-        // If we get here, it might be an existing profile that was handled correctly,
-        // so we'll treat it as a success
-        console.log('User profile existed, but API handled it:', result);
-      }
 
-      // Success!
-      setSuccess('Client account successfully created');
+        const response = await fetch('/api/facility-clients', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            facility_id: facilityId,
+            first_name: firstName,
+            last_name: lastName,
+            phone_number: phoneNumber,
+            address,
+            notes,
+            metadata: { veteran: isVeteran }
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create facility client');
+        }
+
+        setSuccess('Facility client successfully created');
+      } else {
+        // For individual clients, create user account
+        // Generate a random password for the client's account
+        const password = Math.random().toString(36).slice(-10) + Math.random().toString(10).slice(-2);
+        
+        // Prepare client profile data - email is stored in auth.users, not in profiles
+        // Don't set full_name as it's calculated automatically by the database
+        const userProfile = {
+          first_name: firstName,
+          last_name: lastName,
+          phone_number: phoneNumber,
+          address,
+          notes,
+          metadata: { veteran: isVeteran }
+        };
+        
+        // Call the serverless function to create the user and profile
+        const response = await fetch('/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            userProfile,
+            role: 'client'
+          }),
+        });
+        
+        const result = await response.json();
+      
+        if (!response.ok) {
+          // Check for server configuration errors
+          if (result.error && result.error.includes('Server configuration error')) {
+            throw new Error('The server is not properly configured to create new users. Please ensure the SUPABASE_SERVICE_ROLE_KEY environment variable is set on the server.');
+          }
+          
+          // If there's already a profile but with a different role, this is a real error
+          if (result.error && result.error.includes('already has a') && !result.error.includes('client profile')) {
+            throw new Error(result.error || 'Failed to create client');
+          }
+          
+          // Otherwise, the API might be handling auto-created profiles, so check the error message
+          if (result.error && !result.error.includes('already has a')) {
+            throw new Error(result.error || 'Failed to create client');
+          }
+          
+          // If we get here, it might be an existing profile that was handled correctly,
+          // so we'll treat it as a success
+          console.log('User profile existed, but API handled it:', result);
+        }
+
+        // Success!
+        setSuccess('Individual client account successfully created');
+      }
       
       // Reset the form
       setEmail('');
@@ -118,6 +174,8 @@ export default function AddClient() {
       setAddress('');
       setNotes('');
       setIsVeteran(false);
+      setClientType('individual');
+      setFacilityId('');
       
     } catch (err) {
       console.error('Error creating client:', err);
@@ -161,6 +219,63 @@ export default function AddClient() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Client Type Selection */}
+            <div className="bg-brand-border/5 p-4 rounded-md">
+              <h3 className="text-md font-medium mb-4">Client Type</h3>
+              
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label className="flex items-center space-x-3 cursor-pointer p-3 border border-brand-border rounded-md hover:bg-brand-border/10">
+                  <input
+                    type="radio"
+                    name="clientType"
+                    value="individual"
+                    checked={clientType === 'individual'}
+                    onChange={(e) => setClientType(e.target.value)}
+                    className="text-brand-accent focus:ring-brand-accent"
+                  />
+                  <div>
+                    <div className="font-medium">Individual Client</div>
+                    <div className="text-sm text-gray-600">Creates a user account with login access</div>
+                  </div>
+                </label>
+                
+                <label className="flex items-center space-x-3 cursor-pointer p-3 border border-brand-border rounded-md hover:bg-brand-border/10">
+                  <input
+                    type="radio"
+                    name="clientType"
+                    value="facility"
+                    checked={clientType === 'facility'}
+                    onChange={(e) => setClientType(e.target.value)}
+                    className="text-brand-accent focus:ring-brand-accent"
+                  />
+                  <div>
+                    <div className="font-medium">Facility Client</div>
+                    <div className="text-sm text-gray-600">Managed by a healthcare facility</div>
+                  </div>
+                </label>
+              </div>
+
+              {clientType === 'facility' && (
+                <div className="mt-4">
+                  <label htmlFor="facilityId" className="block text-sm font-medium mb-1">Select Facility</label>
+                  <select
+                    id="facilityId"
+                    value={facilityId}
+                    onChange={(e) => setFacilityId(e.target.value)}
+                    required={clientType === 'facility'}
+                    className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                  >
+                    <option value="">Select a facility...</option>
+                    {facilities.map((facility) => (
+                      <option key={facility.id} value={facility.id}>
+                        {facility.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
             {/* Personal Information */}
             <div className="bg-brand-border/5 p-4 rounded-md">
               <h3 className="text-md font-medium mb-4">Personal Information</h3>
@@ -191,17 +306,20 @@ export default function AddClient() {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
-                />
-              </div>
+              {clientType === 'individual' && (
+                <div className="mt-4">
+                  <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required={clientType === 'individual'}
+                    className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">Used for login access and notifications</p>
+                </div>
+              )}
 
               <div className="mt-4">
                 <label htmlFor="phoneNumber" className="block text-sm font-medium mb-1">Phone Number</label>
