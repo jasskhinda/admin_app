@@ -27,42 +27,25 @@ export default function AddClient() {
   
   // Skip complex auth check - middleware already verified admin access
   useEffect(() => {
-    let isMounted = true;
-
-    const initializePage = async () => {
-      console.log('Loading page (trusting middleware auth)...');
-      
-      // Set a dummy user to bypass auth checks - middleware already verified admin
-      setUser({ id: 'admin-user', email: 'admin@verified' });
-      
-      // Load facilities in background
-      try {
-        const { data } = await supabase
-          .from('facilities')
-          .select('id, name')
-          .order('name');
-        
-        if (isMounted && data) {
-          setFacilities(data);
-          console.log('Facilities loaded:', data.length);
-        }
-      } catch (err) {
-        console.log('Could not load facilities:', err);
-        // Continue without facilities
-      }
-      
-      if (isMounted) {
-        setAuthLoading(false);
-        console.log('Page ready');
-      }
-    };
-
-    // Show page immediately, no timeout needed
-    initializePage();
-
-    return () => {
-      isMounted = false;
-    };
+    console.log('Loading page (trusting middleware auth)...');
+    
+    // Set a dummy user to bypass auth checks - middleware already verified admin
+    setUser({ id: 'admin-user', email: 'admin@verified' });
+    
+    // Load facilities via API (non-blocking)
+    fetch('/api/facilities')
+      .then(response => response.json())
+      .then(data => {
+        setFacilities(data || []);
+        console.log('Facilities loaded via API:', data?.length || 0);
+      })
+      .catch(err => {
+        console.log('Could not load facilities via API:', err);
+      });
+    
+    // Show page immediately
+    setAuthLoading(false);
+    console.log('Page ready');
   }, []); // Run only once
 
   const handleSubmit = async (e) => {
