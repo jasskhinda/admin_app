@@ -87,6 +87,11 @@ export default function AddClient() {
       const result = await response.json();
       
       if (!response.ok) {
+        // Check for server configuration errors
+        if (result.error && result.error.includes('Server configuration error')) {
+          throw new Error('The server is not properly configured to create new users. Please ensure the SUPABASE_SERVICE_ROLE_KEY environment variable is set on the server.');
+        }
+        
         // If there's already a profile but with a different role, this is a real error
         if (result.error && result.error.includes('already has a') && !result.error.includes('client profile')) {
           throw new Error(result.error || 'Failed to create client');

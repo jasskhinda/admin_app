@@ -17,9 +17,9 @@ export async function POST(request) {
     const { supabaseAdmin } = await import('@/lib/admin-supabase');
     
     if (!supabaseAdmin) {
-      console.error('Supabase admin client not initialized');
+      console.error('Supabase admin client not initialized - missing SUPABASE_SERVICE_ROLE_KEY environment variable');
       return NextResponse.json(
-        { error: 'Service configuration error' },
+        { error: 'Server configuration error: Service role key is not configured. Please contact your administrator.' },
         { status: 500 }
       );
     }

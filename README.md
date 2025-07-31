@@ -7,8 +7,13 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 Before starting the app, create a `.env.local` file with the required environment variables:
 
 ```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
+
+**Important:** The `SUPABASE_SERVICE_ROLE_KEY` is required for admin operations like creating new users. This key should be kept secure and never exposed to the client.
 
 First, run the development server:
 
