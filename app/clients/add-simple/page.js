@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
-export default function AddClient() {
+export default function AddClientSimple() {
   const router = useRouter();
   const supabase = createClient();
   
@@ -16,115 +16,47 @@ export default function AddClient() {
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [isVeteran, setIsVeteran] = useState(false);
-  const [clientType, setClientType] = useState('individual'); // 'individual' or 'facility'
+  const [clientType, setClientType] = useState('individual');
   const [facilityId, setFacilityId] = useState('');
   const [facilities, setFacilities] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
-  
-  // Check auth status when component mounts
+  const [pageLoaded, setPageLoaded] = useState(false);
+
+  // Simple auth check - if middleware let us through, we're good
   useEffect(() => {
-    const checkAuth = async () => {
+    const initPage = async () => {
       try {
-        console.log('Checking authentication...');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          setAuthLoading(false);
-          router.push('/login?error=Session%20error');
-          return;
+        // Get user session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
         }
         
-        if (!session) {
-          console.log('No session found, redirecting to login');
-          setAuthLoading(false);
-          router.push('/login');
-          return;
-        }
-        
-        console.log('Session found, user ID:', session.user.id);
-        setUser(session.user);
-        
-        // Since middleware already checks admin role, we can trust that if we got here, user is admin
-        // But let's do a quick check anyway
+        // Load facilities
         try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
+          const { data, error } = await supabase
+            .from('facilities')
+            .select('id, name')
+            .order('name');
           
-          if (error) {
-            console.error('Profile error:', error);
-            // If there's an error but we got past middleware, assume it's OK and continue
-            console.log('Profile error but continuing since middleware passed');
-          } else if (profile && profile.role !== 'admin') {
-            console.log('User is not an admin, role:', profile.role);
-            setAuthLoading(false);
-            await supabase.auth.signOut();
-            router.push('/login?error=Access%20denied');
-            return;
-          } else {
-            console.log('Admin access confirmed, role:', profile?.role);
+          if (!error && data) {
+            setFacilities(data);
           }
-        } catch (profileErr) {
-          console.error('Profile check exception:', profileErr);
-          // Don't fail if profile check fails - middleware already verified
-          console.log('Continuing despite profile check failure');
-        }
-
-        // Load facilities for facility client creation
-        try {
-          await loadFacilities();
-        } catch (facilitiesErr) {
-          console.error('Error loading facilities:', facilitiesErr);
-          // Don't fail the page if facilities can't be loaded
+        } catch (err) {
+          console.log('Could not load facilities:', err);
         }
         
-        setAuthLoading(false);
-        console.log('Auth check completed successfully');
+        setPageLoaded(true);
       } catch (err) {
-        console.error('Unexpected error in auth check:', err);
-        setAuthLoading(false);
-        // Don't redirect on unexpected errors - let user see the page
-        console.log('Unexpected error, but showing page anyway');
+        console.error('Error initializing page:', err);
+        setPageLoaded(true); // Show page anyway
       }
     };
-    
-    const loadFacilities = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('facilities')
-          .select('id, name')
-          .order('name');
-        
-        if (error) {
-          console.error('Error loading facilities:', error);
-        } else {
-          setFacilities(data || []);
-        }
-      } catch (err) {
-        console.error('Error loading facilities:', err);
-      }
-    };
-    
-    // Add a timeout to prevent hanging
-    const timeoutId = setTimeout(() => {
-      console.log('Auth check timeout, showing page anyway');
-      setAuthLoading(false);
-    }, 10000); // 10 second timeout
 
-    checkAuth().finally(() => {
-      clearTimeout(timeoutId);
-    });
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [router, supabase]);
+    initPage();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -134,16 +66,13 @@ export default function AddClient() {
 
     try {
       if (clientType === 'facility') {
-        // For facility clients, create directly in facility_managed_clients table
         if (!facilityId) {
           throw new Error('Please select a facility for facility clients');
         }
 
         const response = await fetch('/api/facility-clients', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             facility_id: facilityId,
             first_name: firstName,
@@ -156,70 +85,44 @@ export default function AddClient() {
         });
 
         const result = await response.json();
-        
         if (!response.ok) {
           throw new Error(result.error || 'Failed to create facility client');
         }
-
         setSuccess('Facility client successfully created');
       } else {
-        // For individual clients, create user account
-        // Generate a random password for the client's account
         const password = Math.random().toString(36).slice(-10) + Math.random().toString(10).slice(-2);
         
-        // Prepare client profile data - email is stored in auth.users, not in profiles
-        // Don't set full_name as it's calculated automatically by the database
-        const userProfile = {
-          first_name: firstName,
-          last_name: lastName,
-          phone_number: phoneNumber,
-          address,
-          notes,
-          metadata: { veteran: isVeteran }
-        };
-        
-        // Call the serverless function to create the user and profile
         const response = await fetch('/api/users', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
             password,
-            userProfile,
+            userProfile: {
+              first_name: firstName,
+              last_name: lastName,
+              phone_number: phoneNumber,
+              address,
+              notes,
+              metadata: { veteran: isVeteran }
+            },
             role: 'client'
           }),
         });
         
         const result = await response.json();
-      
         if (!response.ok) {
-          // Check for server configuration errors
           if (result.error && result.error.includes('Server configuration error')) {
-            throw new Error('The server is not properly configured to create new users. Please ensure the SUPABASE_SERVICE_ROLE_KEY environment variable is set on the server.');
+            throw new Error('The server is not properly configured. Please ensure SUPABASE_SERVICE_ROLE_KEY is set.');
           }
-          
-          // If there's already a profile but with a different role, this is a real error
-          if (result.error && result.error.includes('already has a') && !result.error.includes('client profile')) {
-            throw new Error(result.error || 'Failed to create client');
-          }
-          
-          // Otherwise, the API might be handling auto-created profiles, so check the error message
           if (result.error && !result.error.includes('already has a')) {
             throw new Error(result.error || 'Failed to create client');
           }
-          
-          // If we get here, it might be an existing profile that was handled correctly,
-          // so we'll treat it as a success
-          console.log('User profile existed, but API handled it:', result);
         }
-
-        // Success!
         setSuccess('Individual client account successfully created');
       }
       
-      // Reset the form
+      // Reset form
       setEmail('');
       setFirstName('');
       setLastName('');
@@ -238,24 +141,12 @@ export default function AddClient() {
     }
   };
 
-  // Show loading if auth is being checked
-  if (authLoading) {
+  if (!pageLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-accent mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading if not authenticated yet
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p>Redirecting to login...</p>
         </div>
       </div>
     );
@@ -268,13 +159,13 @@ export default function AddClient() {
           <h1 className="text-2xl font-semibold">Add New Client</h1>
           <button
             onClick={() => router.push('/clients')}
-            className="px-4 py-2 border border-brand-border rounded-md text-sm hover:bg-brand-border/10"
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
           >
             Back to Clients
           </button>
         </div>
         
-        <div className="bg-brand-card shadow rounded-lg p-6 border border-brand-border">
+        <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
           <h2 className="text-lg font-medium mb-6">Client Information</h2>
           
           {error && (
@@ -291,18 +182,18 @@ export default function AddClient() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Client Type Selection */}
-            <div className="bg-brand-border/5 p-4 rounded-md">
+            <div className="bg-gray-50 p-4 rounded-md">
               <h3 className="text-md font-medium mb-4">Client Type</h3>
               
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="flex items-center space-x-3 cursor-pointer p-3 border border-brand-border rounded-md hover:bg-brand-border/10">
+                <label className="flex items-center space-x-3 cursor-pointer p-3 border border-gray-200 rounded-md hover:bg-gray-100">
                   <input
                     type="radio"
                     name="clientType"
                     value="individual"
                     checked={clientType === 'individual'}
                     onChange={(e) => setClientType(e.target.value)}
-                    className="text-brand-accent focus:ring-brand-accent"
+                    className="text-blue-600 focus:ring-blue-500"
                   />
                   <div>
                     <div className="font-medium">Individual Client</div>
@@ -310,14 +201,14 @@ export default function AddClient() {
                   </div>
                 </label>
                 
-                <label className="flex items-center space-x-3 cursor-pointer p-3 border border-brand-border rounded-md hover:bg-brand-border/10">
+                <label className="flex items-center space-x-3 cursor-pointer p-3 border border-gray-200 rounded-md hover:bg-gray-100">
                   <input
                     type="radio"
                     name="clientType"
                     value="facility"
                     checked={clientType === 'facility'}
                     onChange={(e) => setClientType(e.target.value)}
-                    className="text-brand-accent focus:ring-brand-accent"
+                    className="text-blue-600 focus:ring-blue-500"
                   />
                   <div>
                     <div className="font-medium">Facility Client</div>
@@ -334,7 +225,7 @@ export default function AddClient() {
                     value={facilityId}
                     onChange={(e) => setFacilityId(e.target.value)}
                     required={clientType === 'facility'}
-                    className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                    className="w-full p-2 border border-gray-300 rounded-md bg-white"
                   >
                     <option value="">Select a facility...</option>
                     {facilities.map((facility) => (
@@ -348,7 +239,7 @@ export default function AddClient() {
             </div>
 
             {/* Personal Information */}
-            <div className="bg-brand-border/5 p-4 rounded-md">
+            <div className="bg-gray-50 p-4 rounded-md">
               <h3 className="text-md font-medium mb-4">Personal Information</h3>
               
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -360,7 +251,7 @@ export default function AddClient() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
-                    className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                    className="w-full p-2 border border-gray-300 rounded-md bg-white"
                   />
                 </div>
                 
@@ -372,7 +263,7 @@ export default function AddClient() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
-                    className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                    className="w-full p-2 border border-gray-300 rounded-md bg-white"
                   />
                 </div>
               </div>
@@ -386,7 +277,7 @@ export default function AddClient() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required={clientType === 'individual'}
-                    className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                    className="w-full p-2 border border-gray-300 rounded-md bg-white"
                   />
                   <p className="text-xs text-gray-600 mt-1">Used for login access and notifications</p>
                 </div>
@@ -400,13 +291,13 @@ export default function AddClient() {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   required
-                  className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                  className="w-full p-2 border border-gray-300 rounded-md bg-white"
                 />
               </div>
             </div>
 
-            {/* Client Specific Information */}
-            <div className="bg-brand-border/5 p-4 rounded-md">
+            {/* Additional Information */}
+            <div className="bg-gray-50 p-4 rounded-md">
               <h3 className="text-md font-medium mb-4">Additional Information</h3>
               
               <div>
@@ -416,7 +307,7 @@ export default function AddClient() {
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                  className="w-full p-2 border border-gray-300 rounded-md bg-white"
                 />
               </div>
               
@@ -428,7 +319,7 @@ export default function AddClient() {
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                   placeholder="Special needs, preferences, etc."
-                  className="w-full p-2 border border-brand-border rounded-md bg-brand-background"
+                  className="w-full p-2 border border-gray-300 rounded-md bg-white"
                 />
               </div>
               
@@ -438,7 +329,7 @@ export default function AddClient() {
                     type="checkbox"
                     checked={isVeteran}
                     onChange={(e) => setIsVeteran(e.target.checked)}
-                    className="rounded border-brand-border text-brand-accent focus:ring-brand-accent"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm font-medium">Veteran (eligible for 20% discount)</span>
                 </label>
@@ -449,14 +340,14 @@ export default function AddClient() {
               <button
                 type="button"
                 onClick={() => router.push('/clients')}
-                className="px-4 py-2 border border-brand-border rounded-md mr-3 hover:bg-brand-border/10"
+                className="px-4 py-2 border border-gray-300 rounded-md mr-3 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-brand-accent text-brand-buttonText rounded-md hover:opacity-90 transition-opacity disabled:opacity-70"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-70"
               >
                 {loading ? 'Creating...' : 'Create Client'}
               </button>
