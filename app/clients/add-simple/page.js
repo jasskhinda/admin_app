@@ -27,37 +27,54 @@ export default function AddClientSimple() {
 
   // Simple auth check - if middleware let us through, we're good
   useEffect(() => {
+    let isMounted = true;
+    
     const initPage = async () => {
       try {
+        console.log('Initializing simple page...');
+        
         // Get user session
         const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
         if (session?.user) {
           setUser(session.user);
+          console.log('User found:', session.user.id);
         }
         
         // Load facilities
         try {
-          const { data, error } = await supabase
+          const { data } = await supabase
             .from('facilities')
             .select('id, name')
             .order('name');
           
-          if (!error && data) {
+          if (isMounted && data) {
             setFacilities(data);
           }
         } catch (err) {
           console.log('Could not load facilities:', err);
         }
         
-        setPageLoaded(true);
+        if (isMounted) {
+          setPageLoaded(true);
+          console.log('Simple page initialization complete');
+        }
       } catch (err) {
         console.error('Error initializing page:', err);
-        setPageLoaded(true); // Show page anyway
+        if (isMounted) {
+          setPageLoaded(true); // Show page anyway
+        }
       }
     };
 
     initPage();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Run only once
 
   const handleSubmit = async (e) => {
     e.preventDefault();

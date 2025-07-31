@@ -25,107 +25,74 @@ export default function AddClient() {
   const [loading, setLoading] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   
-  // Check auth status when component mounts
+  // Check auth status when component mounts - run only once
   useEffect(() => {
-    const checkAuth = async () => {
+    let isMounted = true;
+    let timeoutId;
+
+    const initializePage = async () => {
       try {
-        console.log('Checking authentication...');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('Initializing page...');
         
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          setAuthLoading(false);
-          router.push('/login?error=Session%20error');
-          return;
-        }
+        // Simple session check
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (!session) {
-          console.log('No session found, redirecting to login');
-          setAuthLoading(false);
-          router.push('/login');
-          return;
-        }
+        if (!isMounted) return;
         
-        console.log('Session found, user ID:', session.user.id);
-        setUser(session.user);
-        
-        // Since middleware already checks admin role, we can trust that if we got here, user is admin
-        // But let's do a quick check anyway
-        try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
+        if (session?.user) {
+          console.log('User session found:', session.user.id);
+          setUser(session.user);
           
-          if (error) {
-            console.error('Profile error:', error);
-            // If there's an error but we got past middleware, assume it's OK and continue
-            console.log('Profile error but continuing since middleware passed');
-          } else if (profile && profile.role !== 'admin') {
-            console.log('User is not an admin, role:', profile.role);
-            setAuthLoading(false);
-            await supabase.auth.signOut();
-            router.push('/login?error=Access%20denied');
-            return;
-          } else {
-            console.log('Admin access confirmed, role:', profile?.role);
+          // Load facilities without blocking the page
+          try {
+            const { data } = await supabase
+              .from('facilities')
+              .select('id, name')
+              .order('name');
+            
+            if (isMounted && data) {
+              setFacilities(data);
+            }
+          } catch (err) {
+            console.log('Could not load facilities:', err);
           }
-        } catch (profileErr) {
-          console.error('Profile check exception:', profileErr);
-          // Don't fail if profile check fails - middleware already verified
-          console.log('Continuing despite profile check failure');
-        }
-
-        // Load facilities for facility client creation
-        try {
-          await loadFacilities();
-        } catch (facilitiesErr) {
-          console.error('Error loading facilities:', facilitiesErr);
-          // Don't fail the page if facilities can't be loaded
-        }
-        
-        setAuthLoading(false);
-        console.log('Auth check completed successfully');
-      } catch (err) {
-        console.error('Unexpected error in auth check:', err);
-        setAuthLoading(false);
-        // Don't redirect on unexpected errors - let user see the page
-        console.log('Unexpected error, but showing page anyway');
-      }
-    };
-    
-    const loadFacilities = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('facilities')
-          .select('id, name')
-          .order('name');
-        
-        if (error) {
-          console.error('Error loading facilities:', error);
         } else {
-          setFacilities(data || []);
+          console.log('No session, redirecting to login');
+          if (isMounted) {
+            router.push('/login');
+            return;
+          }
+        }
+        
+        if (isMounted) {
+          setAuthLoading(false);
+          console.log('Page initialization complete');
         }
       } catch (err) {
-        console.error('Error loading facilities:', err);
+        console.error('Page initialization error:', err);
+        if (isMounted) {
+          setAuthLoading(false);
+        }
       }
     };
-    
-    // Add a timeout to prevent hanging
-    const timeoutId = setTimeout(() => {
-      console.log('Auth check timeout, showing page anyway');
-      setAuthLoading(false);
-    }, 5000); // 5 second timeout
 
-    checkAuth().finally(() => {
-      clearTimeout(timeoutId);
-    });
+    // Set a timeout to show page anyway
+    timeoutId = setTimeout(() => {
+      if (isMounted) {
+        console.log('Page timeout, showing anyway');
+        setAuthLoading(false);
+      }
+    }, 3000); // Reduced to 3 seconds
+
+    initializePage();
 
     return () => {
-      clearTimeout(timeoutId);
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
-  }, [router, supabase]);
+  }, []); // Empty dependency array - run only once
 
   const handleSubmit = async (e) => {
     e.preventDefault();
