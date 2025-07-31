@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function AdminLayout({ children }) {
   const [user, setUser] = useState(null);
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const router = useRouter();
   const pathname = usePathname();
   

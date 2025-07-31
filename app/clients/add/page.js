@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 
 export default function AddClient() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
@@ -22,35 +22,63 @@ export default function AddClient() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   
   // Check auth status when component mounts
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-      
-      setUser(session.user);
-      
-      // Check if user has admin role
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error || !profile || profile.role !== 'admin') {
-        // Not an admin, redirect to login
-        supabase.auth.signOut();
-        router.push('/login?error=Access%20denied');
-        return;
-      }
+      try {
+        console.log('Checking authentication...');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          router.push('/login?error=Session%20error');
+          return;
+        }
+        
+        if (!session) {
+          console.log('No session found, redirecting to login');
+          router.push('/login');
+          return;
+        }
+        
+        console.log('Session found, user ID:', session.user.id);
+        setUser(session.user);
+        
+        // Check if user has admin role
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (error) {
+          console.error('Profile error:', error);
+          // Don't immediately redirect on profile errors, as it might be a temporary issue
+          if (error.code === 'PGRST116') {
+            router.push('/login?error=Profile%20not%20found');
+            return;
+          }
+          // For other errors, still try to load the page
+          console.warn('Profile check failed, but continuing:', error.message);
+        } else if (!profile || profile.role !== 'admin') {
+          console.log('User is not an admin, role:', profile?.role);
+          await supabase.auth.signOut();
+          router.push('/login?error=Access%20denied');
+          return;
+        } else {
+          console.log('Admin access confirmed');
+        }
 
-      // Load facilities for facility client creation
-      loadFacilities();
+        // Load facilities for facility client creation
+        await loadFacilities();
+        setAuthLoading(false);
+      } catch (err) {
+        console.error('Unexpected error in auth check:', err);
+        setAuthLoading(false);
+        router.push('/login?error=Authentication%20error');
+      }
     };
     
     const loadFacilities = async () => {
@@ -185,9 +213,27 @@ export default function AddClient() {
     }
   };
 
+  // Show loading if auth is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-accent mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show loading if not authenticated yet
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p>Redirecting to login...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
