@@ -115,7 +115,7 @@ export default function AddClient() {
     const timeoutId = setTimeout(() => {
       console.log('Auth check timeout, showing page anyway');
       setAuthLoading(false);
-    }, 10000); // 10 second timeout
+    }, 5000); // 5 second timeout
 
     checkAuth().finally(() => {
       clearTimeout(timeoutId);
