@@ -2,6 +2,33 @@ import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+export async function GET(request) {
+  try {
+    console.log('Facilities GET API called');
+    
+    // Get the server client
+    const supabase = await createClient();
+    
+    // Fetch facilities
+    const { data, error } = await supabase
+      .from('facilities')
+      .select('id, name')
+      .order('name');
+    
+    if (error) {
+      console.error('Error fetching facilities:', error);
+      return NextResponse.json([], { status: 200 }); // Return empty array instead of error
+    }
+    
+    console.log('Fetched facilities:', data?.length || 0);
+    return NextResponse.json(data || []);
+    
+  } catch (error) {
+    console.error('Facilities GET API error:', error);
+    return NextResponse.json([], { status: 200 }); // Return empty array instead of error
+  }
+}
+
 export async function POST(request) {
   try {
     console.log('Facility creation API called');
