@@ -223,8 +223,11 @@ export default function FacilityDetailsView({ user, userProfile, facility, stats
                   <div className="flex justify-between items-start">
                     <div>
                       <h4 className="font-medium">
-                        {trip.facility_managed_clients ? `${trip.facility_managed_clients.first_name} ${trip.facility_managed_clients.last_name}` : 'Unknown Client'}
+                        {trip.client_info ? trip.client_info.name : 'Unknown Client'}
                       </h4>
+                      <p className="text-xs text-gray-500">
+                        {trip.client_info ? trip.client_info.email : 'No email'} • {trip.client_info ? trip.client_info.type : 'unknown'} client
+                      </p>
                       <p className="text-sm text-gray-600">
                         {trip.pickup_address || 'No pickup'} → {trip.destination_address || 'No destination'}
                       </p>

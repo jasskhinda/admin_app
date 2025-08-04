@@ -202,13 +202,13 @@ export default function DashboardClientView({ user, userProfile, trips: initialT
             </div>
             
             <div className="bg-brand-card p-4 rounded-lg border border-brand-border">
-              <h3 className="font-semibold text-brand-accent mb-2">Financial Overview</h3>
-              <p className="text-sm mb-4">Track payments and manage invoices.</p>
+              <h3 className="font-semibold text-brand-accent mb-2">Trip Overview</h3>
+              <p className="text-sm mb-4">View and manage your transportation requests.</p>
               <button 
-                onClick={() => router.push('/invoices')}
+                onClick={() => router.push('/trips')}
                 className="w-full text-center px-4 py-2 bg-brand-accent text-brand-buttonText rounded hover:opacity-90 transition-opacity"
               >
-                View Invoices
+                View Trips
               </button>
             </div>
           </div>
@@ -341,22 +341,6 @@ export default function DashboardClientView({ user, userProfile, trips: initialT
                             className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded bg-brand-accent text-brand-buttonText hover:opacity-90 transition-opacity focus:outline-none focus:ring-1 focus:ring-brand-accent disabled:opacity-50"
                           >
                             {approving === trip.id ? 'Approving...' : 'Approve'}
-                          </button>
-                        )}
-                        {trip.status === 'completed' && !trip.has_invoice && (
-                          <button
-                            onClick={() => router.push(`/invoices/new?trip_id=${trip.id}`)}
-                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded bg-brand-accent text-brand-buttonText hover:opacity-90 transition-opacity focus:outline-none focus:ring-1 focus:ring-brand-accent"
-                          >
-                            Create Invoice
-                          </button>
-                        )}
-                        {trip.has_invoice && (
-                          <button
-                            onClick={() => router.push(`/invoices/${trip.invoice_id}`)}
-                            className="inline-flex items-center px-2 py-1 border border-brand-border text-xs font-medium rounded bg-brand-card hover:bg-brand-border/20 transition-colors focus:outline-none focus:ring-1 focus:ring-brand-accent"
-                          >
-                            View Invoice
                           </button>
                         )}
                       </td>

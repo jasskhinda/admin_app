@@ -168,12 +168,6 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
             icon="/window.svg" 
             href="/facilities" 
           />
-          <ActionCard 
-            title="Invoices" 
-            description="Manage billing and invoices" 
-            icon="/file.svg" 
-            href="/invoices" 
-          />
         </div>
         
         {/* Recent Activity and Pending Approvals */}

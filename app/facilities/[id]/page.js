@@ -88,19 +88,62 @@ export default async function FacilityDetailsPage({ params }) {
       
       // Remove active users count - not needed
       
-      // Get recent trips with managed client info
+      // Get recent trips (will need to fetch client info separately)
       const { data: recentTrips } = await supabase
         .from('trips')
-        .select(`
-          *,
-          facility_managed_clients!managed_client_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .eq('facility_id', facility.id)
         .order('created_at', { ascending: false })
         .limit(5);
+
+      // Process each trip to add client information
+      if (recentTrips && recentTrips.length > 0) {
+        for (const trip of recentTrips) {
+          // If trip has managed_client_id, get info from facility_managed_clients
+          if (trip.managed_client_id) {
+            const { data: managedClient } = await supabase
+              .from('facility_managed_clients')
+              .select('id, first_name, last_name, email')
+              .eq('id', trip.managed_client_id)
+              .single();
+            
+            if (managedClient) {
+              trip.client_info = {
+                type: 'facility_managed',
+                name: `${managedClient.first_name || ''} ${managedClient.last_name || ''}`.trim(),
+                email: managedClient.email,
+                ...managedClient
+              };
+            }
+          }
+          // If trip has user_id, get info from profiles table  
+          else if (trip.user_id) {
+            const { data: userProfile } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name, full_name, email')
+              .eq('id', trip.user_id)
+              .single();
+            
+            if (userProfile) {
+              trip.client_info = {
+                type: 'individual',
+                name: userProfile.full_name || `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim(),
+                email: userProfile.email,
+                ...userProfile
+              };
+            }
+          }
+          
+          // Fallback if no client info found
+          if (!trip.client_info) {
+            trip.client_info = {
+              type: 'unknown',
+              name: 'Unknown Client',
+              email: 'N/A'
+            };
+          }
+        }
+      }
       
       stats = {
         client_count: clientCount || 0,
