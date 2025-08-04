@@ -70,15 +70,46 @@ export default async function FacilityDetailsPage({ params }) {
       client_count: 0,
       trip_count: 0,
       monthly_revenue: 0,
-      recent_trips: []
+      recent_trips: [],
+      clients: []
     };
     
     try {
-      // Get client count from facility_managed_clients table
-      const { count: clientCount } = await supabase
-        .from('facility_managed_clients')
-        .select('*', { count: 'exact', head: true })
-        .eq('facility_id', facility.id);
+      // Get clients from facility_managed_clients table
+      let clients = null;
+      let clientError = null;
+      
+      try {
+        const { data: clientData, error: err } = await supabase
+          .from('facility_managed_clients')
+          .select('*')
+          .eq('facility_id', facility.id)
+          .order('created_at', { ascending: false });
+        
+        if (err) {
+          // Try with admin client
+          const { supabaseAdmin } = await import('@/lib/admin-supabase');
+          if (supabaseAdmin) {
+            const { data: adminClients, error: adminErr } = await supabaseAdmin
+              .from('facility_managed_clients')
+              .select('*')
+              .eq('facility_id', facility.id)
+              .order('created_at', { ascending: false });
+            
+            clients = adminClients;
+            clientError = adminErr;
+          } else {
+            clientError = err;
+          }
+        } else {
+          clients = clientData;
+        }
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+        clientError = error;
+      }
+      
+      const clientCount = clients ? clients.length : 0;
       
       // Get trip count
       const { count: tripCount } = await supabase
@@ -219,7 +250,8 @@ export default async function FacilityDetailsPage({ params }) {
         client_count: clientCount || 0,
         trip_count: tripCount || 0,
         monthly_revenue: 0, // Will calculate this later
-        recent_trips: recentTrips || []
+        recent_trips: recentTrips || [],
+        clients: clients || []
       };
       
     } catch (error) {
