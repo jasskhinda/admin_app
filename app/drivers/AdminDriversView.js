@@ -80,9 +80,7 @@ export default function AdminDriversView({ user, userProfile, drivers }) {
     );
   };
 
-  const handleAssignTrip = (driverId) => {
-    router.push(`/drivers/${driverId}/assign-trip`);
-  };
+  // Trip assignment removed - admin role is read-only for trip management
 
   const handleDeleteDriver = (driver) => {
     setDeleteModal({ isOpen: true, driver, loading: false });
@@ -142,7 +140,7 @@ export default function AdminDriversView({ user, userProfile, drivers }) {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Driver Management</h1>
               <p className="mt-2 text-sm text-gray-600">
-                Manage all drivers, vehicles, and trip assignments
+                Manage all drivers and their information
               </p>
             </div>
             <Link
@@ -376,15 +374,6 @@ export default function AdminDriversView({ user, userProfile, drivers }) {
                             </svg>
                             View
                           </Link>
-                          <button
-                            onClick={() => handleAssignTrip(driver.id)}
-                            className="inline-flex items-center px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-medium rounded-md transition-colors border border-blue-300"
-                          >
-                            <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            Assign
-                          </button>
                           <button
                             onClick={() => handleDeleteDriver(driver)}
                             className="inline-flex items-center px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-md transition-colors border border-red-300"

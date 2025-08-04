@@ -48,14 +48,14 @@ export default function DriverDetailView({ user, userProfile, driver, allTrips, 
   // Render trip table helper
   const renderTripTable = (trips, title, showAssignButton = false, showCompleteButton = false) => {
     const subtitle = title === 'ASSIGNED TRIPS' 
-      ? 'Trips currently assigned to this driver that can be marked as completed' 
+      ? 'Trips currently assigned to this driver (read-only view)' 
       : title === 'WAITING ACCEPTANCE'
-      ? 'Trips assigned to this driver awaiting driver acceptance'
+      ? 'Trips assigned to this driver awaiting driver acceptance (read-only view)'
       : title === 'REJECTED TRIPS'
-      ? 'Trips that have been rejected by this driver'
+      ? 'Trips that have been rejected by this driver (read-only view)'
       : title === 'COMPLETED TRIPS'
-      ? 'Recently completed trips by this driver'
-      : 'Driver trip history and management';
+      ? 'Recently completed trips by this driver (read-only view)'
+      : 'Driver trip history and management (read-only view)';
 
     return (
       <div className="mb-8">
@@ -225,12 +225,9 @@ export default function DriverDetailView({ user, userProfile, driver, allTrips, 
                 </svg>
                 Back to Drivers
               </Link>
-              <Link
-                href={`/drivers/${driver.id}/assign-trip`}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors"
-              >
-                Assign Trip
-              </Link>
+              <div className="text-sm text-gray-500 px-4 py-2 bg-gray-100 rounded-lg border">
+                Trip assignment managed by dispatchers
+              </div>
             </div>
           </div>
         </div>
@@ -251,7 +248,7 @@ export default function DriverDetailView({ user, userProfile, driver, allTrips, 
                   {driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Unnamed Driver'}
                 </h3>
                 <p className="text-sm text-gray-500">{driver.email}</p>
-                <p className="text-xs text-blue-600 font-medium mt-1">🚗 Available for Assignment</p>
+                <p className="text-xs text-gray-500 font-medium mt-1">📍 Driver Status: {driver.status || 'Active'}</p>
               </div>
             </div>
             <div className="text-right">
@@ -340,16 +337,16 @@ export default function DriverDetailView({ user, userProfile, driver, allTrips, 
 
         {/* Page Header */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Trip Management for {driver.full_name || `${driver.first_name} ${driver.last_name}`}</h2>
-          <p className="text-sm text-gray-600 mt-1">Complete driver profile and trip history</p>
+          <h2 className="text-2xl font-bold text-gray-900">Trip History for {driver.full_name || `${driver.first_name} ${driver.last_name}`}</h2>
+          <p className="text-sm text-gray-600 mt-1">View driver profile and trip history (read-only for admin)</p>
         </div>
 
         {/* ASSIGNED TRIPS Section */}
         {renderTripTable(
           assignedTrips || [], 
           "ASSIGNED TRIPS", 
-          false,  // No assign button for assigned trips
-          true    // Show complete button for assigned trips
+          false,  // No assign button for assigned trips (admin read-only)
+          false   // No complete button for assigned trips (admin read-only)
         )}
 
         {/* WAITING ACCEPTANCE Section */}
