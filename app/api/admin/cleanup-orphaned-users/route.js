@@ -72,14 +72,22 @@ export async function POST(request) {
         // Actually delete the orphaned users
         for (const orphanedUser of orphanedAuthUsers) {
           try {
-            // First check if there are any trips associated with this user
-            const { data: trips } = await supabase
+            // First check if there are any trips associated with this user (by user_id OR email)
+            const { data: tripsByUserId } = await supabase
               .from('trips')
               .select('id')
               .eq('user_id', orphanedUser.id)
               .limit(1);
               
-            if (trips && trips.length > 0) {
+            const { data: tripsByEmail } = await supabase
+              .from('trips')
+              .select('id')
+              .eq('email', orphanedUser.email)
+              .limit(1);
+              
+            const hasTrips = (tripsByUserId && tripsByUserId.length > 0) || (tripsByEmail && tripsByEmail.length > 0);
+              
+            if (hasTrips) {
               results.errors.push({
                 userId: orphanedUser.id,
                 email: orphanedUser.email,
@@ -92,10 +100,19 @@ export async function POST(request) {
             const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(orphanedUser.id);
             
             if (deleteError) {
+              console.error('Delete user error details:', {
+                userId: orphanedUser.id,
+                email: orphanedUser.email,
+                error: deleteError,
+                message: deleteError.message,
+                code: deleteError.code,
+                status: deleteError.status
+              });
+              
               results.errors.push({
                 userId: orphanedUser.id,
                 email: orphanedUser.email,
-                error: deleteError.message
+                error: `Database error deleting user${deleteError.message ? `: ${deleteError.message}` : ''}`
               });
             } else {
               results.usersDeleted++;

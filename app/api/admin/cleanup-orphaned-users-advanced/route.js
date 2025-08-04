@@ -285,7 +285,7 @@ export async function POST(request) {
             results.errors.push({
               userId: orphanedUser.id,
               email: orphanedUser.email,
-              error: `Failed to delete user: ${deleteError.message || deleteError.error_description || 'Unknown error'} (Code: ${deleteError.code || 'N/A'})`
+              error: `Failed to delete user: ${deleteError.message || deleteError.error_description || 'Database error deleting user'} (Code: ${deleteError.code || 'unexpected_failure'})`
             });
           } else {
             results.usersDeleted++;
