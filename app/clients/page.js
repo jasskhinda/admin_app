@@ -82,32 +82,81 @@ export default async function AdminClientsPage() {
         const individualClients = allClients.filter(client => !client.facility_id);
         const facilityClients = allClients.filter(client => client.facility_id);
 
-        // Add managed clients to the list (these are non-authenticated clients)
-        const allManagedClients = (managedClients || []).map(client => ({
-            ...client,
-            client_type: 'managed',
-            full_name: `${client.first_name || ''} ${client.last_name || ''}`.trim()
-        }));
-        
-        // For each client, get their trips count
-        const clientsWithStats = await Promise.all(allClients.map(async (client) => {
+        // Add managed clients to the list with trip counts
+        const allManagedClients = await Promise.all((managedClients || []).map(async (client) => {
             const { count: tripCount } = await supabase
                 .from('trips')
                 .select('*', { count: 'exact', head: true })
-                .eq('user_id', client.id);
+                .eq('managed_client_id', client.id);
 
             const { data: lastTrip } = await supabase
                 .from('trips')
                 .select('*')
-                .eq('user_id', client.id)
+                .eq('managed_client_id', client.id)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
 
             return {
                 ...client,
-                client_type: 'authenticated',
+                client_type: 'managed',
+                full_name: `${client.first_name || ''} ${client.last_name || ''}`.trim(),
                 trip_count: tripCount || 0,
+                last_trip: lastTrip
+            };
+        }));
+        
+        // For each client, get their trips count
+        const clientsWithStats = await Promise.all(allClients.map(async (client) => {
+            // For facility clients, we need to check if they have trips as managed clients too
+            let tripCount = 0;
+            let lastTrip = null;
+
+            // Check trips by user_id (for authenticated clients)
+            const { count: userTripCount } = await supabase
+                .from('trips')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', client.id);
+            
+            tripCount = userTripCount || 0;
+
+            // If this is a facility client, also check for trips where they might be managed
+            if (client.facility_id && client.email) {
+                // Check if there's a managed client with the same email in the same facility
+                const { data: managedClient } = await supabase
+                    .from('facility_managed_clients')
+                    .select('id')
+                    .eq('facility_id', client.facility_id)
+                    .eq('email', client.email)
+                    .single();
+                
+                if (managedClient) {
+                    const { count: managedTripCount } = await supabase
+                        .from('trips')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('managed_client_id', managedClient.id);
+                    
+                    tripCount += managedTripCount || 0;
+                }
+            }
+
+            // Get the last trip (either by user_id or managed_client_id)
+            if (tripCount > 0) {
+                const { data: userTrip } = await supabase
+                    .from('trips')
+                    .select('*')
+                    .eq('user_id', client.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+                
+                lastTrip = userTrip;
+            }
+
+            return {
+                ...client,
+                client_type: 'authenticated',
+                trip_count: tripCount,
                 last_trip: lastTrip,
                 full_name: `${client.first_name || ''} ${client.last_name || ''}`.trim()
             };
