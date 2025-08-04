@@ -151,15 +151,14 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [actionLoading, setActionLoading] = useState({});
-  const [actionMessage, setActionMessage] = useState('');
+  // Removed action loading and message state - admin is read-only
   
   // Removed driver assignment modal state - now redirects to drivers page
   
   const router = useRouter();
   
-  // Use real-time updates for trips
-  const { trips, lastUpdate, updateTripOptimistically } = useRealtimeTripUpdates(initialTrips);
+  // Use real-time updates for trips (read-only for admin)
+  const { trips, lastUpdate } = useRealtimeTripUpdates(initialTrips);
 
   // Compute statistics
   const stats = useMemo(() => {
@@ -238,72 +237,8 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
     }
   };
 
-  const handleTripAction = async (tripId, action, reason = null) => {
-    const actionMessages = {
-      approve: 'approve this trip',
-      reject: 'reject this trip',
-      complete: 'mark this trip as completed'
-    };
-
-    if (!confirm(`Are you sure you want to ${actionMessages[action]}? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      setActionLoading(prev => ({ ...prev, [tripId]: true }));
-      setActionMessage('');
-
-      // Optimistic update based on action
-      const optimisticStatus = {
-        approve: 'upcoming',
-        reject: 'cancelled',
-        complete: 'completed'
-      };
-      updateTripOptimistically(tripId, { status: optimisticStatus[action] });
-
-      const response = await fetch('/api/admin/trip-actions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ tripId, action, reason }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        // Revert optimistic update on error
-        updateTripOptimistically(tripId, { status: trips.find(t => t.id === tripId)?.status });
-        throw new Error(result.error || `Failed to ${action} trip`);
-      }
-
-      const successMessages = {
-        approve: '✅ Trip approved successfully!',
-        reject: '✅ Trip rejected successfully!',
-        complete: '✅ Trip completed successfully!'
-      };
-      setActionMessage(successMessages[action]);
-      
-      setTimeout(() => setActionMessage(''), 3000);
-
-    } catch (error) {
-      console.error(`Error ${action}ing trip:`, error);
-      setActionMessage(`❌ Error: ${error.message}`);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [tripId]: false }));
-      setTimeout(() => setActionMessage(''), 5000);
-    }
-  };
-
-  // Removed driver assignment functions - now redirects to drivers page
-
-  const handleRejectTrip = async (tripId) => {
-    const reason = prompt('Please provide a reason for rejecting this trip:');
-    if (reason === null) return; // User cancelled
-    
-    const rejectionReason = reason.trim() || 'Rejected by admin';
-    await handleTripAction(tripId, 'reject', rejectionReason);
-  };
+  // Removed trip action functions - admin role is read-only for trips
+  // All trip actions (approve, reject, complete, assign driver) are handled by dispatchers
 
   const SortIcon = ({ field }) => {
     if (sortBy !== field) {
@@ -328,16 +263,17 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-      {/* Action Message */}
-      {actionMessage && (
-        <div className={`mb-6 px-4 py-3 rounded-lg ${
-          actionMessage.includes('Error') 
-            ? 'bg-red-100 border border-red-400 text-red-700'
-            : 'bg-green-100 border border-green-400 text-green-700'
-        }`}>
-          <p className="font-semibold">{actionMessage}</p>
+      {/* Admin Read-Only Notice */}
+      <div className="mb-6 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200">
+        <div className="flex items-center">
+          <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-blue-800 font-medium">
+            Admin View - Read Only Access. Trip actions (approve, reject, assign drivers) are managed by dispatchers.
+          </p>
         </div>
-      )}
+      </div>
 
       {/* Real-time Status Indicator */}
       {lastUpdate && (
@@ -352,21 +288,15 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Trip Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Trip Overview</h1>
             <p className="mt-2 text-sm text-gray-600">
-              Comprehensive overview of all transportation requests and bookings
+              Comprehensive read-only view of all transportation requests and bookings
             </p>
           </div>
-          <div className="mt-4 sm:mt-0 flex space-x-3">
-            <Link
-              href="/trips/new"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              New Trip
-            </Link>
+          <div className="mt-4 sm:mt-0">
+            <div className="text-sm text-gray-500">
+              Trip creation is managed by dispatchers
+            </div>
           </div>
         </div>
       </div>
@@ -474,7 +404,7 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                   </div>
                 </th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
-                  Actions
+                  Status Info
                 </th>
               </tr>
             </thead>
@@ -557,55 +487,41 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
                           View Details
                         </Link>
                         
-                        {/* Pending trips - show approve/reject buttons */}
+                        {/* Admin Read-Only - Show status info but no action buttons */}
                         {trip.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleTripAction(trip.id, 'approve')}
-                              disabled={actionLoading[trip.id]}
-                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm"
-                              title="Approve trip"
-                            >
-                              {actionLoading[trip.id] ? '...' : '✅ APPROVE'}
-                            </button>
-                            <button
-                              onClick={() => handleRejectTrip(trip.id)}
-                              disabled={actionLoading[trip.id]}
-                              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm"
-                              title="Reject trip"
-                            >
-                              {actionLoading[trip.id] ? '...' : '❌ REJECT'}
-                            </button>
-                          </>
+                          <div className="text-xs text-yellow-600 font-medium">
+                            Awaiting Dispatcher Approval
+                          </div>
                         )}
                         
-                        {/* Upcoming trips - show assign driver button */}
                         {trip.status === 'upcoming' && !trip.driver_id && (
-                          <Link
-                            href="/drivers"
-                            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors duration-200 shadow-sm text-center"
-                            title="Go to drivers page to assign a driver"
-                          >
-                            Assign A Driver
-                          </Link>
+                          <div className="text-xs text-blue-600 font-medium">
+                            Needs Driver Assignment
+                          </div>
                         )}
                         
-                        {/* In progress trips - show complete button */}
                         {trip.status === 'in_progress' && (
-                          <button
-                            onClick={() => handleTripAction(trip.id, 'complete')}
-                            disabled={actionLoading[trip.id]}
-                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm"
-                            title="Mark trip as completed"
-                          >
-                            {actionLoading[trip.id] ? '...' : '✅ COMPLETE'}
-                          </button>
+                          <div className="text-xs text-purple-600 font-medium">
+                            Trip In Progress
+                          </div>
                         )}
                         
                         {/* Show driver info if assigned */}
                         {trip.driver_id && trip.status === 'upcoming' && (
-                          <div className="text-xs text-gray-500">
-                            Driver assigned
+                          <div className="text-xs text-green-600 font-medium">
+                            Driver Assigned
+                          </div>
+                        )}
+                        
+                        {trip.status === 'completed' && (
+                          <div className="text-xs text-green-600 font-medium">
+                            Trip Completed
+                          </div>
+                        )}
+                        
+                        {trip.status === 'cancelled' && (
+                          <div className="text-xs text-red-600 font-medium">
+                            Trip Cancelled
                           </div>
                         )}
                       </div>
@@ -625,21 +541,8 @@ export default function AdminTripsView({ trips: initialTrips = [] }) {
               <p className="mt-1 text-sm text-gray-500">
                 {searchTerm || statusFilter !== 'all' 
                   ? 'No trips match your current filters.' 
-                  : 'Get started by creating a new trip.'}
+                  : 'No trips available. Trip creation is managed by dispatchers.'}
               </p>
-              {(!searchTerm && statusFilter === 'all') && (
-                <div className="mt-6">
-                  <Link
-                    href="/trips/new"
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    New Trip
-                  </Link>
-                </div>
-              )}
             </div>
           )}
         </div>

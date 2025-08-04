@@ -181,21 +181,26 @@ export default async function TripDetails({ params }) {
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Trip Details</h1>
-          <div className="flex items-center space-x-4">
-            <Link
-              href="/trips"
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              Back to Trips
-            </Link>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              Dashboard
-            </Link>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Trip Details</h1>
+              <p className="text-sm text-gray-600 mt-1">Admin Read-Only View</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/trips"
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Back to Trips
+              </Link>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Dashboard
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -368,13 +373,8 @@ export default async function TripDetails({ params }) {
                   </dl>
                 ) : (
                   <div>
-                    <p className="text-sm text-gray-500 mb-4">No driver assigned to this trip</p>
-                    <Link
-                      href={`/drivers?assign_trip=${tripId}`}
-                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      Assign Driver
-                    </Link>
+                    <p className="text-sm text-gray-500 mb-2">No driver assigned to this trip</p>
+                    <p className="text-xs text-blue-600">Driver assignment is managed by dispatchers</p>
                   </div>
                 )}
               </div>
