@@ -89,48 +89,118 @@ export default async function FacilityDetailsPage({ params }) {
       // Remove active users count - not needed
       
       // Get recent trips (will need to fetch client info separately)
-      const { data: recentTrips } = await supabase
-        .from('trips')
-        .select('*')
-        .eq('facility_id', facility.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      let recentTrips = null;
+      let tripsError = null;
+      
+      try {
+        // Try with regular client first
+        const { data: trips, error: err } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('facility_id', facility.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+        
+        if (err) {
+          // Try with admin client if regular fails
+          const { supabaseAdmin } = await import('@/lib/admin-supabase');
+          if (supabaseAdmin) {
+            const { data: adminTrips, error: adminErr } = await supabaseAdmin
+              .from('trips')
+              .select('*')
+              .eq('facility_id', facility.id)
+              .order('created_at', { ascending: false })
+              .limit(5);
+            
+            recentTrips = adminTrips;
+            tripsError = adminErr;
+          } else {
+            tripsError = err;
+          }
+        } else {
+          recentTrips = trips;
+        }
+      } catch (error) {
+        console.error('Error fetching trips:', error);
+        tripsError = error;
+      }
+      
 
       // Process each trip to add client information
       if (recentTrips && recentTrips.length > 0) {
         for (const trip of recentTrips) {
           // If trip has managed_client_id, get info from facility_managed_clients
           if (trip.managed_client_id) {
-            const { data: managedClient } = await supabase
-              .from('facility_managed_clients')
-              .select('id, first_name, last_name, email')
-              .eq('id', trip.managed_client_id)
-              .single();
-            
-            if (managedClient) {
-              trip.client_info = {
-                type: 'facility_managed',
-                name: `${managedClient.first_name || ''} ${managedClient.last_name || ''}`.trim(),
-                email: managedClient.email,
-                ...managedClient
-              };
+            try {
+              let managedClient = null;
+              const { data: client, error: clientErr } = await supabase
+                .from('facility_managed_clients')
+                .select('id, first_name, last_name, email')
+                .eq('id', trip.managed_client_id)
+                .single();
+              
+              if (clientErr) {
+                // Try with admin client
+                const { supabaseAdmin } = await import('@/lib/admin-supabase');
+                if (supabaseAdmin) {
+                  const { data: adminClient } = await supabaseAdmin
+                    .from('facility_managed_clients')
+                    .select('id, first_name, last_name, email')
+                    .eq('id', trip.managed_client_id)
+                    .single();
+                  managedClient = adminClient;
+                }
+              } else {
+                managedClient = client;
+              }
+              
+              if (managedClient) {
+                trip.client_info = {
+                  type: 'facility_managed',
+                  name: `${managedClient.first_name || ''} ${managedClient.last_name || ''}`.trim(),
+                  email: managedClient.email,
+                  ...managedClient
+                };
+              }
+            } catch (error) {
+              console.error('Error fetching managed client:', error);
             }
           }
           // If trip has user_id, get info from profiles table  
           else if (trip.user_id) {
-            const { data: userProfile } = await supabase
-              .from('profiles')
-              .select('id, first_name, last_name, full_name, email')
-              .eq('id', trip.user_id)
-              .single();
-            
-            if (userProfile) {
-              trip.client_info = {
-                type: 'individual',
-                name: userProfile.full_name || `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim(),
-                email: userProfile.email,
-                ...userProfile
-              };
+            try {
+              let userProfile = null;
+              const { data: profile, error: profileErr } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name, full_name, email')
+                .eq('id', trip.user_id)
+                .single();
+              
+              if (profileErr) {
+                // Try with admin client
+                const { supabaseAdmin } = await import('@/lib/admin-supabase');
+                if (supabaseAdmin) {
+                  const { data: adminProfile } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id, first_name, last_name, full_name, email')
+                    .eq('id', trip.user_id)
+                    .single();
+                  userProfile = adminProfile;
+                }
+              } else {
+                userProfile = profile;
+              }
+              
+              if (userProfile) {
+                trip.client_info = {
+                  type: 'individual',
+                  name: userProfile.full_name || `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim(),
+                  email: userProfile.email,
+                  ...userProfile
+                };
+              }
+            } catch (error) {
+              console.error('Error fetching user profile:', error);
             }
           }
           
@@ -151,6 +221,7 @@ export default async function FacilityDetailsPage({ params }) {
         monthly_revenue: 0, // Will calculate this later
         recent_trips: recentTrips || []
       };
+      
     } catch (error) {
       console.error('Error fetching facility stats:', error);
     }

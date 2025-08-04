@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 export default function FacilityDetailsView({ user, userProfile, facility, stats }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
+  
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -144,7 +145,7 @@ export default function FacilityDetailsView({ user, userProfile, facility, stats
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Recent Trips ({stats.recent_trips.length})
+              Recent Trips ({stats.recent_trips ? stats.recent_trips.length : 0})
             </button>
           </nav>
         </div>
@@ -152,55 +153,102 @@ export default function FacilityDetailsView({ user, userProfile, facility, stats
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Facility Information */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Facility Information</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <p className="mt-1 text-sm text-gray-900">{facility.name || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Type</label>
-                <p className="mt-1 text-sm text-gray-900">{facility.facility_type || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Address</label>
-                <p className="mt-1 text-sm text-gray-900">{facility.address || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
-                <div className="mt-1">
-                  {getStatusBadge(facility.status)}
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Facility Information */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold mb-4">Facility Information</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <p className="mt-1 text-sm text-gray-900">{facility.name || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Type</label>
+                  <p className="mt-1 text-sm text-gray-900">{facility.facility_type || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Address</label>
+                  <p className="mt-1 text-sm text-gray-900">{facility.address || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <div className="mt-1">
+                    {getStatusBadge(facility.status)}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Created</label>
+                  <p className="mt-1 text-sm text-gray-900">{formatDate(facility.created_at)}</p>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Created</label>
-                <p className="mt-1 text-sm text-gray-900">{formatDate(facility.created_at)}</p>
+            </div>
+
+            {/* Contact Information */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Contact Email</label>
+                  <p className="mt-1 text-sm text-gray-900">{facility.contact_email || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Billing Email</label>
+                  <p className="mt-1 text-sm text-gray-900">{facility.billing_email || facility.contact_email || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                  <p className="mt-1 text-sm text-gray-900">{facility.phone_number || 'N/A'}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Contact Information */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Contact Email</label>
-                <p className="mt-1 text-sm text-gray-900">{facility.contact_email || 'N/A'}</p>
+          {/* Recent Trips Preview in Overview */}
+          <div className="mt-8 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Recent Trips</h3>
+            <button
+              onClick={() => setActiveTab('trips')}
+              className="text-sm text-[#84CED3] hover:text-[#70B8BD] font-medium"
+            >
+              View All ({stats.recent_trips ? stats.recent_trips.length : 0})
+            </button>
+          </div>
+          <div className="space-y-4">
+            {stats.recent_trips && stats.recent_trips.length > 0 ? (
+              stats.recent_trips.slice(0, 3).map((trip) => (
+                <div key={trip.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">
+                        {trip.client_info ? trip.client_info.name : 'Unknown Client'}
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        {trip.client_info ? trip.client_info.email : 'No email'} • {trip.client_info ? trip.client_info.type : 'unknown'} client
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {trip.pickup_address || 'No pickup'} → {trip.destination_address || 'No destination'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {formatDate(trip.pickup_time || trip.created_at)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{trip.status}</p>
+                      <p className="text-sm text-gray-600">${trip.price || trip.total_fare || '0.00'}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No recent trips found</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Billing Email</label>
-                <p className="mt-1 text-sm text-gray-900">{facility.billing_email || facility.contact_email || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                <p className="mt-1 text-sm text-gray-900">{facility.phone_number || 'N/A'}</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
+        </>
       )}
 
       {activeTab === 'clients' && (
@@ -217,7 +265,7 @@ export default function FacilityDetailsView({ user, userProfile, facility, stats
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-semibold mb-4">Recent Trips</h3>
           <div className="space-y-4">
-            {stats.recent_trips.length > 0 ? (
+            {stats.recent_trips && stats.recent_trips.length > 0 ? (
               stats.recent_trips.map((trip) => (
                 <div key={trip.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start">
