@@ -8,6 +8,7 @@ export default function DatabaseCleanupView({ user, userProfile }) {
   const [diagnosticData, setDiagnosticData] = useState(null);
   const [cleanupResult, setCleanupResult] = useState(null);
   const [advancedCleanupResult, setAdvancedCleanupResult] = useState(null);
+  const [adminClientTest, setAdminClientTest] = useState(null);
   const [error, setError] = useState('');
 
   const runDiagnostics = async () => {
@@ -87,6 +88,27 @@ export default function DatabaseCleanupView({ user, userProfile }) {
     }
   };
 
+  const testAdminClient = async () => {
+    setLoading(true);
+    setError('');
+    setAdminClientTest(null);
+    
+    try {
+      const response = await fetch('/api/debug/test-admin-client');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to test admin client');
+      }
+      
+      setAdminClientTest(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
@@ -109,13 +131,23 @@ export default function DatabaseCleanupView({ user, userProfile }) {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">Database Diagnostics</h2>
           
-          <button
-            onClick={runDiagnostics}
-            disabled={loading}
-            className="bg-[#84CED3] text-white px-4 py-2 rounded-lg hover:bg-[#70B8BD] transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Running...' : 'Run Diagnostics'}
-          </button>
+          <div className="flex space-x-4">
+            <button
+              onClick={runDiagnostics}
+              disabled={loading}
+              className="bg-[#84CED3] text-white px-4 py-2 rounded-lg hover:bg-[#70B8BD] transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Running...' : 'Run Diagnostics'}
+            </button>
+            
+            <button
+              onClick={testAdminClient}
+              disabled={loading}
+              className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Testing...' : 'Test Admin Client'}
+            </button>
+          </div>
 
           {diagnosticData && (
             <div className="mt-6 space-y-4">
@@ -195,6 +227,93 @@ export default function DatabaseCleanupView({ user, userProfile }) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+          
+          {/* Admin Client Test Results */}
+          {adminClientTest && (
+            <div className="mt-6 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold mb-2">Admin Client Test Results</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-gray-600">Admin Client Exists:</span>
+                      <span className={`ml-2 font-medium ${adminClientTest.adminClientExists ? 'text-green-600' : 'text-red-600'}`}>
+                        {adminClientTest.adminClientExists ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Has Supabase URL:</span>
+                      <span className={`ml-2 font-medium ${adminClientTest.envVars.hasUrl ? 'text-green-600' : 'text-red-600'}`}>
+                        {adminClientTest.envVars.hasUrl ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Has Service Key:</span>
+                      <span className={`ml-2 font-medium ${adminClientTest.envVars.hasServiceKey ? 'text-green-600' : 'text-red-600'}`}>
+                        {adminClientTest.envVars.hasServiceKey ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t pt-3">
+                    <p className="text-gray-600 mb-2"><strong>Environment Variables:</strong></p>
+                    <div className="text-xs font-mono bg-gray-100 p-2 rounded">
+                      <p>URL: {adminClientTest.envVars.urlPreview}</p>
+                      <p>Service Key: {adminClientTest.envVars.serviceKeyPreview}</p>
+                    </div>
+                  </div>
+                  
+                  {adminClientTest.adminTest && (
+                    <div className="border-t pt-3">
+                      <p className="text-gray-600 mb-2"><strong>Admin Client Test:</strong></p>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-gray-600">Can List Users:</span>
+                          <span className={`ml-2 font-medium ${adminClientTest.adminTest.canListUsers ? 'text-green-600' : 'text-red-600'}`}>
+                            {adminClientTest.adminTest.canListUsers ? 'Yes' : 'No'}
+                          </span>
+                          {adminClientTest.adminTest.userCount !== undefined && (
+                            <span className="ml-2 text-gray-500">({adminClientTest.adminTest.userCount} users found)</span>
+                          )}
+                        </div>
+                        
+                        {adminClientTest.adminTest.listError && (
+                          <div className="bg-red-50 p-2 rounded text-xs">
+                            <strong>List Users Error:</strong>
+                            <p>Message: {adminClientTest.adminTest.listError.message}</p>
+                            <p>Code: {adminClientTest.adminTest.listError.code}</p>
+                            <p>Status: {adminClientTest.adminTest.listError.status}</p>
+                          </div>
+                        )}
+                        
+                        {adminClientTest.getUserTest && (
+                          <div>
+                            <span className="text-gray-600">Can Get Specific User:</span>
+                            <span className={`ml-2 font-medium ${adminClientTest.getUserTest.canGetUser ? 'text-green-600' : 'text-red-600'}`}>
+                              {adminClientTest.getUserTest.canGetUser ? 'Yes' : 'No'}
+                            </span>
+                            
+                            {adminClientTest.getUserTest.getUserError && (
+                              <div className="bg-red-50 p-2 rounded text-xs mt-1">
+                                <strong>Get User Error:</strong>
+                                <p>Message: {adminClientTest.getUserTest.getUserError.message}</p>
+                                {adminClientTest.getUserTest.getUserError.code && (
+                                  <p>Code: {adminClientTest.getUserTest.getUserError.code}</p>
+                                )}
+                                {adminClientTest.getUserTest.getUserError.status && (
+                                  <p>Status: {adminClientTest.getUserTest.getUserError.status}</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

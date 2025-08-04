@@ -273,10 +273,19 @@ export async function POST(request) {
           const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(orphanedUser.id);
           
           if (deleteError) {
+            console.error('Delete user error details:', {
+              userId: orphanedUser.id,
+              email: orphanedUser.email,
+              error: deleteError,
+              message: deleteError.message,
+              code: deleteError.code,
+              status: deleteError.status
+            });
+            
             results.errors.push({
               userId: orphanedUser.id,
               email: orphanedUser.email,
-              error: `Failed to delete user: ${deleteError.message}`
+              error: `Failed to delete user: ${deleteError.message || deleteError.error_description || 'Unknown error'} (Code: ${deleteError.code || 'N/A'})`
             });
           } else {
             results.usersDeleted++;
