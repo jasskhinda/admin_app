@@ -69,15 +69,14 @@ export default async function FacilityDetailsPage({ params }) {
     let stats = {
       client_count: 0,
       trip_count: 0,
-      active_users: 0,
       monthly_revenue: 0,
       recent_trips: []
     };
     
     try {
-      // Get client count
+      // Get client count from facility_managed_clients table
       const { count: clientCount } = await supabase
-        .from('clients')
+        .from('facility_managed_clients')
         .select('*', { count: 'exact', head: true })
         .eq('facility_id', facility.id);
       
@@ -87,19 +86,14 @@ export default async function FacilityDetailsPage({ params }) {
         .select('*', { count: 'exact', head: true })
         .eq('facility_id', facility.id);
       
-      // Get active users count
-      const { count: activeUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('facility_id', facility.id)
-        .eq('status', 'active');
+      // Remove active users count - not needed
       
-      // Get recent trips
+      // Get recent trips with managed client info
       const { data: recentTrips } = await supabase
         .from('trips')
         .select(`
           *,
-          clients (
+          facility_managed_clients!managed_client_id (
             first_name,
             last_name
           )
@@ -111,7 +105,6 @@ export default async function FacilityDetailsPage({ params }) {
       stats = {
         client_count: clientCount || 0,
         trip_count: tripCount || 0,
-        active_users: activeUsers || 0,
         monthly_revenue: 0, // Will calculate this later
         recent_trips: recentTrips || []
       };

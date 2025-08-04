@@ -103,7 +103,7 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
             <div className="text-sm font-medium text-gray-500">Total Facilities</div>
             <div className="mt-1 text-2xl font-semibold text-gray-900">{facilities.length}</div>
@@ -119,10 +119,6 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
             <div className="text-sm font-medium text-gray-500">Total Trips</div>
             <div className="mt-1 text-2xl font-semibold text-purple-600">{facilities.reduce((sum, f) => sum + (f.trip_count || 0), 0)}</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-            <div className="text-sm font-medium text-gray-500">Active Users</div>
-            <div className="mt-1 text-2xl font-semibold text-indigo-600">{facilities.reduce((sum, f) => sum + (f.active_users || 0), 0)}</div>
           </div>
         </div>
 
@@ -320,10 +316,6 @@ export default function AdminFacilitiesView({ user, userProfile, facilities }) {
                           <div className="text-center">
                             <div className="font-semibold text-gray-900">{facility.trip_count || 0}</div>
                             <div className="text-gray-500">Trips</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-semibold text-gray-900">{facility.active_users || 0}</div>
-                            <div className="text-gray-500">Users</div>
                           </div>
                         </div>
                       </td>

@@ -59,7 +59,7 @@ export default function FacilityDetailsView({ user, userProfile, facility, stats
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -92,21 +92,6 @@ export default function FacilityDetailsView({ user, userProfile, facility, stats
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Users</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.active_users}</p>
-            </div>
-          </div>
-        </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center">
@@ -238,18 +223,18 @@ export default function FacilityDetailsView({ user, userProfile, facility, stats
                   <div className="flex justify-between items-start">
                     <div>
                       <h4 className="font-medium">
-                        {trip.clients ? `${trip.clients.first_name} ${trip.clients.last_name}` : 'Unknown Client'}
+                        {trip.facility_managed_clients ? `${trip.facility_managed_clients.first_name} ${trip.facility_managed_clients.last_name}` : 'Unknown Client'}
                       </h4>
                       <p className="text-sm text-gray-600">
-                        {trip.pickup_location} → {trip.dropoff_location}
+                        {trip.pickup_address || 'No pickup'} → {trip.destination_address || 'No destination'}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {formatDate(trip.pickup_date)} at {trip.pickup_time}
+                        {formatDate(trip.pickup_time || trip.created_at)}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium">{trip.status}</p>
-                      <p className="text-sm text-gray-600">${trip.total_cost}</p>
+                      <p className="text-sm text-gray-600">${trip.price || trip.total_fare || '0.00'}</p>
                     </div>
                   </div>
                 </div>

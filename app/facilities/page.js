@@ -76,12 +76,11 @@ export default async function FacilitiesPage() {
     const processedFacilities = await Promise.all(facilities.map(async (facility) => {
       let clientCount = 0;
       let tripCount = 0;
-      let activeUsers = 0;
       
       try {
-        // Get client count for this facility
+        // Get client count for this facility (facility_managed_clients table)
         const { count: clients } = await supabase
-          .from('clients')
+          .from('facility_managed_clients')
           .select('*', { count: 'exact', head: true })
           .eq('facility_id', facility.id);
         clientCount = clients || 0;
@@ -92,14 +91,6 @@ export default async function FacilitiesPage() {
           .select('*', { count: 'exact', head: true })
           .eq('facility_id', facility.id);
         tripCount = trips || 0;
-        
-        // Get active users count for this facility
-        const { count: users } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('facility_id', facility.id)
-          .eq('status', 'active');
-        activeUsers = users || 0;
       } catch (error) {
         console.error('Error fetching counts for facility:', facility.id, error);
       }
@@ -107,8 +98,7 @@ export default async function FacilitiesPage() {
       return {
         ...facility,
         client_count: clientCount,
-        trip_count: tripCount,
-        active_users: activeUsers
+        trip_count: tripCount
       };
     }));
     
