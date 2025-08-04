@@ -7,6 +7,7 @@ export default function DatabaseCleanupView({ user, userProfile }) {
   const [loading, setLoading] = useState(false);
   const [diagnosticData, setDiagnosticData] = useState(null);
   const [cleanupResult, setCleanupResult] = useState(null);
+  const [advancedCleanupResult, setAdvancedCleanupResult] = useState(null);
   const [error, setError] = useState('');
 
   const runDiagnostics = async () => {
@@ -51,6 +52,34 @@ export default function DatabaseCleanupView({ user, userProfile }) {
       }
       
       setCleanupResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runAdvancedCleanup = async (options = {}) => {
+    setLoading(true);
+    setError('');
+    setAdvancedCleanupResult(null);
+    
+    try {
+      const response = await fetch('/api/admin/cleanup-orphaned-users-advanced', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(options),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to run advanced cleanup');
+      }
+      
+      setAdvancedCleanupResult(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -170,9 +199,9 @@ export default function DatabaseCleanupView({ user, userProfile }) {
           )}
         </div>
 
-        {/* Cleanup Section */}
+        {/* Basic Cleanup Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4">Cleanup Orphaned Users</h2>
+          <h2 className="text-xl font-semibold mb-4">Basic Cleanup (Users Without Trips)</h2>
           
           <div className="flex space-x-4">
             <button
@@ -185,14 +214,14 @@ export default function DatabaseCleanupView({ user, userProfile }) {
             
             <button
               onClick={() => {
-                if (window.confirm('Are you sure you want to delete orphaned users? This action cannot be undone.')) {
+                if (window.confirm('Are you sure you want to delete orphaned users without trips? This action cannot be undone.')) {
                   runCleanup(false);
                 }
               }}
               disabled={loading}
               className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Running...' : 'Delete Orphaned Users'}
+              {loading ? 'Running...' : 'Delete Users (No Trips Only)'}
             </button>
           </div>
 
@@ -242,6 +271,217 @@ export default function DatabaseCleanupView({ user, userProfile }) {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Advanced Cleanup Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-red-200 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-red-800">Advanced Cleanup (Users With Trips)</h2>
+          
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-800 text-sm">
+              <strong>⚠️ Warning:</strong> These options will handle users who have associated trips. 
+              Use with extreme caution and always run dry run first.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={() => runAdvancedCleanup({ dryRun: true, deleteTrips: false, archiveTrips: false })}
+                disabled={loading}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Running...' : 'Advanced Dry Run'}
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (window.confirm('Archive trips and delete users? Trips will be marked as archived but preserved.')) {
+                    runAdvancedCleanup({ dryRun: false, deleteTrips: false, archiveTrips: true });
+                  }
+                }}
+                disabled={loading}
+                className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Running...' : 'Archive Trips & Delete Users'}
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (window.confirm('⚠️ DANGER: This will permanently delete users AND their trips. Are you absolutely sure?')) {
+                    if (window.confirm('Final confirmation: This will DELETE TRIPS permanently. Continue?')) {
+                      runAdvancedCleanup({ dryRun: false, deleteTrips: true, archiveTrips: false });
+                    }
+                  }
+                }}
+                disabled={loading}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Running...' : '🗑️ DELETE ALL (DANGER)'}
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-600 space-y-1">
+              <p><strong>Advanced Dry Run:</strong> Preview what would happen to users with trips</p>
+              <p><strong>Archive Trips:</strong> Mark trips as archived, then delete users (recommended)</p>
+              <p><strong>DELETE ALL:</strong> Permanently delete users and all their trips (irreversible)</p>
+            </div>
+          </div>
+
+          {advancedCleanupResult && (
+            <div className="mt-6 space-y-6">
+              <div className={`rounded-lg p-4 ${advancedCleanupResult.dryRun ? 'bg-blue-50' : 'bg-green-50'}`}>
+                <h3 className="font-semibold mb-2">
+                  {advancedCleanupResult.dryRun ? 'Advanced Analysis Results' : 'Advanced Cleanup Results'}
+                </h3>
+                <p className="mb-4">{advancedCleanupResult.message}</p>
+              </div>
+
+              {/* Users Requiring Dispatcher Review - HIGH PRIORITY */}
+              {advancedCleanupResult.usersRequiringDispatcherReview && advancedCleanupResult.usersRequiringDispatcherReview.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-red-800 mb-3 flex items-center">
+                    ⚠️ DISPATCHER REVIEW REQUIRED ({advancedCleanupResult.usersRequiringDispatcherReview.length} users)
+                  </h4>
+                  <p className="text-red-700 text-sm mb-4">
+                    These users have pending or upcoming trips. Please contact your dispatchers to complete or cancel these trips before deletion.
+                  </p>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {advancedCleanupResult.usersRequiringDispatcherReview.map((user, idx) => (
+                      <div key={idx} className="bg-white border border-red-200 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h5 className="font-medium text-gray-900">{user.displayName}</h5>
+                            <p className="text-sm text-gray-600">{user.email}</p>
+                            <p className="text-sm text-gray-600">Phone: {user.phone}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="inline-block px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">
+                              {user.pendingTripsCount} Pending
+                            </span>
+                            {user.upcomingTripsCount > 0 && (
+                              <span className="inline-block ml-1 px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded">
+                                {user.upcomingTripsCount} Upcoming
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Show trip details */}
+                        {user.pendingTripDetails && user.pendingTripDetails.length > 0 && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded border">
+                            <p className="text-xs font-medium text-gray-700 mb-2">Pending Trips:</p>
+                            {user.pendingTripDetails.slice(0, 3).map((trip, tripIdx) => (
+                              <div key={tripIdx} className="text-xs text-gray-600 mb-1">
+                                • <strong>{trip.status.toUpperCase()}</strong> - {trip.pickup} → {trip.destination}
+                                {trip.pickup_time && <span className="ml-1">({new Date(trip.pickup_time).toLocaleDateString()})</span>}
+                              </div>
+                            ))}
+                            {user.pendingTripDetails.length > 3 && (
+                              <p className="text-xs text-gray-500 italic">...and {user.pendingTripDetails.length - 3} more trips</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                          <p className="text-xs text-yellow-800">
+                            <strong>Action Required:</strong> Contact dispatchers to complete/cancel active trips before this user can be deleted.
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Safe Deletion Users */}
+              {advancedCleanupResult.safeDeletionUsers && advancedCleanupResult.safeDeletionUsers.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-800 mb-3">
+                    ✅ Safe for Deletion ({advancedCleanupResult.safeDeletionUsers.length} users)
+                  </h4>
+                  <p className="text-green-700 text-sm mb-4">
+                    These users only have completed or no trips and can be safely deleted.
+                  </p>
+                  <div className="space-y-2 text-sm max-h-64 overflow-y-auto">
+                    {advancedCleanupResult.safeDeletionUsers.map((user, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-white rounded border">
+                        <div>
+                          <span className="font-medium">{user.displayName}</span>
+                          <span className="text-gray-500 ml-2">({user.email})</span>
+                          <div className="text-xs text-gray-500">
+                            {user.completedTripsCount} completed trips • Phone: {user.phone}
+                          </div>
+                        </div>
+                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                          Safe to delete
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {advancedCleanupResult.dryRun && advancedCleanupResult.safeDeletionUsers.length > 0 && (
+                    <div className="mt-4 p-3 bg-white border border-green-200 rounded">
+                      <p className="text-sm text-green-800 mb-3">
+                        <strong>Ready for cleanup:</strong> {advancedCleanupResult.safeDeletionUsers.length} users can be safely deleted.
+                      </p>
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Archive completed trips and delete ${advancedCleanupResult.safeDeletionUsers.length} safe users?`)) {
+                            runAdvancedCleanup({ 
+                              dryRun: false, 
+                              deleteTrips: false, 
+                              archiveTrips: true,
+                              selectedUsers: advancedCleanupResult.safeDeletionUsers.map(u => u.id)
+                            });
+                          }
+                        }}
+                        disabled={loading}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                      >
+                        {loading ? 'Processing...' : 'Clean Up Safe Users'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Errors Section */}
+              {advancedCleanupResult.errors && advancedCleanupResult.errors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-red-800 mb-3">Errors Encountered:</h4>
+                  <div className="space-y-1 text-sm text-red-600">
+                    {advancedCleanupResult.errors.map((err, idx) => (
+                      <div key={idx} className="p-2 bg-white border border-red-200 rounded">
+                        <strong>{err.email}:</strong> {err.error}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Summary for completed cleanups */}
+              {!advancedCleanupResult.dryRun && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-800 mb-3">Cleanup Summary:</h4>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="text-center p-3 bg-white rounded border">
+                      <div className="text-2xl font-bold text-green-600">{advancedCleanupResult.usersDeleted}</div>
+                      <div className="text-xs text-gray-600">Users Deleted</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded border">
+                      <div className="text-2xl font-bold text-orange-600">{advancedCleanupResult.tripsArchived}</div>
+                      <div className="text-xs text-gray-600">Trips Archived</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded border">
+                      <div className="text-2xl font-bold text-red-600">{advancedCleanupResult.tripsDeleted}</div>
+                      <div className="text-xs text-gray-600">Trips Deleted</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
