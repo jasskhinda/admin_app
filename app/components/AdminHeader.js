@@ -52,11 +52,6 @@ export default function AdminHeader() {
                   FACILITIES
                 </Link>
               </li>
-              <li>
-                <Link href="/database-cleanup" className="text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors">
-                  DB CLEANUP
-                </Link>
-              </li>
             </ul>
           </nav>
         )}

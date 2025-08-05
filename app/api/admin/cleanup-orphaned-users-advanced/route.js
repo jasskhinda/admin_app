@@ -269,6 +269,45 @@ export async function POST(request) {
             }
           }
           
+          // Clean up dependent records before deleting the user
+          try {
+            // 1. Clean up any remaining references in other tables that might block deletion
+            await supabase.from('invoices').delete().eq('user_id', orphanedUser.id);
+            await supabase.from('vehicle_checkoffs').delete().eq('driver_id', orphanedUser.id);
+            
+            // 2. Clean up trips table references (set FK fields to NULL instead of deleting)
+            await supabase.from('trips').update({ 
+              driver_id: null,
+              rejected_by_driver_id: null,
+              booked_by: null,
+              created_by: null,
+              last_edited_by: null
+            }).eq('driver_id', orphanedUser.id);
+            
+            await supabase.from('trips').update({ 
+              rejected_by_driver_id: null 
+            }).eq('rejected_by_driver_id', orphanedUser.id);
+            
+            await supabase.from('trips').update({ 
+              booked_by: null 
+            }).eq('booked_by', orphanedUser.id);
+            
+            await supabase.from('trips').update({ 
+              created_by: null 
+            }).eq('created_by', orphanedUser.id);
+            
+            await supabase.from('trips').update({ 
+              last_edited_by: null 
+            }).eq('last_edited_by', orphanedUser.id);
+            
+            // 3. Clean up audit logs and billing references
+            await supabase.from('audit_logs').delete().eq('user_id', orphanedUser.id);
+            await supabase.from('payment_lock_user').update({ payment_lock_user: null }).eq('payment_lock_user', orphanedUser.id);
+            
+          } catch (cleanupError) {
+            console.warn('Warning: Some cleanup operations failed:', cleanupError.message);
+          }
+          
           // Now delete the user
           const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(orphanedUser.id);
           
