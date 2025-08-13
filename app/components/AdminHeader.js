@@ -3,11 +3,19 @@
 import { useAuth } from '@/components/AuthProvider';
 import Link from 'next/link';
 import Image from 'next/image';
-import ThemeSwitcher from './ThemeSwitcher';
+import { usePathname } from 'next/navigation';
 import { signOut } from '@/app/auth/actions';
 
 export default function AdminHeader() {
   const { user, userProfile } = useAuth();
+  const pathname = usePathname();
+
+  const isActive = (href) => {
+    if (href === '/dashboard') {
+      return pathname === href;
+    }
+    return pathname.startsWith(href);
+  };
 
   return (
     <header className="bg-white shadow-md">
@@ -23,33 +31,111 @@ export default function AdminHeader() {
           <nav className="flex-1 mx-12">
             <ul className="hidden lg:flex justify-center space-x-4">
               <li>
-                <Link href="/dashboard" className="bg-[#84CED3] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#70B8BD] transition-colors">
+                <Link 
+                  href="/dashboard" 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/dashboard')
+                      ? 'bg-[#84CED3] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
                   DASHBOARD
                 </Link>
               </li>
               <li>
-                <Link href="/clients" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                <Link 
+                  href="/clients" 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/clients')
+                      ? 'bg-[#84CED3] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
                   CLIENTS
                 </Link>
               </li>
               <li>
-                <Link href="/drivers" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                <Link 
+                  href="/drivers" 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/drivers')
+                      ? 'bg-[#84CED3] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
                   DRIVERS
                 </Link>
               </li>
               <li>
-                <Link href="/dispatchers" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                <Link 
+                  href="/dispatchers" 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/dispatchers')
+                      ? 'bg-[#84CED3] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
                   DISPATCHERS
                 </Link>
               </li>
               <li>
-                <Link href="/trips" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                <Link 
+                  href="/trips" 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/trips')
+                      ? 'bg-[#84CED3] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
                   TRIPS
                 </Link>
               </li>
               <li>
-                <Link href="/facilities" className="text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                <Link 
+                  href="/facilities" 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/facilities')
+                      ? 'bg-[#84CED3] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
                   FACILITIES
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/calendar" 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/calendar')
+                      ? 'bg-[#84CED3] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  CALENDAR
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/map" 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/map')
+                      ? 'bg-[#84CED3] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  MAP
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/settings" 
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/settings')
+                      ? 'bg-[#84CED3] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  SETTINGS
                 </Link>
               </li>
             </ul>
@@ -60,6 +146,21 @@ export default function AdminHeader() {
           <div className="flex items-center space-x-4 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <span className="text-gray-700 text-sm font-medium whitespace-nowrap">{userProfile?.full_name || user?.email}</span>
+              
+              {/* DB CLEANUP - Only for j.khinda@ccgrhc.com */}
+              {user?.email === 'j.khinda@ccgrhc.com' && (
+                <Link 
+                  href="/database-cleanup" 
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/database-cleanup')
+                      ? 'bg-red-500 text-white'
+                      : 'text-red-500 hover:bg-red-50 border border-red-500'
+                  }`}
+                >
+                  DB CLEANUP
+                </Link>
+              )}
+              
               <form action={signOut}>
                 <button 
                   type="submit"

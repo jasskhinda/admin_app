@@ -1,9 +1,14 @@
-import AdminLayout from '../components/AdminLayout';
+import AdminHeader from '../components/AdminHeader';
+import AdminFooter from '../components/AdminFooter';
 
 export default function DashboardLayout({ children }) {
     return (
-        <AdminLayout>
-            {children}
-        </AdminLayout>
+        <div className="flex flex-col min-h-screen">
+            <AdminHeader />
+            <main className="flex-1 bg-white dark:bg-brand-background">
+                {children}
+            </main>
+            <AdminFooter />
+        </div>
     );
 }

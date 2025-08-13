@@ -1,9 +1,12 @@
-import AdminLayout from '@/app/components/AdminLayout';
+import AdminHeader from '@/app/components/AdminHeader';
 
 export default function DriversLayout({ children }) {
     return (
-        <AdminLayout>
-            {children}
-        </AdminLayout>
+        <div className="flex flex-col min-h-screen">
+            <AdminHeader />
+            <main className="flex-1 bg-background">
+                {children}
+            </main>
+        </div>
     );
 }

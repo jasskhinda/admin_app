@@ -1,6 +1,6 @@
 import AdminHeader from '@/app/components/AdminHeader';
 
-export default function DispatchersLayout({ children }) {
+export default function DatabaseCleanupLayout({ children }) {
     return (
         <div className="flex flex-col min-h-screen">
             <AdminHeader />

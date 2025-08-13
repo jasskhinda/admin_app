@@ -21,5 +21,10 @@ export default async function DatabaseCleanupPage() {
     redirect('/login?error=Admin%20access%20required');
   }
 
+  // Additional check: Only j.khinda@ccgrhc.com can access DB Cleanup
+  if (user.email !== 'j.khinda@ccgrhc.com') {
+    redirect('/dashboard?error=Super%20admin%20access%20required%20for%20DB%20Cleanup');
+  }
+
   return <DatabaseCleanupView user={user} userProfile={profile} />;
 }
