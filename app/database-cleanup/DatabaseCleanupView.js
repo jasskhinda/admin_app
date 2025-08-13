@@ -267,10 +267,10 @@ export default function DatabaseCleanupView({ user, userProfile }) {
                               </span>
                             </div>
                             <div className="text-sm">
-                              <strong>From:</strong> {trip.pickup_location || 'N/A'}
+                              <strong>From:</strong> {trip.pickup || 'N/A'}
                             </div>
                             <div className="text-sm">
-                              <strong>To:</strong> {trip.destination_location || 'N/A'}
+                              <strong>To:</strong> {trip.destination || 'N/A'}
                             </div>
                             <div className="text-xs text-gray-600 mt-1">
                               Client: {trip.user ? `${trip.user.first_name} ${trip.user.last_name} (${trip.user.email})` : 'Unknown User'}

@@ -27,14 +27,14 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Admin client not available' }, { status: 500 });
     }
 
-    // Get all trips with basic info first
+    // Get all trips with basic info first (using correct column names)
     const { data: trips, error: tripsError } = await supabaseAdmin
       .from('trips')
       .select(`
         id,
         status,
-        pickup_location,
-        destination_location,
+        pickup,
+        destination,
         pickup_time,
         created_at,
         user_id,
