@@ -21,27 +21,17 @@ export default function AdminHeader() {
     <header className="bg-white shadow-md">
       <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
         <div className="flex items-center space-x-4">
-          <Image src="/LOGO2 (1).webp" alt="Logo" width={80} height={80} />
-          <div className="bg-[#84CED3] text-white px-2 py-1 rounded text-xs font-medium">
-            Admin
-          </div>
+          <Link href="/dashboard" className="flex items-center space-x-4">
+            <Image src="/LOGO2 (1).webp" alt="Logo" width={80} height={80} className="cursor-pointer" />
+            <div className="bg-[#84CED3] text-white px-2 py-1 rounded text-xs font-medium">
+              Admin
+            </div>
+          </Link>
         </div>
         
         {user && (
           <nav className="flex-1 mx-12">
             <ul className="hidden lg:flex justify-center space-x-4">
-              <li>
-                <Link 
-                  href="/dashboard" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/dashboard')
-                      ? 'bg-[#84CED3] text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  DASHBOARD
-                </Link>
-              </li>
               <li>
                 <Link 
                   href="/clients" 
@@ -114,19 +104,6 @@ export default function AdminHeader() {
                   CALENDAR
                 </Link>
               </li>
-              <li>
-                <Link 
-                  href="/map" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/map')
-                      ? 'bg-[#84CED3] text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  MAP
-                </Link>
-              </li>
-
             </ul>
           </nav>
         )}
@@ -158,7 +135,7 @@ export default function AdminHeader() {
                       : 'text-red-500 hover:bg-red-50 border border-red-500'
                   }`}
                 >
-                  DB CLEANUP
+                  DB
                 </Link>
               )}
               
