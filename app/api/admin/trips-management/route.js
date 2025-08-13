@@ -27,7 +27,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Admin client not available' }, { status: 500 });
     }
 
-    // Get all trips with details
+    // Get all trips with basic info first
     const { data: trips, error: tripsError } = await supabaseAdmin
       .from('trips')
       .select(`
@@ -38,9 +38,7 @@ export async function GET(request) {
         pickup_time,
         created_at,
         user_id,
-        facility_id,
-        profiles!trips_user_id_fkey(first_name, last_name, email),
-        facilities(name)
+        facility_id
       `)
       .order('created_at', { ascending: false });
 
@@ -48,16 +46,50 @@ export async function GET(request) {
       return NextResponse.json({ error: tripsError.message }, { status: 500 });
     }
 
+    // Get user and facility details separately to avoid relationship issues
+    const enrichedTrips = [];
+    
+    for (const trip of trips || []) {
+      let userInfo = null;
+      let facilityInfo = null;
+
+      // Get user info if user_id exists
+      if (trip.user_id) {
+        const { data: user } = await supabaseAdmin
+          .from('profiles')
+          .select('first_name, last_name, email')
+          .eq('id', trip.user_id)
+          .single();
+        userInfo = user;
+      }
+
+      // Get facility info if facility_id exists
+      if (trip.facility_id) {
+        const { data: facility } = await supabaseAdmin
+          .from('facilities')
+          .select('name')
+          .eq('id', trip.facility_id)
+          .single();
+        facilityInfo = facility;
+      }
+
+      enrichedTrips.push({
+        ...trip,
+        user: userInfo,
+        facility: facilityInfo
+      });
+    }
+
     // Get trip counts by status
-    const statusCounts = trips.reduce((acc, trip) => {
+    const statusCounts = enrichedTrips.reduce((acc, trip) => {
       acc[trip.status] = (acc[trip.status] || 0) + 1;
       return acc;
     }, {});
 
     return NextResponse.json({
       success: true,
-      trips: trips || [],
-      totalTrips: trips?.length || 0,
+      trips: enrichedTrips,
+      totalTrips: enrichedTrips.length,
       statusCounts
     });
 

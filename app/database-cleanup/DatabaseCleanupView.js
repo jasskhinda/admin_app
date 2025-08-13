@@ -273,11 +273,11 @@ export default function DatabaseCleanupView({ user, userProfile }) {
                               <strong>To:</strong> {trip.destination_location || 'N/A'}
                             </div>
                             <div className="text-xs text-gray-600 mt-1">
-                              Client: {trip.profiles?.first_name} {trip.profiles?.last_name} ({trip.profiles?.email})
+                              Client: {trip.user ? `${trip.user.first_name} ${trip.user.last_name} (${trip.user.email})` : 'Unknown User'}
                             </div>
-                            {trip.facilities?.name && (
+                            {trip.facility?.name && (
                               <div className="text-xs text-gray-600">
-                                Facility: {trip.facilities.name}
+                                Facility: {trip.facility.name}
                               </div>
                             )}
                           </div>
