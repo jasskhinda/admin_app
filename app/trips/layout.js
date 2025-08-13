@@ -1,12 +1,9 @@
-import AdminHeader from '@/app/components/AdminHeader';
+import AdminLayout from '@/app/components/AdminLayout';
 
 export default function TripsLayout({ children }) {
     return (
-        <div className="flex flex-col min-h-screen">
-            <AdminHeader />
-            <main className="flex-1 bg-background">
-                {children}
-            </main>
-        </div>
+        <AdminLayout>
+            {children}
+        </AdminLayout>
     );
 }

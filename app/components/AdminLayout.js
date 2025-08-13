@@ -41,6 +41,7 @@ export default function AdminLayout({ children }) {
     { name: 'Dispatchers', href: '/dispatchers', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
     { name: 'Calendar', href: '/calendar', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
     { name: 'Map', href: '/map', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z' },
+    { name: 'DB Cleanup', href: '/database-cleanup', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16', className: 'text-red-600 hover:text-red-700 hover:bg-red-50' },
   ];
 
   const isActive = (href) => {
@@ -74,9 +75,13 @@ export default function AdminLayout({ children }) {
                   key={item.name}
                   href={item.href}
                   className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    isActive(item.href)
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    item.name === 'DB Cleanup'
+                      ? (isActive(item.href)
+                          ? 'bg-red-100 text-red-700'
+                          : 'text-red-600 hover:text-red-700 hover:bg-red-50')
+                      : (isActive(item.href)
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50')
                   }`}
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

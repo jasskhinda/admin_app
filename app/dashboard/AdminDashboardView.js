@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import AdminHeader from '../components/AdminHeader';
 
 // Dashboard card component
 function DashboardCard({ title, count, icon, linkHref, linkText, color = 'primary' }) {
@@ -103,10 +102,7 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
   const facilityCount = facilities ? facilities.length : 0;
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* AdminHeader is rendered in layout.js, no need to duplicate it here */}
-      
-      <main className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-800">Overview</h2>
         
         {/* Stats Overview */}
@@ -388,7 +384,6 @@ export default function AdminDashboardView({ userCounts, recentTrips, pendingDri
             )}
           </div>
         </div>
-      </main>
     </div>
   );
 }
