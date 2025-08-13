@@ -88,15 +88,27 @@ export default function SettingsView() {
       // Update email if changed
       if (profileData.email !== user.email) {
         console.log('Updating email from', user.email, 'to', profileData.email);
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: profileData.email
-        });
         
-        if (emailError) {
-          console.error('Email update error:', emailError);
-          throw emailError;
+        // Use admin API to update email without confirmation
+        const emailResponse = await fetch('/api/admin/update-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            newEmail: profileData.email
+          })
+        });
+
+        const emailResult = await emailResponse.json();
+        
+        if (!emailResponse.ok) {
+          console.error('Email update error:', emailResult);
+          throw new Error(emailResult.error || 'Failed to update email');
         }
-        setMessage('Profile updated successfully! Please check your email to confirm the new email address.');
+        
+        setMessage('Profile and email updated successfully!');
       } else {
         setMessage('Profile updated successfully!');
       }
@@ -276,7 +288,7 @@ export default function SettingsView() {
                 placeholder="Enter your email address"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Changing your email will require email verification
+                Email will be updated immediately without verification
               </p>
             </div>
 

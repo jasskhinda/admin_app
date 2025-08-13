@@ -29,17 +29,35 @@ export function AuthProvider({ children }) {
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email);
         setUser(session?.user || null);
+        
+        // Don't refetch profile for certain events that don't change profile data
+        if (event === 'USER_UPDATED' && userProfile) {
+          console.log('Skipping profile refetch for USER_UPDATED event');
+          setLoading(false);
+          return;
+        }
+        
         setLoading(true);
 
         if (session?.user) {
           try {
             console.log('Fetching profile for user:', session.user.id);
-            // Fetch user profile
-            const { data: profile, error: profileError } = await supabase
+            
+            // Add timeout for profile fetch
+            const profilePromise = supabase
               .from('profiles')
               .select('*')
               .eq('id', session.user.id)
               .single();
+            
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+            );
+            
+            const { data: profile, error: profileError } = await Promise.race([
+              profilePromise,
+              timeoutPromise
+            ]);
 
             if (profileError) {
               console.error('Profile fetch error:', profileError);
