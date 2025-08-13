@@ -9,6 +9,8 @@ export default function DatabaseCleanupView({ user, userProfile }) {
   const [cleanupResult, setCleanupResult] = useState(null);
   const [advancedCleanupResult, setAdvancedCleanupResult] = useState(null);
   const [adminClientTest, setAdminClientTest] = useState(null);
+  const [tripsData, setTripsData] = useState(null);
+  const [tripsLoading, setTripsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const runDiagnostics = async () => {
@@ -109,6 +111,71 @@ export default function DatabaseCleanupView({ user, userProfile }) {
     }
   };
 
+  const loadTripsData = async () => {
+    setTripsLoading(true);
+    setError('');
+    setTripsData(null);
+    
+    try {
+      const response = await fetch('/api/admin/trips-management');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load trips data');
+      }
+      
+      setTripsData(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTripsLoading(false);
+    }
+  };
+
+  const deleteAllTrips = async () => {
+    if (!tripsData || tripsData.totalTrips === 0) {
+      alert('No trips to delete');
+      return;
+    }
+
+    const confirmMessage = `⚠️ DANGER: This will permanently delete ALL ${tripsData.totalTrips} trips!\n\nThis includes:\n• Facility app bookings\n• Booking app requests\n• All trip history\n\nThis action CANNOT be undone!\n\nType "DELETE ALL TRIPS" to confirm:`;
+    
+    const userInput = prompt(confirmMessage);
+    
+    if (userInput !== 'DELETE ALL TRIPS') {
+      if (userInput !== null) {
+        alert('❌ Deletion cancelled. You must type "DELETE ALL TRIPS" exactly.');
+      }
+      return;
+    }
+
+    setTripsLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/admin/trips-management', {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete trips');
+      }
+      
+      alert(`✅ SUCCESS!\n\n${data.message}\nRemaining trips: ${data.remainingTrips}`);
+      
+      // Reload trips data
+      await loadTripsData();
+      
+    } catch (err) {
+      setError(err.message);
+      alert(`❌ ERROR: ${err.message}`);
+    } finally {
+      setTripsLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
@@ -127,6 +194,117 @@ export default function DatabaseCleanupView({ user, userProfile }) {
       </div>
 
       <div className="space-y-6">
+        {/* Trip Management Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-red-200 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-red-800">🚗 Trip Management</h2>
+          
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-800 text-sm">
+              <strong>⚠️ Warning:</strong> This will delete ALL trips from both Facility App and Booking App. 
+              This action is irreversible!
+            </p>
+          </div>
+
+          <div className="flex space-x-4 mb-6">
+            <button
+              onClick={loadTripsData}
+              disabled={tripsLoading}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+            >
+              {tripsLoading ? 'Loading...' : '📊 View All Trips'}
+            </button>
+            
+            {tripsData && tripsData.totalTrips > 0 && (
+              <button
+                onClick={deleteAllTrips}
+                disabled={tripsLoading}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {tripsLoading ? 'Deleting...' : '🗑️ DELETE ALL TRIPS'}
+              </button>
+            )}
+          </div>
+
+          {tripsData && (
+            <div className="space-y-4">
+              {/* Trip Summary */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Trip Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-white rounded border">
+                    <div className="text-2xl font-bold text-blue-600">{tripsData.totalTrips}</div>
+                    <div className="text-xs text-gray-600">Total Trips</div>
+                  </div>
+                  {Object.entries(tripsData.statusCounts).map(([status, count]) => (
+                    <div key={status} className="text-center p-3 bg-white rounded border">
+                      <div className="text-lg font-bold text-gray-700">{count}</div>
+                      <div className="text-xs text-gray-600 capitalize">{status.replace('_', ' ')}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trip List */}
+              {tripsData.trips.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold mb-3">Recent Trips (showing first 10)</h3>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {tripsData.trips.slice(0, 10).map((trip) => (
+                      <div key={trip.id} className="bg-white border rounded-lg p-3">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                trip.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                trip.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                trip.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {trip.status}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(trip.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              <strong>From:</strong> {trip.pickup_location || 'N/A'}
+                            </div>
+                            <div className="text-sm">
+                              <strong>To:</strong> {trip.destination_location || 'N/A'}
+                            </div>
+                            <div className="text-xs text-gray-600 mt-1">
+                              Client: {trip.profiles?.first_name} {trip.profiles?.last_name} ({trip.profiles?.email})
+                            </div>
+                            {trip.facilities?.name && (
+                              <div className="text-xs text-gray-600">
+                                Facility: {trip.facilities.name}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            ID: {trip.id.substring(0, 8)}...
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {tripsData.trips.length > 10 && (
+                      <div className="text-center text-gray-500 text-sm py-2">
+                        ... and {tripsData.trips.length - 10} more trips
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {tripsData.totalTrips === 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                  <p className="text-green-800">✅ No trips found - database is clean!</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Diagnostics Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold mb-4">Database Diagnostics</h2>
