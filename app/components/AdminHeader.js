@@ -31,11 +31,11 @@ export default function AdminHeader() {
         
         {user && (
           <nav className="flex-1 mx-12">
-            <ul className="hidden lg:flex justify-center space-x-4">
+            <ul className="hidden lg:flex justify-center space-x-2">
               <li>
                 <Link 
                   href="/clients" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive('/clients')
                       ? 'bg-[#84CED3] text-white'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -47,7 +47,7 @@ export default function AdminHeader() {
               <li>
                 <Link 
                   href="/drivers" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive('/drivers')
                       ? 'bg-[#84CED3] text-white'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -59,7 +59,7 @@ export default function AdminHeader() {
               <li>
                 <Link 
                   href="/dispatchers" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive('/dispatchers')
                       ? 'bg-[#84CED3] text-white'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -71,7 +71,7 @@ export default function AdminHeader() {
               <li>
                 <Link 
                   href="/trips" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive('/trips')
                       ? 'bg-[#84CED3] text-white'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -83,7 +83,7 @@ export default function AdminHeader() {
               <li>
                 <Link 
                   href="/facilities" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive('/facilities')
                       ? 'bg-[#84CED3] text-white'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -95,7 +95,7 @@ export default function AdminHeader() {
               <li>
                 <Link 
                   href="/calendar" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive('/calendar')
                       ? 'bg-[#84CED3] text-white'
                       : 'text-gray-700 hover:bg-gray-100'
