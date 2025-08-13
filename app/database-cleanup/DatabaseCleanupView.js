@@ -11,6 +11,8 @@ export default function DatabaseCleanupView({ user, userProfile }) {
   const [adminClientTest, setAdminClientTest] = useState(null);
   const [tripsData, setTripsData] = useState(null);
   const [tripsLoading, setTripsLoading] = useState(false);
+  const [usersData, setUsersData] = useState(null);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [error, setError] = useState('');
 
   const runDiagnostics = async () => {
@@ -176,6 +178,77 @@ export default function DatabaseCleanupView({ user, userProfile }) {
     }
   };
 
+  const loadUsersData = async () => {
+    setUsersLoading(true);
+    setError('');
+    setUsersData(null);
+    
+    try {
+      const response = await fetch('/api/admin/users-management');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load users data');
+      }
+      
+      setUsersData(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const deleteAllUsers = async () => {
+    if (!usersData || usersData.usersToDelete.length === 0) {
+      alert('No users to delete');
+      return;
+    }
+
+    const confirmMessage = `⚠️ DANGER: This will permanently delete ${usersData.usersToDelete.length} user accounts!\n\nThis will DELETE:\n• ${usersData.roleCounts.facility} facility users\n• ${usersData.roleCounts.client} client users\n• ${usersData.roleCounts.driver} driver users\n• ${usersData.roleCounts.other} other users\n\nThis will KEEP:\n• ${usersData.roleCounts.admin} admin users\n• ${usersData.roleCounts.dispatcher} dispatcher users\n\nThis action CANNOT be undone!\n\nType "DELETE ALL USERS" to confirm:`;
+    
+    const userInput = prompt(confirmMessage);
+    
+    if (userInput !== 'DELETE ALL USERS') {
+      if (userInput !== null) {
+        alert('❌ Deletion cancelled. You must type "DELETE ALL USERS" exactly.');
+      }
+      return;
+    }
+
+    setUsersLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/admin/users-management', {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete users');
+      }
+      
+      let message = `✅ SUCCESS!\n\n${data.message}\nRemaining admin/dispatcher users: ${data.remainingAdminUsers}`;
+      
+      if (data.errors && data.errors.length > 0) {
+        message += `\n\n❌ Errors:\n${data.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
+      }
+      
+      alert(message);
+      
+      // Reload users data
+      await loadUsersData();
+      
+    } catch (err) {
+      setError(err.message);
+      alert(`❌ ERROR: ${err.message}`);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
@@ -317,6 +390,147 @@ export default function DatabaseCleanupView({ user, userProfile }) {
               {tripsData.totalTrips === 0 && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                   <p className="text-green-800">✅ No trips found - database is clean!</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* User Management Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-red-200 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-red-800">👥 User Management</h2>
+          
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-800 text-sm">
+              <strong>⚠️ Warning:</strong> This will delete ALL users except Admin and Dispatcher accounts. 
+              This includes facility users, clients, drivers, and all their data. This action is irreversible!
+            </p>
+          </div>
+
+          <div className="flex space-x-4 mb-6">
+            <button
+              onClick={loadUsersData}
+              disabled={usersLoading}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+            >
+              {usersLoading ? 'Loading...' : '👥 View All Users'}
+            </button>
+            
+            {usersData && usersData.usersToDelete.length > 0 && (
+              <button
+                onClick={deleteAllUsers}
+                disabled={usersLoading}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {usersLoading ? 'Deleting...' : '🗑️ DELETE ALL USERS (EXCEPT ADMINS)'}
+              </button>
+            )}
+          </div>
+
+          {usersData && (
+            <div className="space-y-4">
+              {/* User Summary */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold mb-3">User Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-green-50 border border-green-200 rounded">
+                    <div className="text-2xl font-bold text-green-600">{usersData.summary.keep}</div>
+                    <div className="text-xs text-green-700">KEEP (Admin/Dispatcher)</div>
+                  </div>
+                  <div className="text-center p-3 bg-red-50 border border-red-200 rounded">
+                    <div className="text-2xl font-bold text-red-600">{usersData.summary.delete}</div>
+                    <div className="text-xs text-red-700">DELETE (All Others)</div>
+                  </div>
+                  <div className="text-center p-3 bg-blue-50 border border-blue-200 rounded">
+                    <div className="text-2xl font-bold text-blue-600">{usersData.totalUsers}</div>
+                    <div className="text-xs text-blue-700">Total Users</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Role Breakdown */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Role Breakdown</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {Object.entries(usersData.roleCounts).map(([role, count]) => (
+                    <div key={role} className={`text-center p-3 rounded border ${
+                      ['admin', 'dispatcher'].includes(role) 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-red-50 border-red-200'
+                    }`}>
+                      <div className={`text-lg font-bold ${
+                        ['admin', 'dispatcher'].includes(role) ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {count}
+                      </div>
+                      <div className={`text-xs capitalize ${
+                        ['admin', 'dispatcher'].includes(role) ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {role} {['admin', 'dispatcher'].includes(role) ? '(KEEP)' : '(DELETE)'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Users to Keep */}
+              {usersData.usersToKeep.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="font-semibold mb-3 text-green-800">✅ Users to KEEP ({usersData.usersToKeep.length})</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {usersData.usersToKeep.map((user) => (
+                      <div key={user.id} className="bg-white border border-green-200 rounded-lg p-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-medium">{user.first_name} {user.last_name}</span>
+                            <span className="text-gray-500 ml-2">({user.email})</span>
+                            <div className="text-xs text-green-600 mt-1">
+                              Role: {user.role.toUpperCase()}
+                            </div>
+                          </div>
+                          <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                            PROTECTED
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Users to Delete */}
+              {usersData.usersToDelete.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h3 className="font-semibold mb-3 text-red-800">❌ Users to DELETE ({usersData.usersToDelete.length})</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {usersData.usersToDelete.slice(0, 10).map((user) => (
+                      <div key={user.id} className="bg-white border border-red-200 rounded-lg p-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-medium">{user.first_name} {user.last_name}</span>
+                            <span className="text-gray-500 ml-2">({user.email})</span>
+                            <div className="text-xs text-red-600 mt-1">
+                              Role: {user.role.toUpperCase()}
+                            </div>
+                          </div>
+                          <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
+                            WILL DELETE
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {usersData.usersToDelete.length > 10 && (
+                      <div className="text-center text-gray-500 text-sm py-2">
+                        ... and {usersData.usersToDelete.length - 10} more users
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {usersData.usersToDelete.length === 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                  <p className="text-green-800">✅ Only admin and dispatcher accounts remain!</p>
                 </div>
               )}
             </div>
