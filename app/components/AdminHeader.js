@@ -126,18 +126,7 @@ export default function AdminHeader() {
                   MAP
                 </Link>
               </li>
-              <li>
-                <Link 
-                  href="/settings" 
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/settings')
-                      ? 'bg-[#84CED3] text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  SETTINGS
-                </Link>
-              </li>
+
             </ul>
           </nav>
         )}
@@ -146,6 +135,18 @@ export default function AdminHeader() {
           <div className="flex items-center space-x-4 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <span className="text-gray-700 text-sm font-medium whitespace-nowrap">{userProfile?.full_name || user?.email}</span>
+              
+              {/* Settings Link */}
+              <Link 
+                href="/settings" 
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/settings')
+                    ? 'bg-[#84CED3] text-white'
+                    : 'text-gray-700 hover:bg-gray-100 border border-gray-300'
+                }`}
+              >
+                SETTINGS
+              </Link>
               
               {/* DB CLEANUP - Only for j.khinda@ccgrhc.com */}
               {user?.email === 'j.khinda@ccgrhc.com' && (
@@ -164,9 +165,9 @@ export default function AdminHeader() {
               <form action={signOut}>
                 <button 
                   type="submit"
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors whitespace-nowrap"
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors whitespace-nowrap border-2 border-red-600 hover:border-red-700"
                 >
-                  Sign out
+                  LOGOUT
                 </button>
               </form>
             </div>
