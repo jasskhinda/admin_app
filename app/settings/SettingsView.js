@@ -13,7 +13,8 @@ export default function SettingsView() {
   
   // Profile form state
   const [profileData, setProfileData] = useState({
-    full_name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone_number: '',
     address: ''
@@ -34,8 +35,15 @@ export default function SettingsView() {
 
   useEffect(() => {
     if (userProfile) {
+      // Split full_name back into first_name and last_name for editing
+      const fullName = userProfile.full_name || '';
+      const nameParts = fullName.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
       setProfileData({
-        full_name: userProfile.full_name || '',
+        first_name: userProfile.first_name || firstName,
+        last_name: userProfile.last_name || lastName,
         email: user?.email || '',
         phone_number: userProfile.phone_number || '',
         address: userProfile.address || ''
@@ -59,11 +67,12 @@ export default function SettingsView() {
       console.log('Updating profile for user:', user?.id);
       console.log('Profile data:', profileData);
 
-      // Update profile in database
+      // Update profile in database (full_name will be auto-generated from first_name + last_name)
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          full_name: profileData.full_name,
+          first_name: profileData.first_name,
+          last_name: profileData.last_name,
           phone_number: profileData.phone_number,
           address: profileData.address
         })
@@ -235,11 +244,24 @@ export default function SettingsView() {
               </label>
               <input
                 type="text"
-                value={profileData.full_name}
-                onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
+                value={`${profileData.first_name} ${profileData.last_name}`.trim()}
+                onChange={(e) => {
+                  const fullName = e.target.value;
+                  const nameParts = fullName.trim().split(' ');
+                  const firstName = nameParts[0] || '';
+                  const lastName = nameParts.slice(1).join(' ') || '';
+                  setProfileData({
+                    ...profileData, 
+                    first_name: firstName,
+                    last_name: lastName
+                  });
+                }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#84CED3] focus:border-transparent transition-colors"
                 placeholder="Enter your full name"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                This will be automatically split into first and last name
+              </p>
             </div>
 
             <div>
