@@ -227,6 +227,24 @@ export default function DatabaseCleanupView({ user, userProfile }) {
 
           {tripsData && (
             <div className="space-y-4">
+              {/* Debug Info */}
+              {tripsData.availableColumns && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-yellow-800 mb-2">Debug: Available Columns</h4>
+                  <div className="text-xs text-yellow-700">
+                    {tripsData.availableColumns.join(', ')}
+                  </div>
+                  {tripsData.sampleTrip && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-yellow-800">Sample Trip Data</summary>
+                      <pre className="text-xs mt-2 bg-white p-2 rounded overflow-auto">
+                        {JSON.stringify(tripsData.sampleTrip, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              )}
+
               {/* Trip Summary */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="font-semibold mb-3">Trip Summary</h3>
@@ -267,10 +285,10 @@ export default function DatabaseCleanupView({ user, userProfile }) {
                               </span>
                             </div>
                             <div className="text-sm">
-                              <strong>From:</strong> {trip.pickup || 'N/A'}
+                              <strong>From:</strong> {trip.pickup || trip.pickup_location || trip.from_location || 'N/A'}
                             </div>
                             <div className="text-sm">
-                              <strong>To:</strong> {trip.destination || 'N/A'}
+                              <strong>To:</strong> {trip.destination || trip.destination_location || trip.to_location || 'N/A'}
                             </div>
                             <div className="text-xs text-gray-600 mt-1">
                               Client: {trip.user ? `${trip.user.first_name} ${trip.user.last_name} (${trip.user.email})` : 'Unknown User'}

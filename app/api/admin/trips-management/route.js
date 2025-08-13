@@ -27,29 +27,34 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Admin client not available' }, { status: 500 });
     }
 
-    // Get all trips with basic info first (using correct column names)
+    // Get all trips - let's first get just basic columns to see what exists
     const { data: trips, error: tripsError } = await supabaseAdmin
       .from('trips')
-      .select(`
-        id,
-        status,
-        pickup,
-        destination,
-        pickup_time,
-        created_at,
-        user_id,
-        facility_id
-      `)
-      .order('created_at', { ascending: false });
+      .select('*')
+      .limit(1);
 
     if (tripsError) {
       return NextResponse.json({ error: tripsError.message }, { status: 500 });
     }
 
+    // Show what columns exist for debugging
+    const sampleTrip = trips?.[0];
+    const availableColumns = sampleTrip ? Object.keys(sampleTrip) : [];
+
+    // Now get all trips with only the columns that exist
+    const { data: allTrips, error: allTripsError } = await supabaseAdmin
+      .from('trips')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (allTripsError) {
+      return NextResponse.json({ error: allTripsError.message }, { status: 500 });
+    }
+
     // Get user and facility details separately to avoid relationship issues
     const enrichedTrips = [];
     
-    for (const trip of trips || []) {
+    for (const trip of allTrips || []) {
       let userInfo = null;
       let facilityInfo = null;
 
@@ -90,7 +95,9 @@ export async function GET(request) {
       success: true,
       trips: enrichedTrips,
       totalTrips: enrichedTrips.length,
-      statusCounts
+      statusCounts,
+      availableColumns, // Include this for debugging
+      sampleTrip // Include a sample trip to see the structure
     });
 
   } catch (error) {
