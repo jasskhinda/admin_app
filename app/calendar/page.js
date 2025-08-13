@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { CalendarView } from '../components/CalendarView';
 
 // This is a Server Component
 export default async function CalendarPage() {
@@ -103,8 +104,6 @@ export default async function CalendarPage() {
             };
         });
 
-        const { CalendarView } = require('../components/CalendarView');
-        
         return <CalendarView user={session.user} userProfile={userProfile} trips={processedTrips} />;
     } catch (error) {
         console.error('Error in calendar page:', error);
