@@ -13,6 +13,8 @@ export default function DatabaseCleanupView({ user, userProfile }) {
   const [tripsLoading, setTripsLoading] = useState(false);
   const [usersData, setUsersData] = useState(null);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [facilitiesData, setFacilitiesData] = useState(null);
+  const [facilitiesLoading, setFacilitiesLoading] = useState(false);
   const [error, setError] = useState('');
 
   const runDiagnostics = async () => {
@@ -246,6 +248,81 @@ export default function DatabaseCleanupView({ user, userProfile }) {
       alert(`❌ ERROR: ${err.message}`);
     } finally {
       setUsersLoading(false);
+    }
+  };
+
+  const loadFacilitiesData = async () => {
+    setFacilitiesLoading(true);
+    setError('');
+    setFacilitiesData(null);
+    
+    try {
+      const response = await fetch('/api/admin/facilities-management');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load facilities data');
+      }
+      
+      setFacilitiesData(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setFacilitiesLoading(false);
+    }
+  };
+
+  const deleteAllFacilities = async () => {
+    if (!facilitiesData || facilitiesData.facilities.length === 0) {
+      alert('No facilities to delete');
+      return;
+    }
+
+    const totalRelatedData = facilitiesData.facilities.reduce((sum, f) => 
+      sum + f.counts.facilityUsers + f.counts.profiles + f.counts.managedClients + f.counts.contracts, 0
+    );
+
+    const confirmMessage = `⚠️ DANGER: This will permanently delete ALL ${facilitiesData.totalFacilities} facilities!\n\nThis will also delete:\n• All facility user relationships\n• All facility contracts\n• All managed clients\n• All facility-related data\n• Total related records: ${totalRelatedData}\n\nThis action CANNOT be undone!\n\nType "DELETE ALL FACILITIES" to confirm:`;
+    
+    const userInput = prompt(confirmMessage);
+    
+    if (userInput !== 'DELETE ALL FACILITIES') {
+      if (userInput !== null) {
+        alert('❌ Deletion cancelled. You must type "DELETE ALL FACILITIES" exactly.');
+      }
+      return;
+    }
+
+    setFacilitiesLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/admin/facilities-management', {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete facilities');
+      }
+      
+      let message = `✅ SUCCESS!\n\n${data.message}\nRemaining facilities: ${data.remainingFacilities}`;
+      
+      if (data.errors && data.errors.length > 0) {
+        message += `\n\n⚠️ Warnings:\n${data.errors.map(e => `${e.table}: ${e.error}`).join('\n')}`;
+      }
+      
+      alert(message);
+      
+      // Reload facilities data
+      await loadFacilitiesData();
+      
+    } catch (err) {
+      setError(err.message);
+      alert(`❌ ERROR: ${err.message}`);
+    } finally {
+      setFacilitiesLoading(false);
     }
   };
 
@@ -531,6 +608,136 @@ export default function DatabaseCleanupView({ user, userProfile }) {
               {usersData.usersToDelete.length === 0 && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                   <p className="text-green-800">✅ Only admin and dispatcher accounts remain!</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Facilities Management Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-red-200 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-red-800">🏥 Facilities Management</h2>
+          
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-800 text-sm">
+              <strong>⚠️ Warning:</strong> This will delete ALL facilities and their associated data including 
+              contracts, managed clients, and facility user relationships. This action is irreversible!
+            </p>
+          </div>
+
+          <div className="flex space-x-4 mb-6">
+            <button
+              onClick={loadFacilitiesData}
+              disabled={facilitiesLoading}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+            >
+              {facilitiesLoading ? 'Loading...' : '🏥 View All Facilities'}
+            </button>
+            
+            {facilitiesData && facilitiesData.facilities.length > 0 && (
+              <button
+                onClick={deleteAllFacilities}
+                disabled={facilitiesLoading}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {facilitiesLoading ? 'Deleting...' : '🗑️ DELETE ALL FACILITIES'}
+              </button>
+            )}
+          </div>
+
+          {facilitiesData && (
+            <div className="space-y-4">
+              {/* Facilities Summary */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Facilities Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-white rounded border">
+                    <div className="text-2xl font-bold text-blue-600">{facilitiesData.totalFacilities}</div>
+                    <div className="text-xs text-gray-600">Total Facilities</div>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded border">
+                    <div className="text-lg font-bold text-gray-700">
+                      {facilitiesData.facilities.reduce((sum, f) => sum + f.counts.facilityUsers, 0)}
+                    </div>
+                    <div className="text-xs text-gray-600">Facility Users</div>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded border">
+                    <div className="text-lg font-bold text-gray-700">
+                      {facilitiesData.facilities.reduce((sum, f) => sum + f.counts.managedClients, 0)}
+                    </div>
+                    <div className="text-xs text-gray-600">Managed Clients</div>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded border">
+                    <div className="text-lg font-bold text-gray-700">
+                      {facilitiesData.facilities.reduce((sum, f) => sum + f.counts.contracts, 0)}
+                    </div>
+                    <div className="text-xs text-gray-600">Contracts</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Facilities List */}
+              {facilitiesData.facilities.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold mb-3">Facilities (showing all {facilitiesData.facilities.length})</h3>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {facilitiesData.facilities.map((facility) => (
+                      <div key={facility.id} className="bg-white border rounded-lg p-3">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 mb-1">
+                              {facility.name}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <strong>Email:</strong> {facility.email || 'N/A'}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <strong>Phone:</strong> {facility.phone || 'N/A'}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <strong>Address:</strong> {facility.address || 'N/A'}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-2">
+                              Created: {new Date(facility.created_at).toLocaleDateString()}
+                            </div>
+                            
+                            {/* Data counts */}
+                            <div className="flex space-x-4 mt-2">
+                              {facility.counts.facilityUsers > 0 && (
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                  {facility.counts.facilityUsers} users
+                                </span>
+                              )}
+                              {facility.counts.managedClients > 0 && (
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                  {facility.counts.managedClients} clients
+                                </span>
+                              )}
+                              {facility.counts.contracts > 0 && (
+                                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                  {facility.counts.contracts} contracts
+                                </span>
+                              )}
+                              {facility.counts.profiles > 0 && (
+                                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                  {facility.counts.profiles} profiles
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            ID: {facility.id.substring(0, 8)}...
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {facilitiesData.totalFacilities === 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                  <p className="text-green-800">✅ No facilities found - database is clean!</p>
                 </div>
               )}
             </div>
