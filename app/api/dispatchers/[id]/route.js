@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 
 export async function PUT(request, { params }) {
@@ -71,6 +72,7 @@ export async function PUT(request, { params }) {
     // Update Supabase Auth user if email or password changed
     if (email !== existingDispatcher.email || password) {
       try {
+        const adminSupabase = createAdminClient();
         const authUpdateData = {};
         
         if (email !== existingDispatcher.email) {
@@ -81,17 +83,22 @@ export async function PUT(request, { params }) {
           authUpdateData.password = password;
         }
         
-        const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
+        console.log('Updating auth user with admin client:', { userId: params.id, hasPassword: !!password, hasEmail: !!authUpdateData.email });
+        
+        const { error: authUpdateError } = await adminSupabase.auth.admin.updateUserById(
           params.id,
           authUpdateData
         );
         
         if (authUpdateError) {
           console.error('Error updating auth user:', authUpdateError);
-          // Don't fail the request for auth update errors, just log them
+          return NextResponse.json({ error: `Failed to update authentication: ${authUpdateError.message}` }, { status: 500 });
+        } else {
+          console.log('✅ Auth user updated successfully');
         }
       } catch (authError) {
         console.error('Error updating auth user:', authError);
+        return NextResponse.json({ error: `Failed to update authentication: ${authError.message}` }, { status: 500 });
       }
     }
     
@@ -140,11 +147,12 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Dispatcher not found' }, { status: 404 });
     }
     
-    // Check if dispatcher has any active trips
-    const { data: activeTrips, error: tripsError } = await supabase
+    // Check if dispatcher has any active trips (check both created_by and any other possible dispatcher relationships)
+    const adminSupabase = createAdminClient();
+    const { data: activeTrips, error: tripsError } = await adminSupabase
       .from('trips')
       .select('id')
-      .eq('dispatcher_id', params.id)
+      .eq('created_by', params.id)
       .in('status', ['pending', 'upcoming', 'in_progress']);
     
     if (tripsError) {
@@ -172,11 +180,13 @@ export async function DELETE(request, { params }) {
     
     // Try to delete the auth user (optional, may fail if user signed up independently)
     try {
-      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(params.id);
+      const { error: authDeleteError } = await adminSupabase.auth.admin.deleteUser(params.id);
       
       if (authDeleteError) {
         console.error('Error deleting auth user:', authDeleteError);
         // Don't fail the request for auth delete errors, just log them
+      } else {
+        console.log('✅ Auth user deleted successfully');
       }
     } catch (authError) {
       console.error('Error deleting auth user:', authError);
