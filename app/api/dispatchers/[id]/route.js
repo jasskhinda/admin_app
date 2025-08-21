@@ -166,31 +166,65 @@ export async function DELETE(request, { params }) {
       }, { status: 400 });
     }
     
-    // Delete the dispatcher profile
-    const { error: deleteError } = await supabase
+    // Step 1: First, try to delete any related data that might reference this user
+    console.log('🔄 Step 1: Cleaning up related data...');
+    
+    try {
+      // Check for any other tables that might reference this user ID
+      // This is a safety measure to avoid foreign key constraint errors
+      
+      // Update any trips that might reference this user in other fields
+      const { error: tripUpdateError } = await adminSupabase
+        .from('trips')
+        .update({ created_by: null })
+        .eq('created_by', params.id);
+      
+      if (tripUpdateError) {
+        console.log('⚠️ Note: Could not update trip references:', tripUpdateError.message);
+      } else {
+        console.log('✅ Trip references cleaned up');
+      }
+      
+    } catch (cleanupError) {
+      console.log('⚠️ Note: Cleanup step had issues:', cleanupError.message);
+    }
+    
+    // Step 2: Delete the auth user first (this often has fewer constraints)
+    console.log('🔄 Step 2: Deleting auth user...');
+    try {
+      const { error: authDeleteError } = await adminSupabase.auth.admin.deleteUser(params.id);
+      
+      if (authDeleteError) {
+        console.error('❌ Error deleting auth user:', authDeleteError);
+        return NextResponse.json({ 
+          error: `Failed to delete user from authentication system: ${authDeleteError.message}` 
+        }, { status: 500 });
+      } else {
+        console.log('✅ Auth user deleted successfully');
+      }
+    } catch (authError) {
+      console.error('❌ Exception deleting auth user:', authError);
+      return NextResponse.json({ 
+        error: `Failed to delete user from authentication system: ${authError.message}` 
+      }, { status: 500 });
+    }
+    
+    // Step 3: Delete the dispatcher profile (use admin client)
+    console.log('🔄 Step 3: Deleting dispatcher profile...');
+    const { error: deleteError } = await adminSupabase
       .from('profiles')
       .delete()
       .eq('id', params.id)
       .eq('role', 'dispatcher');
     
     if (deleteError) {
-      console.error('Error deleting dispatcher:', deleteError);
-      return NextResponse.json({ error: 'Failed to delete dispatcher' }, { status: 500 });
+      console.error('❌ Error deleting dispatcher profile:', deleteError);
+      return NextResponse.json({ 
+        error: `Failed to delete dispatcher profile: ${deleteError.message}` 
+      }, { status: 500 });
     }
     
-    // Try to delete the auth user (optional, may fail if user signed up independently)
-    try {
-      const { error: authDeleteError } = await adminSupabase.auth.admin.deleteUser(params.id);
-      
-      if (authDeleteError) {
-        console.error('Error deleting auth user:', authDeleteError);
-        // Don't fail the request for auth delete errors, just log them
-      } else {
-        console.log('✅ Auth user deleted successfully');
-      }
-    } catch (authError) {
-      console.error('Error deleting auth user:', authError);
-    }
+    console.log('✅ Dispatcher profile deleted successfully');
     
     return NextResponse.json({ 
       message: 'Dispatcher deleted successfully'
